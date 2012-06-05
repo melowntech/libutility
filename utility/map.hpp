@@ -93,7 +93,7 @@ map(const std::string &name, const Sequence &values
 
         SequenceSubRange range
             (values.begin() + start
-             , ((start + length) < values.size())
+             , ((start + length) < static_cast<size_t>(values.size()))
              ? values.begin() + start + length : values.end());
 
         typename ResultList::iterator iresult(result.begin() + start);
