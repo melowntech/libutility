@@ -2,6 +2,7 @@
 #define shared_utility_detail_map_hpp_included_
 
 #include <cstdlib>
+#include <utility>
 #include <boost/range.hpp>
 #include <boost/format.hpp>
 
@@ -72,12 +73,12 @@ public:
                     , const Callable &callable, Args2&& ...args)
         const
     {
-        BOOST_FOREACH(const auto &value, values) {
+        for (const auto &value : values) {
             dbglog::thread_id(str(boost::format("%s [%d/%d]")
                                   % name % (index + 1) % count));
 
             try {
-                result->set(callable(value, args...));
+                result->set(callable(value, std::forward<Args2>(args)...));
             } catch(...) {
                 result->set(std::current_exception());
             }

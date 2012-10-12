@@ -3,10 +3,10 @@
 
 #include <future>
 #include <cstdlib>
+#include <utility>
 
 #include <boost/thread.hpp>
 #include <boost/range.hpp>
-#include <boost/format.hpp>
 
 #include <utility/detail/map.hpp>
 
@@ -67,7 +67,7 @@ map(const std::string &name, const Sequence &values
         result.resize(values.size());
 
         helper(SequenceSubRange(values), name, 0, values.size()
-               , result.begin(), callable, args...);
+               , result.begin(), callable, std::forward<Args>(args)...);
         return result;
     }
 
@@ -102,10 +102,11 @@ map(const std::string &name, const Sequence &values
             (std::async(std::launch::async, helper, range
                         , str(boost::format("%s:%d/%d") % name
                               % (i + 1) % threadCount)
-                        , start, count, iresult, callable, args...));
+                        , start, count, iresult, callable
+                        , std::forward<Args>(args)...));
     }
 
-    BOOST_FOREACH(auto &job, jobs) {
+    for (auto &job : jobs) {
         job.wait();
     }
 
