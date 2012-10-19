@@ -6,6 +6,8 @@
 #include <boost/range.hpp>
 #include <boost/format.hpp>
 
+#include <dbglog/dbglog.hpp>
+
 namespace utility { namespace detail {
 
 template <typename CallResult>

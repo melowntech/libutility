@@ -8,6 +8,8 @@
 #include <boost/thread.hpp>
 #include <boost/range.hpp>
 
+#include <dbglog/dbglog.hpp>
+
 #include <utility/detail/map.hpp>
 
 namespace utility {
