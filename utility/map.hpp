@@ -46,7 +46,7 @@ typename detail::map_helper<Sequence, Callable, Args...>::ResultList
 map(const std::string &name, const Sequence &values
     , const Callable &callable, Args&& ...args)
 {
-    typedef detail::map_helper<Sequence, Callable, Args...> Helper;
+    typedef detail::map_helper<Sequence, Callable, Args&&...> Helper;
     typedef typename Helper::Result Result;
     typedef typename Helper::ResultList ResultList;
     typedef typename Helper::SequenceSubRange SequenceSubRange;

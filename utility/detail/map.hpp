@@ -3,8 +3,10 @@
 
 #include <cstdlib>
 #include <utility>
+#include <type_traits>
 #include <boost/range.hpp>
 #include <boost/format.hpp>
+#include <boost/utility.hpp> 
 
 #include <dbglog/dbglog.hpp>
 
@@ -59,8 +61,9 @@ class map_helper {
 public:
     typedef typename Sequence::value_type value_type;
 
-    typedef typename std::result_of
-        <Callable(const value_type&, Args...)>::type CallResult;
+//    typedef typename std::result_of
+    typedef typename boost::result_of
+        <Callable(const value_type&, Args&&...)>::type CallResult;
 
     typedef detail::Result<CallResult> Result;
     typedef std::vector<Result> ResultList;
