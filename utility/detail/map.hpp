@@ -6,7 +6,7 @@
 #include <type_traits>
 #include <boost/range.hpp>
 #include <boost/format.hpp>
-#include <boost/utility.hpp> 
+#include <boost/utility/result_of.hpp>
 
 #include <dbglog/dbglog.hpp>
 
