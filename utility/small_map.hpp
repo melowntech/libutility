@@ -40,19 +40,19 @@ public:
 
     iterator begin() { return storage_.begin(); }
     const_iterator begin() const { return storage_.begin(); }
-    const_iterator cbegin() { return storage_.cbegin(); }
+    const_iterator cbegin() const { return storage_.cbegin(); }
 
     iterator end() { return storage_.end(); }
     const_iterator end() const { return storage_.end(); }
-    const_iterator cend() { return storage_.cend(); }
+    const_iterator cend() const { return storage_.cend(); }
 
     reverse_iterator rbegin() { return storage_.rbegin(); }
     const_reverse_iterator rbegin() const { return storage_.rbegin(); }
-    const_reverse_iterator crbegin() { return storage_.crbegin(); }
+    const_reverse_iterator crbegin() const { return storage_.crbegin(); }
 
     reverse_iterator rend() { return storage_.rend(); }
     const_reverse_iterator rend() const { return storage_.rend(); }
-    const_reverse_iterator crend() { return storage_.crend(); }
+    const_reverse_iterator crend() const { return storage_.crend(); }
 
     bool empty() const { return storage_.empty(); }
     size_type size() const { return storage_.size(); }
