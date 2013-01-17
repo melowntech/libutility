@@ -12,8 +12,7 @@ template<typename Archive>
 inline void small_map<Key, T, Compare, Allocator>
 ::serialize(Archive &ar, const unsigned int version)
 {
-    (void) ar; (void) version;
-    // return boost::serialization::serialize(ar, storage_, version);
+    return boost::serialization::serialize(ar, storage_, version);
 }
 
 } // namespace utility
