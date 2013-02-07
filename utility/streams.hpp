@@ -39,6 +39,13 @@ arrayPrinter(const std::array<T, size> &array
     return {&array[0], separator};
 }
 
+template <typename Dumpable>
+detail::Dumper<Dumpable> dump(const Dumpable &dumpable
+                              , const std::string &prefix = "")
+{
+    return {dumpable, prefix};
+}
+
 } // namespace utility
 
 #endif // utility_streams_hpp_included_

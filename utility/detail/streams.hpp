@@ -69,6 +69,31 @@ struct ArrayPrinter {
     const std::string separator;
 };
 
+/** Dumpable is a class having this member function:
+ *  template <typename E, typename T>
+ *  std::basic_ostream<E, T>&
+ *  dump( std::basic_ostream<E, T> &os, const std::string & prefix) const;
+ */
+template <typename Dumpable>
+struct Dumper {
+    Dumper(const Dumpable &dumpable, const std::string &prefix)
+        : dumpable(dumpable), prefix(prefix)
+    {}
+
+    const Dumpable &dumpable;
+    const std::string &prefix;
+
+private:
+    Dumpable& operator=(Dumpable&); // assignment operator deleted
+};
+
+template <typename E, typename T, typename Dumpable>
+std::basic_ostream<E, T>&
+operator<<(std::basic_ostream<E,T> &os, const Dumper<Dumpable> &dumper)
+{
+    return dumper.dumpable.dump(os, dumper.prefix);
+}
+
 } } // namespace utility::detail
 
 #endif // utility_detail_streams_hpp_included_
