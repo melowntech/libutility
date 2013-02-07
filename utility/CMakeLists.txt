@@ -1,4 +1,4 @@
-define_module(LIBRARY utility DEPENDS dbglog Boost_THREAD)
+define_module(LIBRARY utility DEPENDS dbglog Boost_THREAD Boost_PROGRAM_OPTIONS)
 
 set(utility_SOURCES
   duration.hpp
@@ -6,8 +6,9 @@ set(utility_SOURCES
   has_member.hpp
   map.hpp
   small_map.hpp
-  streams.hpp
+  streams.hpp detail/streams.hpp
   utility.cpp
+  config.hpp detail/config.hpp detail/config.cpp
   )
 
 add_library(utility STATIC ${utility_SOURCES})
