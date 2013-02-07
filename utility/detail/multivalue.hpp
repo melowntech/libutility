@@ -18,20 +18,20 @@ namespace po = boost::program_options;
 
 template <typename T>
 const std::vector<T>
-inline get_multi_value(const detail::po::variables_map &map, const char *name
+inline get_multi_value(const po::variables_map &map, const char *name
                        , typename std::vector<T>::size_type size)
 {
     const auto &v(map[name]);
     if (v.empty()) {
-        throw detail::po::required_option(name);
+        throw po::required_option(name);
     }
 
     const auto &value(v.as<std::vector<T> >());
 
     if (value.size() != size) {
         // TODO: replace "xxx" with size difference description
-        throw detail::po::validation_error
-            (detail::po::validation_error::invalid_option_value, "xxx", name);
+        throw po::validation_error
+            (po::validation_error::invalid_option_value, "xxx", name);
     }
     return value;
 }
