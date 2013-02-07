@@ -9,6 +9,7 @@ set(utility_SOURCES
   streams.hpp detail/streams.hpp
   utility.cpp
   config.hpp detail/config.hpp detail/config.cpp
+  multivalue.hpp detail/multivalue.hpp
   )
 
 add_library(utility STATIC ${utility_SOURCES})
