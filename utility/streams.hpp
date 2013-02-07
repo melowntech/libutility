@@ -8,6 +8,8 @@
 #ifndef utility_streams_hpp_included_
 #define utility_streams_hpp_included_
 
+#include <string>
+
 #include "detail/streams.hpp"
 
 /** This module adds support for C++ iostream.
@@ -19,7 +21,22 @@ namespace utility {
  */
 template<typename CharT>
 inline detail::Expect<CharT> expect(CharT c) {
-    return detail::Expect<CharT>{c};
+    return {c};
+}
+
+template<typename T, std::size_t size>
+detail::ArrayPrinter<T, size>
+arrayPrinter(const T(&data)[size], const std::string &separator = ", ")
+{
+    return {data, separator};
+}
+
+template<typename T, std::size_t size>
+detail::ArrayPrinter<T, size>
+arrayPrinter(const std::array<T, size> &array
+        , const std::string &separator = ", ")
+{
+    return {&array[0], separator};
 }
 
 } // namespace utility
