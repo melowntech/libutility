@@ -13,6 +13,7 @@
 #include <array>
 #include <istream>
 #include <ostream>
+#include <algorithm>
 
 namespace utility { namespace detail {
 
