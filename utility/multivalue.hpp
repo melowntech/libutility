@@ -35,10 +35,10 @@ inline detail::po::value_semantic* multi_value()
     return detail::po::value<std::vector<T> >();
 }
 
-template <typename T, typename C>
+template <typename T, typename C, typename Output>
 inline void process_multi_value(const detail::po::variables_map &map
                                 , const char *name
-                                , std::vector<C> &output, T C::*destination)
+                                , Output &output, T C::*destination)
 {
     const auto &input(detail::get_multi_value<T>(map, name, output.size()));
 
