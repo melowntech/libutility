@@ -18,7 +18,7 @@ namespace utility {
 /** Join any number of Boost.Filesystem paths to one path by operator/
  */
 template <typename ...Paths>
-inline boost::filesystem::path joinPaths(Paths &&...tail);
+boost::filesystem::path joinPaths(Paths &&...tail);
 
 boost::filesystem::path
 addExtension(const boost::filesystem::path &path
@@ -36,8 +36,8 @@ inline boost::filesystem::path joinPaths(Paths &&...tail)
 }
 
 boost::filesystem::path
-addExtension(const boost::filesystem::path &path
-             , const boost::filesystem::path::string_type &ext)
+inline addExtension(const boost::filesystem::path &path
+                    , const boost::filesystem::path::string_type &ext)
 {
     return path.parent_path() / (path.filename().string() + ext);
 }
