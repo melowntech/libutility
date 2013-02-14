@@ -22,7 +22,7 @@ boost::filesystem::path joinPaths(Paths &&...tail);
 
 boost::filesystem::path
 addExtension(const boost::filesystem::path &path
-             , const boost::filesystem::path::string_type &ext);
+             , const boost::filesystem::path &ext);
 
 
 // implementation
@@ -37,9 +37,9 @@ inline boost::filesystem::path joinPaths(Paths &&...tail)
 
 boost::filesystem::path
 inline addExtension(const boost::filesystem::path &path
-                    , const boost::filesystem::path::string_type &ext)
+                    , const boost::filesystem::path &ext)
 {
-    return path.parent_path() / (path.filename().string() + ext);
+    return path.parent_path() / (path.filename().string() + ext.string());
 }
 
 } // namespace utility
