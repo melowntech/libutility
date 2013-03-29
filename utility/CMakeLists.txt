@@ -10,6 +10,7 @@ set(utility_SOURCES
   utility.cpp
   config.hpp detail/config.hpp detail/config.cpp
   multivalue.hpp detail/multivalue.hpp
+  scopedguard.hpp
   )
 
 add_library(utility STATIC ${utility_SOURCES})
