@@ -46,6 +46,18 @@ detail::Dumper<Dumpable> dump(const Dumpable &dumpable
     return {dumpable, prefix};
 }
 
+struct LManip {
+    typedef std::function<void (std::ostream&)> type;
+    const type &l;
+    LManip(const type &l) : l(l) {}
+};
+
+inline std::ostream& operator<<(std::ostream &os, const LManip &l)
+{
+    l.l(os);
+    return os;
+}
+
 } // namespace utility
 
 #endif // utility_streams_hpp_included_
