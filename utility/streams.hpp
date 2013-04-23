@@ -16,6 +16,8 @@
  */
 namespace utility {
 
+using detail::resetFailOnEof;
+
 /** Consumes next character from stream and checks it with given pattern.
  *  Skips whitespaces if skipws is set.
  */
@@ -24,6 +26,8 @@ inline detail::Expect<CharT> expect(CharT c) {
     return {c};
 }
 
+/** Similar to expect(c) but returns char back on mismatch.
+ */
 template<typename CharT>
 inline detail::Match<CharT> match(CharT c) {
     return {c};
@@ -39,7 +43,7 @@ arrayPrinter(const T(&data)[size], const std::string &separator = ", ")
 template<typename T, std::size_t size>
 detail::ArrayPrinter<T, size>
 arrayPrinter(const std::array<T, size> &array
-        , const std::string &separator = ", ")
+             , const std::string &separator = ", ")
 {
     return {&array[0], separator};
 }

@@ -17,6 +17,16 @@
 
 namespace utility { namespace detail {
 
+template<typename CharT, typename Traits>
+inline std::basic_istream<CharT, Traits>&
+resetFailOnEof(std::basic_istream<CharT, Traits> &is)
+{
+    if (is.eof()) {
+        is.clear(is.rdstate() & ~std::ios::failbit);
+    }
+    return is;
+}
+
 /** Consumes next character from stream and checks it with given pattern.
  *  Skips whitespaces if skipws is set.
  */
@@ -59,24 +69,25 @@ operator>>(std::basic_istream<CharT, Traits> &is, Match<CharT> &ce)
 {
     ce.matched = false;
 
-    bool skipws(is.flags() & std::ios::skipws);
-    for (;;) {
-        auto c(is.get());
-        if (c == ce.c) {
-            // matched
-            ce.matched = true;
-            return is;
-        }
+    // check for stream validity and eat whitespaces
+    std::istream::sentry s(is);
+    if (!s) {
+        return resetFailOnEof(is);
+    };
 
-        if (skipws && std::isspace(c)) {
-            // skip ws
-            continue;
-        }
-        // not found
-        is.unget();
+    auto c(is.get());
+    if (is.eof()) {
+        return resetFailOnEof(is);
+    };
 
-        break;
+    if (c == ce.c) {
+        // matched
+        ce.matched = true;
+        return is;
     }
+
+    // not found; return back what was read
+    is.unget();
     return is;
 }
 
