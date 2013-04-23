@@ -24,6 +24,11 @@ inline detail::Expect<CharT> expect(CharT c) {
     return {c};
 }
 
+template<typename CharT>
+inline detail::Match<CharT> match(CharT c) {
+    return {c};
+}
+
 template<typename T, std::size_t size>
 detail::ArrayPrinter<T, size>
 arrayPrinter(const T(&data)[size], const std::string &separator = ", ")

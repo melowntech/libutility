@@ -46,6 +46,40 @@ operator>>(std::basic_istream<CharT, Traits> &is, const Expect<CharT> &ce)
     return is;
 }
 
+template<typename CharT> struct Match {
+    CharT c;
+    bool matched;
+
+    Match(CharT c) : c(c), matched(false) {}
+};
+
+template<typename CharT, typename Traits>
+inline std::basic_istream<CharT, Traits>&
+operator>>(std::basic_istream<CharT, Traits> &is, Match<CharT> &ce)
+{
+    ce.matched = false;
+
+    bool skipws(is.flags() & std::ios::skipws);
+    for (;;) {
+        auto c(is.get());
+        if (c == ce.c) {
+            // matched
+            ce.matched = true;
+            return is;
+        }
+
+        if (skipws && std::isspace(c)) {
+            // skip ws
+            continue;
+        }
+        // not found
+        is.unget();
+
+        break;
+    }
+    return is;
+}
+
 template<typename T, std::size_t size>
 struct ArrayPrinter {
     const T *data;
