@@ -11,9 +11,17 @@ set(utility_SOURCES
   config.hpp detail/config.hpp detail/config.cpp
   multivalue.hpp detail/multivalue.hpp
   scopedguard.hpp
+
+  filesystem.hpp detail/filesystem.hpp detail/filesystem.cpp
   )
 
 add_library(utility STATIC ${utility_SOURCES})
 set_target_properties(utility PROPERTIES ARCHIVE_OUTPUT_DIRECTORY
   ${CMAKE_SOURCE_DIR}/lib)
 target_link_libraries(utility ${MODULE_LIBRARIES})
+
+# fallback to pre C++11 compiler for Boost.Filesystem operations
+if (${CMAKE_C_COMPILER_ID} MATCHES GNU)
+  set_source_files_properties(detail/filesystem.cpp PROPERTIES
+    COMPILE_FLAGS -std=c++98)
+endif()
