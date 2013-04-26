@@ -11,6 +11,7 @@ set(utility_SOURCES
   config.hpp detail/config.hpp detail/config.cpp
   multivalue.hpp detail/multivalue.hpp
   scopedguard.hpp
+  process.hpp process.cpp
 
   filesystem.hpp detail/filesystem.hpp detail/filesystem.cpp
   )
