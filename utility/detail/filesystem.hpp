@@ -6,7 +6,8 @@
 namespace utility { namespace detail {
 
 void copy_file(const boost::filesystem::path &from
-               , const boost::filesystem::path &to);
+               , const boost::filesystem::path &to
+               , bool overwrite);
 
 } } // namespace utility::detail
 
