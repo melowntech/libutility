@@ -35,11 +35,23 @@ inline boost::filesystem::path joinPaths(Paths &&...tail)
     return res;
 }
 
-boost::filesystem::path
-inline addExtension(const boost::filesystem::path &path
+inline boost::filesystem::path
+addExtension(const boost::filesystem::path &path
                     , const boost::filesystem::path &ext)
 {
     return path.parent_path() / (path.filename().string() + ext.string());
+}
+
+inline boost::filesystem::path
+replaceOrAddExtension(const boost::filesystem::path &path
+                      , const boost::filesystem::path &ext)
+{
+    if (!path.has_extension()) {
+        // no extension -> add it
+        return addExtension(path, "." + ext.string());
+    }
+    auto p(path);
+    return p.replace_extension(ext);
 }
 
 } // namespace utility
