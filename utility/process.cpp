@@ -1,7 +1,6 @@
 #include <iostream>
 #include <cerrno>
 #include <cstdlib>
-#include <system_error>
 
 #include <string.h>
 #include <unistd.h>
@@ -103,4 +102,21 @@ int systemImpl(const std::string &program
     return -1;
 }
 
+int spawnImpl(const std::function<int ()> &func)
+{
+    auto pid(::fork());
+    if (-1 == pid) {
+        // Oops, failed
+        std::system_error e(errno, std::system_category());
+        LOG(warn3) << "fork(2) failed: <" << e.code()
+                   << ", " << e.what() << ">";
+        throw e;
+    } else if (0 == pid) {
+        std::exit(func());
+    }
+
+    return pid;
+}
+
 } } // namespace utility::detail
+
