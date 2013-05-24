@@ -11,6 +11,12 @@ void copy_file(const boost::filesystem::path &from
                , const boost::filesystem::path &to
                , bool overwrite);
 
+void copy_file(const boost::filesystem::path &from
+               , const boost::filesystem::path &to
+               , bool overwrite
+               , boost::system::error_code& ec);
+
+
 } // namespace utility
 
 // impelemtation
@@ -22,5 +28,12 @@ inline void utility::copy_file(const boost::filesystem::path &from
     return utility::detail::copy_file(from, to, overwrite);
 }
 
+inline void utility::copy_file(const boost::filesystem::path &from
+                               , const boost::filesystem::path &to
+                               , bool overwrite 
+                              , boost::system::error_code& ec)
+{
+    return utility::detail::copy_file(from, to, overwrite, ec);
+}
 
 #endif // utility_filesystem_hpp_included_
