@@ -12,6 +12,7 @@ set(utility_SOURCES
   multivalue.hpp detail/multivalue.hpp
   scopedguard.hpp
   process.hpp process.cpp
+  interprocess.hpp
 
   filesystem.hpp detail/filesystem.hpp detail/filesystem.cpp
   )
