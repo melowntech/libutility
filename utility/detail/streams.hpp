@@ -140,6 +140,28 @@ operator<<(std::basic_ostream<E,T> &os, const Dumper<Dumpable> &dumper)
     return dumper.dumpable.dump(os, dumper.prefix);
 }
 
+template <typename Container>
+struct Join {
+    const Container &c;
+    const std::string &sep;
+};
+
+
+template <typename E, typename T, typename Container>
+inline std::basic_ostream<E, T>&
+operator<<(std::basic_ostream<E, T> &os, const Join<Container> &j)
+{
+    bool first = true;
+    for (const auto &e : j.c) {
+        if (!first) {
+            os << j.sep;
+        }
+        os << e;
+        first = false;
+    }
+    return os;
+}
+
 } } // namespace utility::detail
 
 #endif // utility_detail_streams_hpp_included_

@@ -67,6 +67,12 @@ inline std::ostream& operator<<(std::ostream &os, const LManip &l)
     return os;
 }
 
+template <typename Container>
+detail::Join<Container> join(const Container &c, const std::string &sep)
+{
+    return {c, sep};
+}
+
 } // namespace utility
 
 #endif // utility_streams_hpp_included_
