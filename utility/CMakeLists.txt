@@ -14,6 +14,9 @@ set(utility_SOURCES
   process.hpp process.cpp
   interprocess.hpp
 
+  uri.hpp
+  parse.hpp
+
   filesystem.hpp detail/filesystem.hpp detail/filesystem.cpp
   )
 
