@@ -1,5 +1,5 @@
 /**
- * @file detail/streams.hpp
+ * @file streams.hpp
  * @author Vaclav Blazek <vaclav.blazek@citationtech.net>
  *
  * This module adds utilities for C++ iostream.
