@@ -18,7 +18,7 @@
 namespace utility {
 
 struct Uri {
-    std::string protocol;
+    std::string schema;
     std::string user;
     std::string password;
     std::string host;
@@ -82,7 +82,7 @@ inline std::string extractPath(std::string &in) {
     return tailSlice(in, "/", true);
 }
 
-inline std::string extractProtocol(std::string &in) {
+inline std::string extractSchema(std::string &in) {
     return headSlice(in, "://");
 }
 
@@ -106,8 +106,8 @@ inline Uri parseUri(std::string in) {
     Uri ret;
     ret.port = -1;
 
-    ret.protocol
-        = boost::algorithm::to_lower_copy(detail::extractProtocol(in));
+    ret.schema
+        = boost::algorithm::to_lower_copy(detail::extractSchema(in));
     ret.search = detail::extractSearch(in);
     ret.path = detail::extractPath(in);
     std::string userpass = detail::extractUserpass(in);
