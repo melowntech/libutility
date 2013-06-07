@@ -10,6 +10,8 @@
 
 #include <string>
 
+#include <boost/filesystem/path.hpp>
+
 #include "detail/streams.hpp"
 
 /** This module adds support for C++ iostream.
@@ -71,6 +73,21 @@ template <typename Container>
 detail::Join<Container> join(const Container &c, const std::string &sep)
 {
     return {c, sep};
+}
+
+template<typename T, int size>
+inline void write(std::ostream &os, const T(&v)[size]) {
+    os.write(reinterpret_cast<const char*>(v), size * sizeof(T));
+}
+
+template<typename T, int size>
+inline void write(const boost::filesystem::path &file, const T(&v)[size])
+{
+    std::ofstream f;
+    f.exceptions(std::ios::badbit | std::ios::failbit);
+    f.open(file.string(), std::ios_base::out | std::ios_base::trunc);
+    write(f, v);
+    f.close();
 }
 
 } // namespace utility
