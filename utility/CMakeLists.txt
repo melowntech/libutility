@@ -18,7 +18,19 @@ set(utility_SOURCES
   parse.hpp
 
   filesystem.hpp detail/filesystem.hpp detail/filesystem.cpp
+  tcpendpoint.hpp tcpendpoint-io.hpp tcpendpoint-io.cpp
+  detail/iface.hpp
   )
+
+if(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
+  list(APPEND utility_SOURCES
+    detail/iface.linux.cpp
+    )
+else()
+  list(APPEND utility_SOURCES
+    detail/iface.unsupported.cpp
+    )
+endif()
 
 add_library(utility STATIC ${utility_SOURCES})
 buildsys_library(utility)
