@@ -8,7 +8,14 @@ namespace utility {
 
 class DurationMeter {
 public:
+#if defined(__GLIBCXX__) && (__GLIBCXX__ < 20120322)
+    // gcc 4.6
     typedef std::chrono::monotonic_clock clock_t;
+#else
+    // gcc 4.7, conforming to standard
+    typedef std::chrono::steady_clock clock_t;
+#endif
+
     typedef clock_t::duration duration_type;
 
     DurationMeter()
