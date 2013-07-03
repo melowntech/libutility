@@ -8,7 +8,7 @@ namespace utility {
 
 class DurationMeter {
 public:
-#if defined(__GLIBCXX__) && (__GLIBCXX__ < 20121127)
+#if defined(__GLIBCXX__) && (__GLIBCXX__ <= 20121127)
     // gcc 4.6
     typedef std::chrono::monotonic_clock clock_t;
 #else
