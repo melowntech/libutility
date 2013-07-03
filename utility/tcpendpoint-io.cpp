@@ -5,11 +5,16 @@
 #include <boost/spirit/include/phoenix_operator.hpp>
 
 #include "tcpendpoint.hpp"
+#include "tcpendpoint-io.hpp"
 #include "detail/iface.hpp"
 
 namespace ip = boost::asio::ip;
 
 namespace utility {
+
+TcpEndpoint::TcpEndpoint(const std::string &def)
+    : value(parseEndpoint(def).value)
+{}
 
 TcpEndpoint parseEndpoint(const std::string &endpoint)
 {

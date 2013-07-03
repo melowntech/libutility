@@ -11,6 +11,8 @@ struct TcpEndpoint {
     TcpEndpoint(unsigned short portNum)
         : value(boost::asio::ip::tcp::v4(), portNum) {}
 
+    TcpEndpoint(const std::string &def);
+
     TcpEndpoint(const boost::asio::ip::tcp::endpoint &value) : value(value) {}
 
     operator const boost::asio::ip::tcp::endpoint&() { return value; }
