@@ -7,7 +7,7 @@
 
 namespace utility {
 
-TcpEndpoint parseEndpoint(const std::string &listen);
+TcpEndpoint parseTcpEndpoint(const std::string &listen);
 
 template<typename CharT, typename Traits>
 std::basic_istream<CharT, Traits>&
@@ -25,7 +25,7 @@ operator>>(std::basic_istream<CharT, Traits> &is, TcpEndpoint &e)
 {
     std::string str;
     is >> str;
-    e.value = parseEndpoint(str);
+    e.value = parseTcpEndpoint(str);
     return is;
 }
 
