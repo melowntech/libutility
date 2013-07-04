@@ -7,9 +7,12 @@
  * Based on code from https://github.com/CovenantEyes/uri-parser (BSD-licenced)
  *
  * Modified by Vaclav Blazek <vaclav.blazek@citationtech.net>
+ *
+ * TODO: decode/encode url-encoded characters in path etc
  */
 
 #include <string>
+#include <sstream>
 #include <cstdlib>
 
 #include <boost/lexical_cast.hpp>
@@ -25,6 +28,8 @@ struct Uri {
     std::string path;
     std::string search;
     int port;
+
+    std::string join() const;
 };
 
 namespace detail {
@@ -117,6 +122,36 @@ inline Uri parseUri(std::string in) {
     ret.host = boost::algorithm::to_lower_copy(in);
 
     return ret;
+}
+
+std::string Uri::join() const
+{
+    std::ostringstream os;
+
+    os << schema;
+    if (!user.empty()) {
+        os << user;
+        if (!password.empty()) {
+            os << ':' << password;
+        }
+        os << '@';
+    }
+    if (!host.empty()) {
+        os << host;
+        if (port > 0) {
+            os << ':' << port;
+        }
+    }
+    if (!path.empty()) {
+        if (path[0] != '/') { os << '/'; };
+        os << path;
+    }
+
+    if (!search.empty()) {
+        os << '?' << search;
+    }
+
+    return os.str();
 }
 
 } // namespace utility
