@@ -19,13 +19,13 @@ namespace detail {
 TcpEndpoint parseIpv4(const std::string &input, const std::string &host
                       , short port)
 {
+    // try to parse ipv4 first
     try {
-        // try to parse ipv4 here
         return {ip::tcp::endpoint
                 (ip::address_v4::from_string(host), port)};
     } catch (const std::exception&) {}
 
-    // try interface
+    // try interface as last resort
     try {
         return { detail::tcpEndpointForIface
                 (ip::tcp::v4(), host, port) };
@@ -39,13 +39,13 @@ TcpEndpoint parseIpv4(const std::string &input, const std::string &host
 TcpEndpoint parseIpv6(const std::string &input, const std::string &host
                       , short port)
 {
+    // try to parse ipv6 first
     try {
-        // try to parse ipv6 here
         return {ip::tcp::endpoint
                 (ip::address_v6::from_string(host), port)};
     } catch (const std::exception&) {}
 
-    // try interface
+    // try interface as last resort
     try {
         return { detail::tcpEndpointForIface
                 (ip::tcp::v6(), host, port) };
