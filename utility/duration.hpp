@@ -38,6 +38,10 @@ public:
         last_ = clock_t::now();
     }
 
+    void reset() {
+        last_ = start_ = clock_t::now();
+    }
+
 private:
     clock_t::time_point start_;
     clock_t::time_point last_;
