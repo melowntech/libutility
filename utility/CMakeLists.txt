@@ -1,4 +1,7 @@
-define_module(LIBRARY utility DEPENDS dbglog Boost_THREAD Boost_PROGRAM_OPTIONS)
+define_module(LIBRARY utility DEPENDS dbglog Boost_THREAD Boost_PROGRAM_OPTIONS
+  # we need pthread_* stuff
+  THREADS
+)
 
 set(utility_SOURCES
   duration.hpp
@@ -20,6 +23,8 @@ set(utility_SOURCES
   filesystem.hpp detail/filesystem.hpp detail/filesystem.cpp
   tcpendpoint.hpp tcpendpoint-io.hpp tcpendpoint-io.cpp
   detail/iface.hpp
+
+  lockfile.hpp lockfile.cpp
   )
 
 if(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
