@@ -9,66 +9,6 @@
 
 namespace utility {
 
-LockFiles::pointer lockFiles;
-
-void LockFiles::fork_prepare()
-{
-    // lock mapLock before fork
-    mapLock_.lock();
-}
-
-void LockFiles::fork_parent()
-{
-    // unlock it after fork
-    mapLock_.unlock();
-}
-
-void LockFiles::fork_child()
-{
-    // we need to re-initialize the mutex (ugly as hell, I DO know...)
-    new ((void*) &mapLock_) std::mutex();
-
-    // destroy all files
-    map_.clear();
-}
-
-struct LockFilesInitializer {
-    static LockFilesInitializer instance;
-    LockFilesInitializer();
-
-    void fork_prepare() { lockFiles->fork_prepare(); }
-
-    void fork_parent() { lockFiles->fork_parent(); }
-
-    void fork_child() { lockFiles->fork_child(); }
-};
-LockFilesInitializer instance;
-
-extern "C" {
-
-void fork_prepare()
-{
-    LockFilesInitializer::instance.fork_prepare();
-}
-
-void fork_parent()
-{
-    LockFilesInitializer::instance.fork_parent();
-}
-
-void fork_child()
-{
-    LockFilesInitializer::instance.fork_child();
-}
-
-LockFilesInitializer::LockFilesInitializer() {
-    utility::lockFiles.reset(new LockFiles);
-    ::pthread_atfork(&utility::fork_prepare, &utility::fork_parent
-                     , &utility::fork_child);
-}
-
-} // extern C
-
 class LockFiles::Lock::Internals {
 public:
     Internals(const boost::filesystem::path &path
@@ -93,7 +33,14 @@ public:
     void lock();
     void unlock();
 
+    void fork_prepare();
+    void fork_parent();
+    void fork_child();
+
 private:
+    // in-process lock
+    std::mutex mutex_;
+    // inter-process lock
     boost::filesystem::path path_;
     ino_t inode_;
     int fd_;
@@ -119,7 +66,10 @@ void LockFiles::Lock::unlock() { lock_->unlock(); }
 
 void LockFiles::Lock::Internals::lock()
 {
-    LOG(debug) << "Locking " << path_ << ".";
+    LOG(debug) << "Locking " << path_ << " (" << inode_ << "/" << fd_ << ").";
+
+    // make lock unique in this process
+    std::unique_lock<std::mutex> guard(mutex_);
 
     struct ::flock lock;
     lock.l_type = F_WRLCK;
@@ -136,11 +86,17 @@ void LockFiles::Lock::Internals::lock()
                   << e.code() << ", " << e.what() << ">.";
         throw e;
     }
+
+    // Everything is fine, keep locked
+    guard.release();
 }
 
 void LockFiles::Lock::Internals::unlock()
 {
-    LOG(debug) << "Unlocking " << path_ << ".";
+    LOG(debug) << "Unlocking " << path_ << " (" << inode_ << "/" << fd_ << ").";
+
+    // make lock unique in this process
+    std::unique_lock<std::mutex> guard(mutex_, std::adopt_lock);
 
     struct ::flock lock;
     lock.l_type = F_UNLCK;
@@ -155,6 +111,9 @@ void LockFiles::Lock::Internals::unlock()
                   << e.code() << ", " << e.what() << ">.";
         throw e;
     }
+
+    // TODO: what to do if the above throws? mutex unlocked, file
+    // locked... hmmm?
 }
 
 LockFiles::Lock LockFiles::create(const boost::filesystem::path &path)
@@ -206,5 +165,107 @@ void LockFiles::destroy(ino_t inode)
     std::unique_lock<std::mutex> guard(mapLock_);
     map_.erase(inode);
 }
+
+LockFiles::pointer lockFiles;
+
+void LockFiles::Lock::Internals::fork_prepare()
+{
+    mutex_.lock();
+}
+
+void LockFiles::Lock::Internals::fork_parent()
+{
+    mutex_.unlock();
+}
+
+void LockFiles::Lock::Internals::fork_child()
+{
+    new ((void*) &mutex_) std::mutex();
+}
+
+void LockFiles::fork_prepare()
+{
+    // lock mapLock before fork
+    mapLock_.lock();
+
+    // re-initialize mutexes in all lock files
+    for (auto &i : map_) {
+        auto internals(i.second.lock());
+        if (internals) {
+            internals->fork_prepare();
+        }
+    }
+}
+
+void LockFiles::fork_parent()
+{
+    // re-initialize mutexes in all lock files
+    for (auto &i : map_) {
+        auto internals(i.second.lock());
+        if (internals) {
+            internals->fork_parent();
+        }
+    }
+
+    // unlock it after fork
+    mapLock_.unlock();
+}
+
+void LockFiles::fork_child()
+{
+
+    // we need to re-initialize the mutex (ugly as hell, I DO know...)
+    new ((void*) &mapLock_) std::mutex();
+
+    // not needed to be locked, this is single threaded
+
+    // re-initialize mutexes in all lock files
+    for (auto &i : map_) {
+        auto internals(i.second.lock());
+        if (internals) {
+            internals->fork_child();
+        }
+    }
+
+    // destroy all files
+    map_.clear();
+}
+
+struct LockFilesInitializer {
+    static LockFilesInitializer instance;
+    LockFilesInitializer();
+
+    void fork_prepare() { lockFiles->fork_prepare(); }
+
+    void fork_parent() { lockFiles->fork_parent(); }
+
+    void fork_child() { lockFiles->fork_child(); }
+};
+LockFilesInitializer instance;
+
+extern "C" {
+
+void fork_prepare()
+{
+    LockFilesInitializer::instance.fork_prepare();
+}
+
+void fork_parent()
+{
+    LockFilesInitializer::instance.fork_parent();
+}
+
+void fork_child()
+{
+    LockFilesInitializer::instance.fork_child();
+}
+
+LockFilesInitializer::LockFilesInitializer() {
+    utility::lockFiles.reset(new LockFiles);
+    ::pthread_atfork(&utility::fork_prepare, &utility::fork_parent
+                     , &utility::fork_child);
+}
+
+} // extern C
 
 } // namespace utility
