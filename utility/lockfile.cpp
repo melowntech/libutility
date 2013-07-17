@@ -129,7 +129,7 @@ void LockFiles::Lock::Internals::lock()
 
     // TODO: check for EINTR
 
-    auto res(TEMP_FAILURE_RETRY(::fcntl(fd_, F_SETLK, &lock)));
+    auto res(TEMP_FAILURE_RETRY(::fcntl(fd_, F_SETLKW, &lock)));
     if (-1 == res) {
         std::system_error e(errno, std::system_category());
         LOG(err3) << "Cannot lock file " << path_ << ": <"
@@ -148,7 +148,7 @@ void LockFiles::Lock::Internals::unlock()
     lock.l_start = 0;
     lock.l_len = 0;
 
-    auto res(TEMP_FAILURE_RETRY(::fcntl(fd_, F_SETLK, &lock)));
+    auto res(TEMP_FAILURE_RETRY(::fcntl(fd_, F_SETLKW, &lock)));
     if (-1 == res) {
         std::system_error e(errno, std::system_category());
         LOG(err3) << "Cannot unlock file " << path_ << ": <"
