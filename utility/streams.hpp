@@ -90,6 +90,51 @@ inline void write(const boost::filesystem::path &file, const T(&v)[size])
     f.close();
 }
 
+// helper classes for stream I/O with increased buffer size
+
+class ofstreamb : public std::ofstream
+{
+public:
+
+    enum { DefaultBufSize = 512*1024 };
+
+    ofstreamb(std::streamsize bufSize = DefaultBufSize)
+        : std::ofstream()
+        , buffer_(nullptr)
+    {
+        initBuffer(bufSize);
+    }
+
+    explicit
+    ofstreamb(const char* filename,
+              ios_base::openmode mode = ios_base::out | ios_base::trunc,
+              std::streamsize bufSize = DefaultBufSize)
+        : std::ofstream()
+        , buffer_(nullptr)
+    {
+        initBuffer(bufSize);
+        open(filename, mode);
+    }
+
+    virtual ~ofstreamb()
+    {
+        delete [] buffer_;
+    }
+
+private:
+
+    char* buffer_;
+
+    void initBuffer(std::streamsize bufSize)
+    {
+        buffer_ = new char[bufSize];
+        rdbuf()->pubsetbuf(buffer_, bufSize);
+    }
+};
+
+// TODO: ifstreamb
+
+
 } // namespace utility
 
 #endif // utility_streams_hpp_included_
