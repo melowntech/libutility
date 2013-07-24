@@ -92,13 +92,13 @@ inline void write(const boost::filesystem::path &file, const T(&v)[size])
 
 // helper classes for stream I/O with increased buffer size
 
-class ofstreamb : public std::ofstream
+class ofstreambuf : public std::ofstream
 {
 public:
 
-    enum { DefaultBufSize = 512*1024 };
+    enum { DefaultBufSize = 1024*1024 };
 
-    ofstreamb(std::streamsize bufSize = DefaultBufSize)
+    ofstreambuf(std::streamsize bufSize = DefaultBufSize)
         : std::ofstream()
         , buffer_(nullptr)
     {
@@ -106,9 +106,10 @@ public:
     }
 
     explicit
-    ofstreamb(const char* filename,
-              ios_base::openmode mode = ios_base::out | ios_base::trunc,
-              std::streamsize bufSize = DefaultBufSize)
+    ofstreambuf(const char* filename,
+                std::ios_base::openmode mode =
+                    std::ios_base::out | std::ios_base::trunc,
+                std::streamsize bufSize = DefaultBufSize)
         : std::ofstream()
         , buffer_(nullptr)
     {
@@ -116,7 +117,19 @@ public:
         open(filename, mode);
     }
 
-    virtual ~ofstreamb()
+    explicit
+    ofstreambuf(const std::string& filename,
+                std::ios_base::openmode mode =
+                    std::ios_base::out | std::ios_base::trunc,
+                std::streamsize bufSize = DefaultBufSize)
+        : std::ofstream()
+        , buffer_(nullptr)
+    {
+        initBuffer(bufSize);
+        open(filename, mode);
+    }
+
+    virtual ~ofstreambuf()
     {
         delete [] buffer_;
     }
@@ -132,8 +145,57 @@ private:
     }
 };
 
-// TODO: ifstreamb
 
+class ifstreambuf : public std::ifstream
+{
+public:
+
+    enum { DefaultBufSize = 1024*1024 };
+
+    ifstreambuf(std::streamsize bufSize = DefaultBufSize)
+        : std::ifstream()
+        , buffer_(nullptr)
+    {
+        initBuffer(bufSize);
+    }
+
+    explicit
+    ifstreambuf(const char* filename,
+                std::ios_base::openmode mode = std::ios_base::in,
+                std::streamsize bufSize = DefaultBufSize)
+        : std::ifstream()
+        , buffer_(nullptr)
+    {
+        initBuffer(bufSize);
+        open(filename, mode);
+    }
+
+    explicit
+    ifstreambuf(const std::string& filename,
+                std::ios_base::openmode mode = std::ios_base::in,
+                std::streamsize bufSize = DefaultBufSize)
+        : std::ifstream()
+        , buffer_(nullptr)
+    {
+        initBuffer(bufSize);
+        open(filename, mode);
+    }
+
+    virtual ~ifstreambuf()
+    {
+        delete [] buffer_;
+    }
+
+private:
+
+    char* buffer_;
+
+    void initBuffer(std::streamsize bufSize)
+    {
+        buffer_ = new char[bufSize];
+        rdbuf()->pubsetbuf(buffer_, bufSize);
+    }
+};
 
 } // namespace utility
 
