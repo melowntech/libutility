@@ -4,17 +4,13 @@
 #include <chrono>
 #include <boost/thread.hpp>
 
+#include "steady-clock.hpp"
+
 namespace utility {
 
 class DurationMeter {
 public:
-#if defined(__GNUC__) && (__GNUC__ == 4) && (__GNUC_MINOR__ < 7)
-    // gcc 4.6, pre standard
-    typedef std::chrono::monotonic_clock clock_t;
-#else
-    // conforming to standard
-    typedef std::chrono::steady_clock clock_t;
-#endif
+    typedef utility::steady_clock clock_t;
 
     typedef clock_t::duration duration_type;
 
