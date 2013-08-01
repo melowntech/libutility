@@ -77,8 +77,6 @@ void LockFiles::Lock::Internals::lock()
     lock.l_start = 0;
     lock.l_len = 0;
 
-    // TODO: check for EINTR
-
     auto res(TEMP_FAILURE_RETRY(::fcntl(fd_, F_SETLKW, &lock)));
     if (-1 == res) {
         std::system_error e(errno, std::system_category());
@@ -146,12 +144,15 @@ LockFiles::Lock LockFiles::create(const boost::filesystem::path &path)
     if (fmap != map_.end()) {
         // already in lock map
         auto l(fmap->second.lock());
-        if (l) { return Lock(l); }
+        if (l) {
+            ::close(fd);
+            return Lock(l);
+        }
         // stale entry -> remove
         map_.erase(fmap);
     }
 
-    // new entry
+    // new entry (file should be kept open)
     auto lock(std::make_shared<Lock::Internals>(path, inode, fd, self));
 
     map_.insert(std::make_pair(inode, lock));
