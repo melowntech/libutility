@@ -10,7 +10,7 @@
 
 #include <string>
 
-#include <boost/filesystem/path.hpp>
+#include <boost/filesystem.hpp>
 
 #include "detail/streams.hpp"
 
@@ -88,6 +88,20 @@ inline void write(const boost::filesystem::path &file, const T(&v)[size])
     f.open(file.string(), std::ios_base::out | std::ios_base::trunc);
     write(f, v);
     f.close();
+}
+
+inline std::string read(const boost::filesystem::path &file)
+{
+    std::ifstream f;
+    f.exceptions(std::ios::badbit | std::ios::failbit);
+    f.open(file.string(), std::ios_base::in);
+    f.seekg(0, std::ifstream::end);
+    auto size(f.tellg());
+    f.seekg(0);
+    std::vector<char> tmp(size);
+    f.read(&tmp[0], tmp.size());
+    f.close();
+    return { tmp.begin(), tmp.end() };
 }
 
 // helper classes for stream I/O with increased buffer size
