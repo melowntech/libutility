@@ -54,6 +54,14 @@ replaceOrAddExtension(const boost::filesystem::path &path
     return p.replace_extension(ext);
 }
 
+inline boost::filesystem::path
+addFilenameSuffix(const boost::filesystem::path &path
+                  , const std::string &suffix)
+{
+    return path.parent_path() /
+           (path.stem().string() + suffix + path.extension().string());
+}
+
 } // namespace utility
 
 #endif // utility_path_hpp_included_
