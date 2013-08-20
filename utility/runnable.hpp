@@ -5,9 +5,9 @@
 
 namespace utility {
 
-class Runable : boost::noncopyable {
+class Runnable : boost::noncopyable {
 public:
-    virtual ~Runable() {}
+    virtual ~Runnable() {}
     virtual bool isRunning() = 0;
     virtual void stop() = 0;
 
