@@ -9,6 +9,7 @@
 #define utility_path_hpp_included_
 
 #include <utility>
+#include <algorithm>
 #include <boost/filesystem/path.hpp>
 
 #include "detail/path.hpp"
@@ -60,6 +61,28 @@ addFilenameSuffix(const boost::filesystem::path &path
 {
     return path.parent_path() /
            (path.stem().string() + suffix + path.extension().string());
+}
+
+inline bool isPathPrefix(const boost::filesystem::path &path
+                         , const boost::filesystem::path &prefix)
+{
+    return (std::mismatch(path.begin(), path.end(), prefix.begin()).second
+            == prefix.end());
+}
+
+/** Cut prefix from path. Prerequisity: isPathPrefix(path, prefix) == true
+ */
+inline boost::filesystem::path
+cutPathPrefix(const boost::filesystem::path &path
+              , const boost::filesystem::path &prefix)
+{
+    boost::filesystem::path res;
+    for (auto i(std::mismatch(path.begin(), path.end(), prefix.begin()).first)
+             , e(path.end()); i != e; ++i)
+    {
+        res /= *i;
+    }
+    return res;
 }
 
 } // namespace utility
