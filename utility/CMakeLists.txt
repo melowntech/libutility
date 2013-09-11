@@ -27,6 +27,8 @@ set(utility_SOURCES
   detail/iface.hpp
 
   lockfile.hpp lockfile.cpp
+
+  naturalsort.hpp
   )
 
 if(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
