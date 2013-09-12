@@ -1,7 +1,7 @@
 #ifndef shared_utility_runnable_hpp_included_
 #define shared_utility_runnable_hpp_included_
 
-#include <atomic>
+#include <memory>
 #include <boost/noncopyable.hpp>
 
 namespace utility {
@@ -14,18 +14,9 @@ public:
 
     inline operator bool() { return isRunning(); }
 
-    class Simple;
-};
-
-class Runnable::Simple : public Runnable
-{
-public:
-    Simple() : running_(true) {}
-    bool isRunning() { return running_; }
-    void stop() { running_ = false; }
-
-private:
-    std::atomic_bool running_;
+    /** Creates simple shareable runnable.
+     */
+    static std::unique_ptr<Runnable> simple();
 };
 
 } // namespace utility

@@ -16,7 +16,7 @@ set(utility_SOURCES
   scopedguard.hpp
   process.hpp process.cpp
   interprocess.hpp
-  runnable.hpp
+  runnable.hpp runnable.cpp
 
   uri.hpp
   parse.hpp
