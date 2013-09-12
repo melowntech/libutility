@@ -27,9 +27,9 @@ private:
 
 } // namespace detail
 
-std::unique_ptr<Runnable> Runnable::simple()
+Runnable::Wrapper Runnable::simple()
 {
-    return std::unique_ptr<Runnable>(new detail::Simple);
+    return Wrapper(std::unique_ptr<Runnable>(new detail::Simple));
 }
 
 } // namespace utility
