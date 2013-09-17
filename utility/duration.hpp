@@ -3,6 +3,7 @@
 
 #include <chrono>
 #include <boost/thread.hpp>
+#include <boost/lexical_cast.hpp>
 
 #include "steady-clock.hpp"
 
