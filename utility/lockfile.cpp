@@ -242,7 +242,7 @@ struct LockFilesInitializer {
 
     void fork_child() { lockFiles->fork_child(); }
 };
-LockFilesInitializer instance;
+LockFilesInitializer LockFilesInitializer::instance;
 
 extern "C" {
 
