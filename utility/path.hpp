@@ -11,6 +11,7 @@
 #include <utility>
 #include <algorithm>
 #include <boost/filesystem/path.hpp>
+#include <boost/algorithm/string/case_conv.hpp>
 
 #include "detail/path.hpp"
 
@@ -63,11 +64,20 @@ addFilenameSuffix(const boost::filesystem::path &path
            (path.stem().string() + suffix + path.extension().string());
 }
 
-inline bool isPathPrefix(const boost::filesystem::path &path
-                         , const boost::filesystem::path &prefix)
+inline boost::filesystem::path toLower(const boost::filesystem::path &path)
 {
-    return (std::mismatch(path.begin(), path.end(), prefix.begin()).second
-            == prefix.end());
+    return boost::algorithm::to_lower_copy(path.string());
+}
+
+constexpr int ExactMatch = 2;
+
+inline int isPathPrefix(const boost::filesystem::path &path
+                        , const boost::filesystem::path &prefix)
+{
+    auto mismatch(std::mismatch(path.begin(), path.end(), prefix.begin()));
+
+    if (mismatch.second != prefix.end()) { return false; }
+    return (mismatch.first == path.end()) ? ExactMatch : true;
 }
 
 /** Cut prefix from path. Prerequisity: isPathPrefix(path, prefix) == true
