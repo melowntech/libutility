@@ -25,7 +25,7 @@ public:
 
         if (-1 == ::close(fd_)) {
             std::system_error e(errno, std::system_category());
-            LOG(err3) << "Cannot close lock " << path_ << " file: <"
+            LOG(err1) << "Cannot close lock " << path_ << " file: <"
                       << e.code() << ", " << e.what() << ">.";
         }
     }
@@ -80,7 +80,7 @@ void LockFiles::Lock::Internals::lock()
     auto res(TEMP_FAILURE_RETRY(::fcntl(fd_, F_SETLKW, &lock)));
     if (-1 == res) {
         std::system_error e(errno, std::system_category());
-        LOG(err3) << "Cannot lock file " << path_ << ": <"
+        LOG(err2) << "Cannot lock file " << path_ << ": <"
                   << e.code() << ", " << e.what() << ">.";
         throw e;
     }
@@ -105,7 +105,7 @@ void LockFiles::Lock::Internals::unlock()
     auto res(TEMP_FAILURE_RETRY(::fcntl(fd_, F_SETLKW, &lock)));
     if (-1 == res) {
         std::system_error e(errno, std::system_category());
-        LOG(err3) << "Cannot unlock file " << path_ << ": <"
+        LOG(err2) << "Cannot unlock file " << path_ << ": <"
                   << e.code() << ", " << e.what() << ">.";
         throw e;
     }
@@ -122,7 +122,7 @@ LockFiles::Lock LockFiles::create(const boost::filesystem::path &path)
     auto fd(::open(path.string().c_str(), O_RDWR));
     if (-1 == fd) {
         std::system_error e(errno, std::system_category());
-        LOG(err3) << "Cannot open lock file " << path << ": <"
+        LOG(err1) << "Cannot open lock file " << path << ": <"
                   << e.code() << ", " << e.what() << ">.";
         throw e;
     }
@@ -130,7 +130,7 @@ LockFiles::Lock LockFiles::create(const boost::filesystem::path &path)
     struct stat buf;
     if (-1 == ::fstat(fd, &buf)) {
         std::system_error e(errno, std::system_category());
-        LOG(err3) << "Cannot stat lock file " << path << ": <"
+        LOG(err1) << "Cannot stat lock file " << path << ": <"
                   << e.code() << ", " << e.what() << ">.";
         ::close(fd);
         throw e;
