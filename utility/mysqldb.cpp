@@ -3,7 +3,7 @@
 #include "utility/config.hpp"
 #include "dbglog/dbglog.hpp"
 
-#include "db.hpp"
+#include "mysqldb.hpp"
 
 namespace po = boost::program_options;
 namespace fs = boost::filesystem;

@@ -3,12 +3,12 @@ set(utility_DEPENDS dbglog Boost_THREAD Boost_PROGRAM_OPTIONS
   THREADS
 )
 
-if(MySQL++_FOUND)
+if(MYSQL++_FOUND)
   message(STATUS "utility: compiling in MySQL++ support")
 
-  list(APPEND utility_DEPENDS MySQL++)
+  list(APPEND utility_DEPENDS MYSQL++)
 
-  set(utility_MySQL++_SOURCES mysqldb.hpp mysqldb.cpp)
+  set(utility_MYSQL++_SOURCES mysqldb.hpp mysqldb.cpp)
 else()
   message(STATUS "utility: compiling without MySQL++ support")
 endif()
@@ -53,7 +53,7 @@ else()
     )
 endif()
 
-add_library(utility STATIC ${utility_SOURCES} ${utility_MySQL++_SOURCES})
+add_library(utility STATIC ${utility_SOURCES} ${utility_MYSQL++_SOURCES})
 buildsys_library(utility)
 target_link_libraries(utility ${MODULE_LIBRARIES})
 
