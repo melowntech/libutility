@@ -1,7 +1,19 @@
-define_module(LIBRARY utility DEPENDS dbglog Boost_THREAD Boost_PROGRAM_OPTIONS
+set(utility_DEPENDS dbglog Boost_THREAD Boost_PROGRAM_OPTIONS
   # we need pthread_* stuff
   THREADS
 )
+
+if(MySQL++_FOUND)
+  message(STATUS "utility: compiling in MySQL++ support")
+
+  list(APPEND utility_DEPENDS MySQL++)
+
+  set(utility_MySQL++_SOURCES mysqldb.hpp mysqldb.cpp)
+else()
+  message(STATUS "utility: compiling without MySQL++ support")
+endif()
+
+define_module(LIBRARY utility DEPENDS ${utility_DEPENDS})
 
 set(utility_SOURCES
   duration.hpp
@@ -41,7 +53,7 @@ else()
     )
 endif()
 
-add_library(utility STATIC ${utility_SOURCES})
+add_library(utility STATIC ${utility_SOURCES} ${utility_MySQL++_SOURCES})
 buildsys_library(utility)
 target_link_libraries(utility ${MODULE_LIBRARIES})
 
