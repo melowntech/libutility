@@ -33,6 +33,7 @@ set(utility_SOURCES
   uri.hpp
   parse.hpp
   base64.hpp
+  md5.hpp
 
   filesystem.hpp detail/filesystem.hpp detail/filesystem.cpp
   tcpendpoint.hpp tcpendpoint-io.hpp tcpendpoint-io.cpp
