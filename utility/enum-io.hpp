@@ -27,6 +27,7 @@
 #ifndef utility_enum_io_hpp_included_
 #define utility_enum_io_hpp_included_
 
+#include <iostream>
 #include <boost/preprocessor/seq.hpp>
 #include <boost/preprocessor/stringize.hpp>
 
