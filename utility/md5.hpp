@@ -444,6 +444,11 @@ inline void hash(const char* buffer, size_t size, char digest[16])
     detail::finish(&state, (detail::byte_t*) digest);
 }
 
+inline void hash(const std::vector<char> &buffer, char digest[16])
+{
+    hash(buffer.data(), buffer.size(), digest);
+}
+
 inline std::string hash_string(const std::string& s)
 {
     char digest[16];
