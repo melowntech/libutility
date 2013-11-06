@@ -78,7 +78,8 @@ pid_t execute(const ExecArgs &argv, int ifd = -1, int ofd = -1, int efd = -1)
                       , ::environ) == -1)
         {
             std::system_error e(errno, std::system_category());
-            LOG(warn3) << "execve(2) failed: <" << e.code() << ", "
+            LOG(warn3) << "execve(2) [" << argv.argv.front()
+                       << "] failed: <" << e.code() << ", "
                        << e.what() << ">";
             std::exit(EXEC_FAILED);
         }
