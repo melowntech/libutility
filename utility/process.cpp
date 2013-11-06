@@ -39,8 +39,21 @@ operator<<(std::basic_ostream<CharT, Traits> &os, const ExecArgs &a)
     return os;
 }
 
+constexpr int EXEC_FAILED = 255;
 
-pid_t execute(const ExecArgs &argv)
+void useFd(int dst, int src)
+{
+    if (src < 0) { return; }
+    if (-1 == ::dup2(src, dst)) {
+        std::system_error e(errno, std::system_category());
+        LOG(warn3) << "dup2(2) failed: <" << e.code()
+                   << ", " << e.what() << ">";
+        throw e;
+    }
+    ::close(src);
+}
+
+pid_t execute(const ExecArgs &argv, int ifd = -1, int ofd = -1, int efd = -1)
 {
     LOG(info2) << "Executing: " << argv;
 
@@ -52,6 +65,14 @@ pid_t execute(const ExecArgs &argv)
                    << ", " << e.what() << ">";
         throw e;
     } else if (0 == pid) {
+        try {
+            useFd(STDIN_FILENO, ifd);
+            useFd(STDOUT_FILENO, ofd);
+            useFd(STDERR_FILENO, efd);
+        } catch (const std::exception &e) {
+            std::exit(EXEC_FAILED);
+        }
+
         // child -> exec
         if (::execvpe(argv.argv.front(), &(argv.argv.front())
                       , ::environ) == -1)
@@ -59,7 +80,7 @@ pid_t execute(const ExecArgs &argv)
             std::system_error e(errno, std::system_category());
             LOG(warn3) << "execve(2) failed: <" << e.code() << ", "
                        << e.what() << ">";
-            std::exit(-1);
+            std::exit(EXEC_FAILED);
         }
 
         // never reached
@@ -68,17 +89,24 @@ pid_t execute(const ExecArgs &argv)
     return pid;
 }
 
-int systemImpl(const std::string &program
-               , const std::vector<std::string> &args)
+template <typename File>
+int getFd(const boost::optional<File> &f)
+{
+    if (f) { return f->fd; }
+    return -1;
+}
+
+int systemImpl(const std::string &program, const Context &ctx)
 {
     detail::ExecArgs argv;
     argv.arg(program);
-    for (const auto arg : args) {
+    for (const auto arg : ctx.argv) {
         argv.arg(arg);
     }
     argv.finish();
 
-    auto pid(detail::execute(argv));
+    auto pid(detail::execute(argv, getFd(ctx.inFile), getFd(ctx.outFile)
+                             , getFd(ctx.errFile)));
     LOG(info2) << "running under pid: " << pid;
 
     int status;
