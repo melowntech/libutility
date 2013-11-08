@@ -12,6 +12,7 @@
 #include <boost/optional.hpp>
 #include <boost/format.hpp>
 #include <boost/program_options.hpp>
+#include <boost/filesystem/path.hpp>
 
 #include <mysql++.h>
 
