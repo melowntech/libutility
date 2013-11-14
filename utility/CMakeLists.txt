@@ -1,4 +1,5 @@
 set(utility_DEPENDS dbglog Boost_THREAD Boost_PROGRAM_OPTIONS
+  Boost_FILESYSTEM
   # we need pthread_* stuff
   THREADS
 )
@@ -63,4 +64,9 @@ target_link_libraries(utility ${MODULE_LIBRARIES})
 if (${CMAKE_C_COMPILER_ID} MATCHES GNU)
   set_source_files_properties(detail/filesystem.cpp PROPERTIES
     COMPILE_FLAGS -std=c++98)
+endif()
+
+# test stuff
+if (COMPILE_TESTS)
+  add_subdirectory(test-copytree)
 endif()

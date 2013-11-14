@@ -17,12 +17,10 @@ void copy_file(const boost::filesystem::path &from
                , boost::system::error_code &ec);
 
 void copyTree(const boost::filesystem::path &from
-              , const boost::filesystem::path &to
-              , bool overwrite);
+              , const boost::filesystem::path &to);
 
 void copyTree(const boost::filesystem::path &from
               , const boost::filesystem::path &to
-              , bool overwrite
               , boost::system::error_code &ec);
 
 } // namespace utility
