@@ -106,17 +106,32 @@ inline std::string read(const boost::filesystem::path &file)
 
 // helper classes for stream I/O with increased buffer size
 
-class ofstreambuf : public std::ofstream
+namespace detail {
+    /* This class holds the buffer used iin ofstreambuf/istreambuf. Buffer
+     * cannot be destroyed before std::ofstream/std::istream dtor (since
+     * stream's dtor flushes unwritten data) therefore it cannot be direct
+     * member of ofstreambuf/ifstreambuf class. Plugging this small helper class
+     * before actual stream keeps buffer alive during its dtor.
+     */
+    struct BufHolder {
+        BufHolder(std::streamsize size) : size(size), buffer(new char[size]) {}
+        ~BufHolder() { delete [] buffer; }
+        std::streamsize size;
+        char* buffer;
+    };
+} // namespace detail
+
+class ofstreambuf
+    : private detail::BufHolder
+    , public std::ofstream
 {
 public:
-
-    enum { DefaultBufSize = 1024*1024 };
+    static constexpr std::streamsize DefaultBufSize = 1024*1024;
 
     ofstreambuf(std::streamsize bufSize = DefaultBufSize)
-        : std::ofstream()
-        , buffer_(nullptr)
+        : detail::BufHolder(bufSize), std::ofstream()
     {
-        initBuffer(bufSize);
+        initBuffer();
     }
 
     explicit
@@ -124,10 +139,9 @@ public:
                 std::ios_base::openmode mode =
                     std::ios_base::out | std::ios_base::trunc,
                 std::streamsize bufSize = DefaultBufSize)
-        : std::ofstream()
-        , buffer_(nullptr)
+        : detail::BufHolder(bufSize), std::ofstream()
     {
-        initBuffer(bufSize);
+        initBuffer();
         open(filename, mode);
     }
 
@@ -136,51 +150,39 @@ public:
                 std::ios_base::openmode mode =
                     std::ios_base::out | std::ios_base::trunc,
                 std::streamsize bufSize = DefaultBufSize)
-        : std::ofstream()
-        , buffer_(nullptr)
+        : detail::BufHolder(bufSize), std::ofstream()
     {
-        initBuffer(bufSize);
+        initBuffer();
         open(filename, mode);
     }
 
-    virtual ~ofstreambuf()
-    {
-        delete [] buffer_;
-    }
-
 private:
-
-    char* buffer_;
-
-    void initBuffer(std::streamsize bufSize)
-    {
-        buffer_ = new char[bufSize];
-        rdbuf()->pubsetbuf(buffer_, bufSize);
+    void initBuffer() {
+        rdbuf()->pubsetbuf(detail::BufHolder::buffer
+                           , detail::BufHolder::size);
     }
 };
 
-
-class ifstreambuf : public std::ifstream
+class ifstreambuf
+    : private detail::BufHolder
+    , public std::ifstream
 {
 public:
-
-    enum { DefaultBufSize = 1024*1024 };
+    static constexpr std::streamsize DefaultBufSize = 1024*1024;
 
     ifstreambuf(std::streamsize bufSize = DefaultBufSize)
-        : std::ifstream()
-        , buffer_(nullptr)
+        : detail::BufHolder(bufSize), std::ifstream()
     {
-        initBuffer(bufSize);
+        initBuffer();
     }
 
     explicit
     ifstreambuf(const char* filename,
                 std::ios_base::openmode mode = std::ios_base::in,
                 std::streamsize bufSize = DefaultBufSize)
-        : std::ifstream()
-        , buffer_(nullptr)
+        : detail::BufHolder(bufSize), std::ifstream()
     {
-        initBuffer(bufSize);
+        initBuffer();
         open(filename, mode);
     }
 
@@ -188,26 +190,16 @@ public:
     ifstreambuf(const std::string& filename,
                 std::ios_base::openmode mode = std::ios_base::in,
                 std::streamsize bufSize = DefaultBufSize)
-        : std::ifstream()
-        , buffer_(nullptr)
+        : detail::BufHolder(bufSize), std::ifstream()
     {
-        initBuffer(bufSize);
+        initBuffer();
         open(filename, mode);
     }
 
-    virtual ~ifstreambuf()
-    {
-        delete [] buffer_;
-    }
-
 private:
-
-    char* buffer_;
-
-    void initBuffer(std::streamsize bufSize)
-    {
-        buffer_ = new char[bufSize];
-        rdbuf()->pubsetbuf(buffer_, bufSize);
+    void initBuffer() {
+        rdbuf()->pubsetbuf(detail::BufHolder::buffer
+                           , detail::BufHolder::size);
     }
 };
 
