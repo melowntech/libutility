@@ -14,8 +14,16 @@ void copy_file(const boost::filesystem::path &from
 void copy_file(const boost::filesystem::path &from
                , const boost::filesystem::path &to
                , bool overwrite
-               , boost::system::error_code& ec);
+               , boost::system::error_code &ec);
 
+void copyTree(const boost::filesystem::path &from
+              , const boost::filesystem::path &to
+              , bool overwrite);
+
+void copyTree(const boost::filesystem::path &from
+              , const boost::filesystem::path &to
+              , bool overwrite
+              , boost::system::error_code &ec);
 
 } // namespace utility
 
@@ -30,8 +38,8 @@ inline void utility::copy_file(const boost::filesystem::path &from
 
 inline void utility::copy_file(const boost::filesystem::path &from
                                , const boost::filesystem::path &to
-                               , bool overwrite 
-                              , boost::system::error_code& ec)
+                               , bool overwrite
+                               , boost::system::error_code &ec)
 {
     return utility::detail::copy_file(from, to, overwrite, ec);
 }
