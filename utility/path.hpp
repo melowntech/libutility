@@ -44,16 +44,30 @@ addExtension(const boost::filesystem::path &path
     return path.parent_path() / (path.filename().string() + ext.string());
 }
 
+/** Replaces file's extension with new one.
+ *  If file doesn't have an extentsion new extension is appended.
+ *  Leading dot in `ext` is optional.
+ *  Leading dot is never considered as a start of an extension.
+ *  Empty `ext` causes extension removal.
+ */
 inline boost::filesystem::path
 replaceOrAddExtension(const boost::filesystem::path &path
                       , const boost::filesystem::path &ext)
 {
+    auto e(ext.string());
+    if (!e.empty() && (e[0] != '.')) {
+        // no leading dot: add
+        e = "." + e;
+    }
+
     if (!path.has_extension()) {
         // no extension -> add it
-        return addExtension(path, "." + ext.string());
+        return addExtension(path, e);
     }
-    auto p(path);
-    return p.replace_extension(ext);
+    auto dir(path.parent_path());
+    auto stem(path.stem());
+    if (stem.empty()) { stem = path.filename(); }
+    return dir / (stem.string() + e);
 }
 
 inline boost::filesystem::path
