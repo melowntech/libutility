@@ -14,8 +14,8 @@ BOOST_AUTO_TEST_CASE(utility_path_extension)
 
     fs::path base("/usr/local/bin/script");
     auto exe1(utility::addExtension(base, ".exe"));
-    auto exe2(utility::replaceOrAddExtension(base, ".exe"));
-    auto sh1(utility::replaceOrAddExtension(exe1, ".sh"));
+    auto exe2(utility::replaceOrAddExtension(base, "exe"));
+    auto sh1(utility::replaceOrAddExtension(exe1, "sh"));
 
     LOG(info4) << "base: " << base;
     LOG(info4) << "added .exe: " << exe1;
