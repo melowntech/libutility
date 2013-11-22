@@ -20,12 +20,18 @@ inline void formatException(boost::format &format, T &&arg, Args &&...rest)
 
 } // namespace detail
 
-template <typename Exception, typename ...Args>
-void raise(const std::string &message, Args &&...args)
+template <typename ...Args>
+std::string formatError(const std::string &message, Args &&...args)
 {
     boost::format format(message);
     detail::formatException(format, std::forward<Args>(args)...);
-    throw Exception(str(format));
+    return str(format);
+}
+
+template <typename Exception, typename ...Args>
+void raise(const std::string &message, Args &&...args)
+{
+    throw Exception(formatError(message, std::forward<Args>(args)...));
 }
 
 } // namespace utility
