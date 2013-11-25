@@ -124,7 +124,7 @@ inline Uri parseUri(std::string in) {
     return ret;
 }
 
-std::string Uri::join() const
+inline std::string Uri::join() const
 {
     std::ostringstream os;
 
