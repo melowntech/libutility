@@ -116,6 +116,31 @@ struct ArrayPrinter {
     const std::string separator;
 };
 
+template<typename Container>
+struct ContainerPrinter {
+    const Container &container;
+    ContainerPrinter(const Container &container
+                     , const std::string separator = "")
+        : container(container), separator(separator)
+    {}
+
+    friend std::ostream&
+    operator<<(std::ostream &os, const ContainerPrinter<Container> &c)
+    {
+        bool first(true);
+        std::for_each(c.container.begin(), c.container.end()
+                      , [&](const typename Container::value_type &d) -> void {
+                          if (first) { first = false; }
+                          else { os << c.separator; }
+                          os << d;
+                      });
+
+        return os;
+    }
+
+    const std::string separator;
+};
+
 /** Dumpable is a class having this member function:
  *  template <typename E, typename T>
  *  std::basic_ostream<E, T>&

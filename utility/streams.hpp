@@ -203,6 +203,14 @@ private:
     }
 };
 
+template<typename Container>
+detail::ContainerPrinter<Container>
+print(const Container &container
+      , const std::string &separator = " ")
+{
+    return {container, separator};
+}
+
 } // namespace utility
 
 #endif // utility_streams_hpp_included_
