@@ -25,14 +25,23 @@ struct LineRange {
 
 namespace separated_values {
 
+enum {
+    FLAG_KEEP_EMPTY_TOKENS = 0x01
+    , FLAG_TRIM_FIELDS = 0x02
+};
+
 template <typename RowProcessor>
 std::size_t parse(std::istream &is, const std::string &separator
                   , RowProcessor processor
-                  , const LineRange &range = LineRange())
+                  , const LineRange &range = LineRange()
+                  , int flags = 0x0)
 {
     typedef boost::char_separator<char> Separator;
     typedef boost::tokenizer<Separator> Tokenizer;
-    Separator sep(separator.c_str());
+    Separator sep(separator.c_str(), nullptr
+                  , ((flags & FLAG_KEEP_EMPTY_TOKENS)
+                     ? boost::keep_empty_tokens
+                     : boost::drop_empty_tokens));
     std::string line;
     std::vector<std::string> values;
 
@@ -40,15 +49,17 @@ std::size_t parse(std::istream &is, const std::string &separator
     while (getline(is, line) && (index <= range.to)) {
         // skip until from is reached
         if (index++ < range.from) { continue; }
-        boost::algorithm::trim(line);
-        if (line.empty() || (line[0] == '#')) { continue; }
+        auto trimmed(boost::algorithm::trim_copy(line));
+        if (trimmed.empty() || (line[0] == '#')) { continue; }
 
         ++index;
         Tokenizer tok(line, sep);
         values.clear();
         std::transform(tok.begin(), tok.end(), back_inserter(values)
-                       , [](const std::string &token) {
-                           return boost::algorithm::trim_copy(token);
+                       , [&](const std::string &token) {
+                           return ((flags & FLAG_TRIM_FIELDS)
+                                   ? boost::algorithm::trim_copy(token)
+                                   : token);
                        });
 
         processor(values);
@@ -58,12 +69,13 @@ std::size_t parse(std::istream &is, const std::string &separator
 
 template <typename Row>
 std::vector<Row> parse(std::istream &is, const std::string &separator
-                       , const LineRange &range = LineRange())
+                       , const LineRange &range = LineRange()
+                       , int flags = 0x0)
 {
     std::vector<Row> rows;
     parse(is, separator, [&rows] (const std::vector<std::string> &values) {
             rows.emplace_back(values);
-        }, range);
+        }, range, flags);
     return rows;
 }
 
@@ -71,27 +83,29 @@ template <typename RowProcessor>
 std::size_t parse(const boost::filesystem::path &path
                   , const std::string &separator
                   , RowProcessor processor
-                  , const LineRange &range = LineRange())
+                  , const LineRange &range = LineRange()
+                  , int flags = 0x0)
 {
     std::ifstream f;
     f.exceptions(std::ios::badbit | std::ios::failbit);
     f.open(path.string(), std::ios_base::in);
     f.exceptions(std::ios::badbit);
 
-    return parse<RowProcessor>(f, separator, processor, range);
+    return parse<RowProcessor>(f, separator, processor, range, flags);
 }
 
 template <typename Row>
 std::vector<Row> parse(const boost::filesystem::path &path
                        , const std::string &separator
-                       , const LineRange &range = LineRange())
+                       , const LineRange &range = LineRange()
+                       , int flags = 0x0)
 {
     std::ifstream f;
     f.exceptions(std::ios::badbit | std::ios::failbit);
     f.open(path.string(), std::ios_base::in);
     f.exceptions(std::ios::badbit);
 
-    return parse<Row>(f, separator, range);
+    return parse<Row>(f, separator, range, flags);
 }
 
 } // namespace separated_values
