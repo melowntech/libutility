@@ -27,7 +27,7 @@ namespace separated_values {
 
 enum {
     FLAG_KEEP_EMPTY_TOKENS = 0x01
-    , FLAG_TRIM_FIELDS = 0x02
+    , FLAG_DONT_TRIM_FIELDS = 0x02
 };
 
 template <typename RowProcessor>
@@ -57,9 +57,9 @@ std::size_t parse(std::istream &is, const std::string &separator
         values.clear();
         std::transform(tok.begin(), tok.end(), back_inserter(values)
                        , [&](const std::string &token) {
-                           return ((flags & FLAG_TRIM_FIELDS)
-                                   ? boost::algorithm::trim_copy(token)
-                                   : token);
+                           return ((flags & FLAG_DONT_TRIM_FIELDS)
+                                   ? token
+                                   : boost::algorithm::trim_copy(token));
                        });
 
         processor(values);
