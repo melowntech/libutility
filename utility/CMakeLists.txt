@@ -30,6 +30,7 @@ set(utility_SOURCES
   process.hpp process.cpp
   interprocess.hpp
   runnable.hpp runnable.cpp
+  iohelpers.hpp
 
   uri.hpp
   parse.hpp
