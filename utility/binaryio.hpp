@@ -1,6 +1,8 @@
 #ifndef utility_binaryio_hpp_included_
 #define utility_binaryio_hpp_included_
 
+#include <iostream>
+
 namespace utility { namespace binaryio {
 
 inline void write(std::ostream &os, const char *v, size_t count) {
