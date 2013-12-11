@@ -131,7 +131,7 @@ public:
     ofstreambuf(std::streamsize bufSize = DefaultBufSize)
         : detail::BufHolder(bufSize), std::ofstream()
     {
-        initBuffer();
+        init();
     }
 
     explicit
@@ -141,7 +141,7 @@ public:
                 std::streamsize bufSize = DefaultBufSize)
         : detail::BufHolder(bufSize), std::ofstream()
     {
-        initBuffer();
+        init();
         open(filename, mode);
     }
 
@@ -152,12 +152,13 @@ public:
                 std::streamsize bufSize = DefaultBufSize)
         : detail::BufHolder(bufSize), std::ofstream()
     {
-        initBuffer();
+        init();
         open(filename, mode);
     }
 
 private:
-    void initBuffer() {
+    void init() {
+        exceptions(std::ios::badbit | std::ios::failbit);
         rdbuf()->pubsetbuf(detail::BufHolder::buffer
                            , detail::BufHolder::size);
     }
@@ -173,7 +174,7 @@ public:
     ifstreambuf(std::streamsize bufSize = DefaultBufSize)
         : detail::BufHolder(bufSize), std::ifstream()
     {
-        initBuffer();
+        init();
     }
 
     explicit
@@ -182,7 +183,7 @@ public:
                 std::streamsize bufSize = DefaultBufSize)
         : detail::BufHolder(bufSize), std::ifstream()
     {
-        initBuffer();
+        init();
         open(filename, mode);
     }
 
@@ -192,12 +193,13 @@ public:
                 std::streamsize bufSize = DefaultBufSize)
         : detail::BufHolder(bufSize), std::ifstream()
     {
-        initBuffer();
+        init();
         open(filename, mode);
     }
 
 private:
-    void initBuffer() {
+    void init() {
+        exceptions(std::ios::badbit | std::ios::failbit);
         rdbuf()->pubsetbuf(detail::BufHolder::buffer
                            , detail::BufHolder::size);
     }
