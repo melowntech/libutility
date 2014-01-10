@@ -10,6 +10,8 @@
 #include <boost/tokenizer.hpp>
 #include <boost/algorithm/string/trim.hpp>
 #include <boost/filesystem.hpp>
+#include <boost/optional.hpp>
+#include <boost/utility/in_place_factory.hpp>
 
 namespace utility {
 
@@ -106,6 +108,42 @@ std::vector<Row> parse(const boost::filesystem::path &path
     f.exceptions(std::ios::badbit);
 
     return parse<Row>(f, separator, range, flags);
+}
+
+template <typename RowProcessor>
+void split(const std::string &line, const std::string &separator
+           , RowProcessor processor
+           , int flags = 0x0)
+{
+    typedef boost::char_separator<char> Separator;
+    typedef boost::tokenizer<Separator> Tokenizer;
+    Separator sep(separator.c_str(), nullptr
+                  , ((flags & FLAG_KEEP_EMPTY_TOKENS)
+                     ? boost::keep_empty_tokens
+                     : boost::drop_empty_tokens));
+    std::vector<std::string> values;
+
+    Tokenizer tok(line, sep);
+    std::transform(tok.begin(), tok.end(), back_inserter(values)
+                   , [&](const std::string &token) {
+                       return ((flags & FLAG_DONT_TRIM_FIELDS)
+                               ? token
+                               : boost::algorithm::trim_copy(token));
+                   });
+
+    processor(values);
+}
+
+template <typename Row>
+Row split(const std::string &line, const std::string &separator
+          , int flags = 0x0)
+{
+    boost::optional<Row> row;
+    split(line, separator, [&row] (const std::vector<std::string> &v) {
+            row = boost::in_place(boost::cref(v));
+        }, flags);
+
+    return *row;
 }
 
 } // namespace separated_values
