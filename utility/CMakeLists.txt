@@ -42,6 +42,7 @@ set(utility_SOURCES
   tcpendpoint.hpp tcpendpoint-io.hpp tcpendpoint-io.cpp
   detail/iface.hpp
 
+  atfork.hpp atfork.cpp
   lockfile.hpp lockfile.cpp
 
   naturalsort.hpp
