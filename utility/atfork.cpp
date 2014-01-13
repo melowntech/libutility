@@ -37,17 +37,17 @@ void AtFork::run(Event event)
 
 extern "C" {
     void utility_signalhandler_atfork_pre() {
-        LOG(info4) << "utility_signalhandler_atfork_pre";
+        LOG(info1) << "utility_signalhandler_atfork_pre";
         AtFork::run(AtFork::prepare);
     }
 
     void utility_signalhandler_atfork_parent() {
-        LOG(info4) << "utility_signalhandler_atfork_parent";
+        LOG(info1) << "utility_signalhandler_atfork_parent";
         AtFork::run(AtFork::parent);
     }
 
     void utility_signalhandler_atfork_child() {
-        LOG(info4) << "utility_signalhandler_atfork_child";
+        LOG(info1) << "utility_signalhandler_atfork_child";
         AtFork::run(AtFork::child);
     }
 }
