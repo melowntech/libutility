@@ -61,6 +61,8 @@ public:
 
         void rethrow_if_nested() const;
 
+        bool isRestartable() const;
+
     private:
         std::exception_ptr exc_;
     };
@@ -187,7 +189,23 @@ struct TxProxy
     }
 };
 
-void restartOnDeadlock(const std::function<void()> &f);
+/** Check whether transaction that caused BadQuery is restartable.
+ */
+bool isRestartable(const mysqlpp::BadQuery &e);
+
+/** Keeps running given function (expected to be some DB transaction) until it
+ *  either:
+ *    * succeeds
+ *    * throws an exception that is considerer to be caused by non-restartable
+ *      condition
+ *
+ * Restartable condition is checked by isRestartable() function.
+ *
+ * The function cannot have any side efects before all transactions are
+ * committed.
+ */
+template <typename Transaction>
+auto safeTx(const Transaction &f)-> decltype(f());
 
 template <typename T>
 boost::optional<T> optional(const mysqlpp::String &s)
@@ -251,6 +269,28 @@ Db::Parameters::dump(std::basic_ostream<E, T> &os, const std::string &section)
               << section << "readTimeout = " << readTimeout << '\n'
               << section << "writeTimeout = " << writeTimeout << '\n'
         ;
+}
+
+template <typename Function>
+auto safeTx(const Function &f)-> decltype(f())
+{
+    for (;;) {
+        try {
+            return f();
+        } catch (const utility::mysql::Db::QueryError &e) {
+            if (!e.isRestartable()) {
+                // non-restartable condition -> fail
+                throw;
+            }
+
+            LOG(warn3)
+                << "Encoutered error while executing query but it is "
+                "safe to restart transaction: <" << e.what()
+                << ">; retrying.";
+            // sleep a bit
+            std::this_thread::sleep_for(std::chrono::seconds(1));
+        }
+    }
 }
 
 } } // namespace utility::mysql

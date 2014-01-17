@@ -122,36 +122,34 @@ Db::Parameters Db::fromConfig(const po::variables_map &vars, fs::path root
     return dbconf;
 }
 
-void restartOnDeadlock(const std::function<void()> &f)
+bool isRestartable(const mysqlpp::BadQuery &e)
 {
-    for (;;) {
-        try {
-            f();
-            return;
-        } catch (const utility::mysql::Db::QueryError &exc) {
-            // rethrow inner mysqlpp exception
-            try {
-                // rethrow nested exception
-                exc.rethrow_if_nested();
-                // if not nested -> rethrow current exception
-                throw;
-            } catch (const mysqlpp::BadQuery &e) {
-                switch (e.errnum()) {
-                case ER_LOCK_WAIT_TIMEOUT:
-                case ER_LOCK_DEADLOCK:
-                    break;
+    switch (e.errnum()) {
+    case ER_LOCK_WAIT_TIMEOUT:
+    case ER_LOCK_DEADLOCK:
+        return true;
 
-                default:
-                    throw;
-                }
-                // deadlock -> try again
-                LOG(warn3)
-                    << "Deadlock while executing query: <"
-                    << exc.what() << ">; retrying.";
-                std::this_thread::sleep_for(std::chrono::seconds(1));
-            }
-        }
+    default:
+        return false;
     }
+}
+
+bool Db::QueryError::isRestartable() const
+{
+    try {
+        // rethrow nested exception
+        rethrow_if_nested();
+
+        // no nested exception
+    } catch (const mysqlpp::BadQuery &e) {
+        // bad query! check whether it is restartable
+        return mysql::isRestartable(e);
+    } catch (...) {
+        // some other error...
+    }
+
+    // not restartable tx
+    return false;
 }
 
 } } // namespace utility::mysql
