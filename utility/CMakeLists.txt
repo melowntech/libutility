@@ -17,7 +17,9 @@ endif()
 define_module(LIBRARY utility DEPENDS ${utility_DEPENDS})
 
 set(utility_SOURCES
-  duration.hpp time.hpp steady-clock.hpp
+  duration.hpp
+  time.hpp time.cpp
+  steady-clock.hpp
   gl.hpp
   has_member.hpp
   map.hpp

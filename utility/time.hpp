@@ -4,6 +4,7 @@
 #include <sstream>
 #include <iomanip>
 #include <chrono>
+#include <ctime>
 #include "steady-clock.hpp"
 
 namespace utility {
@@ -25,6 +26,8 @@ std::string formatDuration(const TimeDuration &d)
 
     return os.str();
 }
+
+std::string formatDateTime(const std::time_t t, bool gmt = false);
 
 } // namespace utility
 
