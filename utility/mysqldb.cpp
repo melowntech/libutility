@@ -132,7 +132,7 @@ void restartOnDeadlock(const std::function<void()> &f)
             // rethrow inner mysqlpp exception
             try {
                 // rethrow nested exception
-                std::rethrow_if_nested(exc);
+                exc.rethrow_if_nested();
                 // if not nested -> rethrow current exception
                 throw;
             } catch (const mysqlpp::BadQuery &e) {

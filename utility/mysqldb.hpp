@@ -58,6 +58,11 @@ public:
 
     struct QueryError : std::runtime_error {
         QueryError(const mysqlpp::Exception &e, const std::string &query);
+
+        void rethrow_if_nested() const;
+
+    private:
+        std::exception_ptr exc_;
     };
 
     /** Create DB connection. */
@@ -200,7 +205,15 @@ inline Db::QueryError::QueryError(const mysqlpp::Exception &e
     : std::runtime_error
       (str(boost::format("Query execution failed: <%s>; query: %s")
            % e.what() % query))
+    , exc_(std::current_exception())
 {}
+
+inline void Db::QueryError::rethrow_if_nested() const
+{
+    if (exc_) {
+        std::rethrow_exception(exc_);
+    }
+}
 
 inline Db::SimpleResult Db::execute(Query &query) {
     try {
@@ -209,7 +222,7 @@ inline Db::SimpleResult Db::execute(Query &query) {
     } catch (const mysqlpp::Exception &e) {
         QueryError qe(e, query.str());
         LOG(err2) << qe.what();
-        std::throw_with_nested(qe);
+        throw qe;
     }
 }
 
@@ -220,7 +233,7 @@ inline Db::StoreQueryResult Db::store(Query &query) {
     } catch (const mysqlpp::Exception &e) {
         QueryError qe(e, query.str());
         LOG(err2) << qe.what();
-        std::throw_with_nested(qe);
+        throw qe;
     }
 }
 
