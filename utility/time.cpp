@@ -1,6 +1,8 @@
 #include "./time.hpp"
 
-std::string formatDateTime(const std::time_t t, bool gmt = false)
+namespace utility {
+
+std::string formatDateTime(const std::time_t t, bool gmt)
 {
     std::tm tm;
     if (gmt) {
@@ -12,3 +14,6 @@ std::string formatDateTime(const std::time_t t, bool gmt = false)
     ::strftime(buf, sizeof(buf) - 1, "%Y-%m-%d %T", &tm);
     return buf;
 }
+
+} // namespace utility
+
