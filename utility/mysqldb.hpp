@@ -156,7 +156,7 @@ Tx<Connector>::Tx(Connector &connector)
                 << "Error starting transaction: <" << e.what()
                 << ">; retrying.";
             connector_->closeDb();
-            ::std::this_thread::sleep_for(std::chrono::seconds(1));
+            std::this_thread::sleep_for(std::chrono::seconds(1));
         }
     }
 }
