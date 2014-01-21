@@ -106,12 +106,21 @@ private:
 template <typename Connector>
 class Tx {
 public:
-    Tx(Connector &connector);
+    Tx(Connector &connector)
+        : connector_(&connector)
+    {
+        open();
+    }
+
     Tx(Tx &&other)
         : connector_(other.connector_)
         , tx_(std::move(other.tx_))
     {
     }
+
+    Tx(const Tx&) = delete;
+    Tx& operator=(const Tx&) = delete;
+    Tx& operator=(Tx&&) = delete;
 
     inline void commit() { tx_->commit(); }
     inline void rollback() { tx_->rollback(); }
@@ -130,14 +139,17 @@ public:
 
     inline operator mysqlpp::Transaction&() { return *tx_; }
 
-private:
+protected:
+    void open();
+
+    void flush();
+
     Connector *connector_;
     std::unique_ptr<mysqlpp::Transaction> tx_;
 };
 
 template <typename Connector>
-Tx<Connector>::Tx(Connector &connector)
-    : connector_(&connector)
+void Tx<Connector>::open()
 {
     for (int i(5); i; --i) {
         try {
@@ -161,6 +173,17 @@ Tx<Connector>::Tx(Connector &connector)
     }
 }
 
+template <typename Connector>
+void Tx<Connector>::flush()
+{
+    // commit pending transaction
+    tx_->commit();
+    // make room for transaction
+    tx_.reset();
+    // open new transaction
+    open();
+}
+
 template <typename Derived> struct TxProxyTraits;
 
 template <typename Derived>
@@ -168,8 +191,10 @@ struct TxProxy
 {
     typedef typename TxProxyTraits<Derived>::DbType DbType;
 
-    Tx<TxProxy<Derived> > openTx() {
-        return Tx<TxProxy<Derived> >(*this);
+    typedef Tx<TxProxy<Derived> > TxType;
+
+    TxType openTx() {
+        return TxType(*this);
     }
 
     inline DbType& db() {
@@ -192,6 +217,10 @@ struct TxProxy
 /** Check whether transaction that caused BadQuery is restartable.
  */
 bool isRestartable(const mysqlpp::BadQuery &e);
+
+/** Check whether transaction that caused QueryQuery is restartable.
+ */
+bool isRestartable(const Db::QueryError &e);
 
 /** Keeps running given function (expected to be some DB transaction) until it
  *  either:
@@ -271,6 +300,26 @@ Db::Parameters::dump(std::basic_ostream<E, T> &os, const std::string &section)
         ;
 }
 
+namespace detail {
+
+template <typename Exception>
+void failIfNotRestartable(const Exception &e)
+{
+    if (!isRestartable(e)) {
+        // non-restartable condition -> fail
+        throw;
+    }
+
+    LOG(warn3)
+        << "Encoutered error while executing query but it is "
+        "safe to restart transaction: <" << e.what()
+        << ">; retrying.";
+    // sleep a bit
+    std::this_thread::sleep_for(std::chrono::seconds(1));
+}
+
+} // detail
+
 template <typename Function>
 auto safeTx(const Function &f)-> decltype(f())
 {
@@ -278,17 +327,9 @@ auto safeTx(const Function &f)-> decltype(f())
         try {
             return f();
         } catch (const utility::mysql::Db::QueryError &e) {
-            if (!e.isRestartable()) {
-                // non-restartable condition -> fail
-                throw;
-            }
-
-            LOG(warn3)
-                << "Encoutered error while executing query but it is "
-                "safe to restart transaction: <" << e.what()
-                << ">; retrying.";
-            // sleep a bit
-            std::this_thread::sleep_for(std::chrono::seconds(1));
+            detail::failIfNotRestartable(e);
+        } catch (const mysqlpp::BadQuery &e) {
+            detail::failIfNotRestartable(e);
         }
     }
 }
@@ -296,4 +337,3 @@ auto safeTx(const Function &f)-> decltype(f())
 } } // namespace utility::mysql
 
 #endif // utility_mysqldb_hpp_included_
-

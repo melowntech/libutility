@@ -152,4 +152,9 @@ bool Db::QueryError::isRestartable() const
     return false;
 }
 
+bool isRestartable(const Db::QueryError &e)
+{
+    return e.isRestartable();
+}
+
 } } // namespace utility::mysql
