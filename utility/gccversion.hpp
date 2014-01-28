@@ -8,8 +8,13 @@
 #    define GCC_VERSION 0
 #endif
 
-#if GCC_VERSION < 40700
+#if GCC_VERSION && (GCC_VERSION < 40700)
 #    define UTILITY_HAS_NO_STD_FUTURE_STATUS
+#endif
+
+// pre-4.7 gcc has no override modifier
+#if GCC_VERSION && (GCC_VERSION < 40700)
+#    define override
 #endif
 
 #endif // SHARED_UTILITY_GCCVERSION_HPP_INCLUDED_
