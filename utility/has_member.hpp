@@ -1,6 +1,6 @@
 /**
  *  @file utility/has_member.hpp
- *  @author Vaclav Blazek <vaclav.blazek@ext.citationtech.net>
+ *  @author Vaclav Blazek <vaclav.blazek@citationtech.net>
  *
  *  Adds template class has_XXX that can be used to distinguish types that have
  *  data member names XXX.
