@@ -15,6 +15,7 @@
 // pre-4.7 gcc has no override modifier
 #if GCC_VERSION && (GCC_VERSION < 40700)
 #    define override
+#    define final
 #endif
 
 #endif // SHARED_UTILITY_GCCVERSION_HPP_INCLUDED_

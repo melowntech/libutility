@@ -161,9 +161,18 @@ private:
 
 template <typename E, typename T, typename Dumpable>
 std::basic_ostream<E, T>&
+dump(std::basic_ostream<E,T> &os, const Dumpable &dumpable
+     , const std::string &prefix = std::string())
+{
+    return dumpable.dump(os, prefix);
+}
+
+template <typename E, typename T, typename Dumpable>
+std::basic_ostream<E, T>&
 operator<<(std::basic_ostream<E,T> &os, const Dumper<Dumpable> &dumper)
 {
-    return dumper.dumpable.dump(os, dumper.prefix);
+    // return dumper.dumpable.dump(os, dumper.prefix);
+    return dump(os, dumper.dumpable, dumper.prefix);
 }
 
 template <typename Container>
