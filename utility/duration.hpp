@@ -72,6 +72,12 @@ public:
                         (*watches_)[name].second.count());
         }
     }
+    static void resetCounter(std::string name){
+        if (watches_->find(name) == watches_->end()){
+            return;
+        }
+        (*watches_)[name].first.reset();
+    }
 private:
     static boost::thread_specific_ptr<std::map<std::string, Stopwatch>> watches_;
 };
@@ -80,10 +86,14 @@ private:
     #define UTILITY_TIMEMETRICS_START_COUNTER(NAME)\
         utility::TimeMetrics::startCounter(NAME)
 
+    #define UTILITY_TIMEMETRICS_RESET_COUNTER(NAME)\
+        utility::TimeMetrics::resetCounter(NAME)
+
     #define UTILITY_TIMEMETRICS_STOP_COUNTER_AND_PRINT_TOTAL(NAME)\
         LOG(info2) << utility::TimeMetrics::stopCounterAndPrintTotal(NAME);
 #else
-    #define UTILITY_TIMEMETRICS_START_COUNTER(NAME)          
+    #define UTILITY_TIMEMETRICS_START_COUNTER(NAME) 
+    #define UTILITY_TIMEMETRICS_RESET_COUNTER(NAME)   
     #define UTILITY_TIMEMETRICS_STOP_COUNTER_AND_PRINT_TOTAL(NAME)
 #endif
 
