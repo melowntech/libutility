@@ -76,7 +76,7 @@ public:
         if (watches_->find(name) == watches_->end()){
             return;
         }
-        (*watches_)[name].first.reset();
+        watches_->erase(name);
     }
 private:
     static boost::thread_specific_ptr<std::map<std::string, Stopwatch>> watches_;
