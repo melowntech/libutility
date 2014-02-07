@@ -39,6 +39,9 @@ set(utility_SOURCES
   base64.hpp
   md5.hpp
 
+  raise.hpp
+  expect.hpp
+
   filesystem.hpp filesystem.cpp
   detail/filesystem.hpp detail/filesystem.cpp
   tcpendpoint.hpp tcpendpoint-io.hpp tcpendpoint-io.cpp
