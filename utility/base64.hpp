@@ -53,19 +53,57 @@ static const std::string base64_chars =
              "abcdefghijklmnopqrstuvwxyz"
              "0123456789+/";
 
-static inline bool is_base64(unsigned char c) {
+inline bool is_base64(unsigned char c) {
     return (c == 43 || // +
            (c >= 47 && c <= 57) || // /-9
            (c >= 65 && c <= 90) || // A-Z
            (c >= 97 && c <= 122)); // a-z
 }
 
+class Emittor
+{
+public:
+    Emittor(unsigned int wrap)
+        : wrap_(wrap), lineSize_(0)
+    {}
+
+    inline void emit(unsigned char c) {
+        ret_.push_back(base64_chars[c]);
+
+        ++lineSize_;
+        if (wrap_ && (lineSize_ >= wrap_)) {
+            ret_.push_back('\n');
+            lineSize_ = 0;
+        }
+    }
+
+    inline void end(unsigned int count) {
+        while (count--) {
+            ret_.push_back('=');
+            ++lineSize_;
+            if (wrap_ && (lineSize_ >= wrap_)) {
+                ret_.push_back('\n');
+                lineSize_ = 0;
+            }
+        }
+    }
+
+    const std::string& get() const { return ret_; }
+
+private:
+    std::string ret_;
+    unsigned int wrap_;
+    unsigned int lineSize_;
+};
+
 } // namespace detail
 
 inline std::string encode(unsigned char const* bytes_to_encode
-                          , unsigned int in_len)
+                          , unsigned int in_len
+                          , unsigned int wrap = 0)
 {
-    std::string ret;
+    detail::Emittor ret(wrap);
+
     int i = 0;
     int j = 0;
     unsigned char char_array_3[3];
@@ -81,15 +119,15 @@ inline std::string encode(unsigned char const* bytes_to_encode
                               ((char_array_3[2] & 0xc0) >> 6);
             char_array_4[3] = char_array_3[2] & 0x3f;
 
-            for(i = 0; (i <4) ; i++) {
-                ret += detail::base64_chars[char_array_4[i]];
+            for (i = 0; (i <4) ; i++) {
+                ret.emit(char_array_4[i]);
             }
             i = 0;
         }
     }
 
     if (i) {
-        for(j = i; j < 3; j++) {
+        for (j = i; j < 3; j++) {
             char_array_3[j] = '\0';
         }
 
@@ -101,20 +139,19 @@ inline std::string encode(unsigned char const* bytes_to_encode
         char_array_4[3] = char_array_3[2] & 0x3f;
 
         for (j = 0; (j < i + 1); j++) {
-            ret += detail::base64_chars[char_array_4[j]];
+            ret.emit(char_array_4[j]);
         }
 
-        while((i++ < 3)) {
-            ret += '=';
-        }
-  }
+        ret.end(3 - i);
+    }
 
-  return ret;
+    return ret.get();
 }
 
-inline std::string encode(const std::string &data) {
+inline std::string encode(const std::string &data, unsigned int wrap = 0)
+{
     return encode(reinterpret_cast<const unsigned char *>
-                  (data.data()), data.size());
+                  (data.data()), data.size(), wrap);
 }
 
 inline std::string decode(std::string const& encoded_string) {
@@ -125,9 +162,18 @@ inline std::string decode(std::string const& encoded_string) {
     unsigned char char_array_4[4], char_array_3[3];
     std::string ret;
 
-    while (in_len-- && ( encoded_string[in_] != '=')
-           && detail::is_base64(encoded_string[in_])) {
-        char_array_4[i++] = encoded_string[in_]; in_++;
+    for (; in_len && ( encoded_string[in_] != '='); ++in_, --in_len) {
+        auto c(encoded_string[in_]);
+        if (c == '\n') {
+            // skip newline
+            continue;
+        }
+
+        if (!detail::is_base64(c)) {
+            // fail on invalid char
+            break;
+        }
+        char_array_4[i++] = c;
         if (i ==4) {
             for (i = 0; i <4; i++) {
                 char_array_4[i] = static_cast<unsigned char>
@@ -146,12 +192,14 @@ inline std::string decode(std::string const& encoded_string) {
     }
 
     if (i) {
-        for (j = i; j <4; j++)
+        for (j = i; j <4; j++) {
             char_array_4[j] = 0;
+        }
 
-        for (j = 0; j <4; j++)
+        for (j = 0; j <4; j++) {
             char_array_4[j] = static_cast<unsigned char>
                 (detail::base64_chars.find(char_array_4[j]));
+        }
 
         char_array_3[0] = (char_array_4[0] << 2) + ((char_array_4[1] & 0x30) >> 4);
         char_array_3[1] = ((char_array_4[1] & 0xf) << 4) + ((char_array_4[2] & 0x3c) >> 2);

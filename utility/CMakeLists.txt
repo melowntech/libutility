@@ -76,4 +76,5 @@ endif()
 # test stuff
 if (COMPILE_TESTS)
   add_subdirectory(test-copytree)
+  add_subdirectory(test-base64)
 endif()
