@@ -20,6 +20,11 @@ constexpr char TargetName[] = BUILD_TARGET_NAME;
 #endif
 constexpr char TargetVersion[] = BUILD_TARGET_VERSION;
 
+#ifndef BUILDSYS_INSTALL_PREFIX
+#    define BUILDSYS_INSTALL_PREFIX "/usr/local"
+#endif
+constexpr char InstallPrefix[] = BUILDSYS_INSTALL_PREFIX;
+
 #ifndef BUILDSYS_HOSTNAME
 #    define  BUILDSYS_HOSTNAME "unknown"
 #endif
