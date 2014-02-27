@@ -46,8 +46,9 @@ void useFd(int dst, int src)
     if (src < 0) { return; }
     if (-1 == ::dup2(src, dst)) {
         std::system_error e(errno, std::system_category());
-        LOG(warn3) << "dup2(2) failed: <" << e.code()
-                   << ", " << e.what() << ">";
+        LOG(warn3)
+            << "dup2(" << src << ", " << dst << ") failed: <" << e.code()
+            << ", " << e.what() << ">";
         throw e;
     }
     ::close(src);
