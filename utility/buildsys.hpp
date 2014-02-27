@@ -30,7 +30,7 @@ boost::filesystem::path installPath(const boost::filesystem::path &p);
 #endif
 
 #ifndef BUILDSYS_HOSTNAME
-#    define  BUILDSYS_HOSTNAME "unknown"
+#    define BUILDSYS_HOSTNAME "unknown"
 #endif
 
 #ifdef BUILDSYS_CUSTOMER_BUILD
