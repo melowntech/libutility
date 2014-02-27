@@ -53,7 +53,27 @@ void useFd(int dst, int src)
     ::close(src);
 }
 
-pid_t execute(const ExecArgs &argv, int ifd = -1, int ofd = -1, int efd = -1)
+template <typename File>
+void useFd(int dst, const boost::optional<File> &src)
+{
+    if (src) {
+        // TOOD: distinguish file
+        useFd(dst, src->fd);
+    }
+}
+
+void processEnv(const Context::Environ &environ)
+{
+    for (const auto &e : environ) {
+        if (e.second) {
+            ::setenv(e.first.c_str(), e.second->c_str(), true);
+        } else {
+            ::unsetenv(e.first.c_str());
+        }
+    }
+}
+
+pid_t execute(const ExecArgs &argv, const boost::function<void()> &afterFork)
 {
     LOG(info2) << "Executing: " << argv;
 
@@ -65,13 +85,7 @@ pid_t execute(const ExecArgs &argv, int ifd = -1, int ofd = -1, int efd = -1)
                    << ", " << e.what() << ">";
         throw e;
     } else if (0 == pid) {
-        try {
-            useFd(STDIN_FILENO, ifd);
-            useFd(STDOUT_FILENO, ofd);
-            useFd(STDERR_FILENO, efd);
-        } catch (const std::exception &e) {
-            std::exit(EXEC_FAILED);
-        }
+        afterFork();
 
         // child -> exec
         if (::execvpe(argv.argv.front(), &(argv.argv.front())
@@ -90,15 +104,37 @@ pid_t execute(const ExecArgs &argv, int ifd = -1, int ofd = -1, int efd = -1)
     return pid;
 }
 
-template <typename File>
-int getFd(const boost::optional<File> &f)
+void redirect(const Context::Redirects &redirects)
 {
-    if (f) { return f->fd; }
-    return -1;
+    for (const auto &pair : redirects) {
+        const auto &r(pair.second);
+
+        if (r.type == RedirectFile::Type::path) {
+            int fd(-1);
+            if (r.out) {
+                fd = ::open(r.path.string().c_str()
+                            , O_WRONLY | O_CREAT | O_TRUNC
+                            , (S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH));
+            } else {
+                fd = ::open(r.path.string().c_str(), O_RDONLY);
+            }
+
+            if (fd == -1) {
+                std::system_error e(errno, std::system_category());
+                LOG(err3) << "Cannot open file " << r.path << ": <"
+                          << e.code() << ", " << e.what() << ">.";
+                throw e;
+            }
+            useFd(r.dst, fd);
+        } else {
+            useFd(r.dst, r.src);
+        }
+    }
 }
 
 int systemImpl(const std::string &program, const Context &ctx)
 {
+    // prepare arguments
     detail::ExecArgs argv;
     argv.arg(program);
     for (const auto arg : ctx.argv) {
@@ -106,8 +142,17 @@ int systemImpl(const std::string &program, const Context &ctx)
     }
     argv.finish();
 
-    auto pid(detail::execute(argv, getFd(ctx.inFile), getFd(ctx.outFile)
-                             , getFd(ctx.errFile)));
+    auto pid(detail::execute
+             (argv,
+              [&ctx]() {
+                 try {
+                     redirect(ctx.redirects);
+                     processEnv(ctx.environ);
+                 } catch (const std::exception &e) {
+                     std::exit(EXEC_FAILED);
+                 }
+             }));
+
     LOG(info2) << "running under pid: " << pid;
 
     int status;

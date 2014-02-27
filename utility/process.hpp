@@ -1,6 +1,7 @@
 #ifndef utility_process_hpp_included_
 #define utility_process_hpp_included_
 
+#include <cstdio>
 #include <string>
 #include <vector>
 #include <utility>
@@ -9,107 +10,81 @@
 #include <system_error>
 
 #include <boost/lexical_cast.hpp>
+#include <boost/filesystem/path.hpp>
 #include <boost/optional.hpp>
 
 namespace utility {
 
-struct InFile {
-    int fd;
-    InFile(int fd) : fd(fd) {}
+struct RedirectFile {
+    int dst;
+    int src;
+    boost::filesystem::path path;
+    enum class Type { fd, path };
+    Type type;
+    bool out;
+
+    RedirectFile() : dst(-1), src(-1), out(false) {}
+    RedirectFile(int dst, int src, bool out)
+        : dst(dst), src(src), type(Type::fd), out(out) {}
+    RedirectFile(int dst, const boost::filesystem::path &path
+                 , bool out)
+        : dst(dst), src(-1), path(path), type(Type::path), out(out) {}
 };
 
-struct OutFile {
-    int fd;
-    OutFile(int fd) : fd(fd) {}
+struct Stdin : RedirectFile {
+    Stdin(int fd) : RedirectFile(STDIN_FILENO, fd, false) {}
+    Stdin(const boost::filesystem::path &path)
+        : RedirectFile(STDIN_FILENO, path, false) {}
 };
 
-struct ErrFile {
-    int fd;
-    ErrFile(int fd) : fd(fd) {}
+struct Stdout : RedirectFile {
+    Stdout(int fd) : RedirectFile(STDOUT_FILENO, fd, true) {}
+    Stdout(const boost::filesystem::path &path)
+        : RedirectFile(STDOUT_FILENO, path, true) {}
 };
 
-namespace detail {
-
-struct Context {
-    std::vector<std::string> argv;
-    boost::optional<InFile> inFile;
-    boost::optional<OutFile> outFile;
-    boost::optional<ErrFile> errFile;
-
-    void set(const InFile &f) {
-        if (inFile) {
-            throw std::runtime_error("Input file already specified.");
-        }
-        inFile = f;
-    }
-
-    void set(const OutFile &f) {
-        if (outFile) {
-            throw std::runtime_error("Output file already specified.");
-        }
-        outFile = f;
-    }
-
-    void set(const ErrFile &f) {
-        if (errFile) {
-            throw std::runtime_error("Error file already specified.");
-        }
-        errFile = f;
-    }
+struct Stderr : RedirectFile {
+    Stderr(int fd) : RedirectFile(STDERR_FILENO, fd, true) {}
+    Stderr(const boost::filesystem::path &path)
+        : RedirectFile(STDERR_FILENO, path, true) {}
 };
 
-inline void systemBuildArgs(Context&) {}
+struct SetEnv {
+    std::string name;
+    std::string value;
+    SetEnv(const std::string &name, const std::string value = "")
+        : name(name), value(value)
+    {}
+};
 
-inline void systemBuildArgs(Context &ctx, InFile &&f)
-{
-    ctx.set(f);
-}
+struct UnsetEnv {
+    std::string name;
+    UnsetEnv(const std::string &name) : name(name) {}
+};
 
-inline void systemBuildArgs(Context &ctx, OutFile &&f)
-{
-    ctx.set(f);
-}
-
-inline void systemBuildArgs(Context &ctx, ErrFile &&f)
-{
-    ctx.set(f);
-}
-
-template <typename ...Args>
-inline void systemBuildArgs(Context &ctx, InFile &&f, Args &&...rest)
-{
-    ctx.set(f);
-    return detail::systemBuildArgs(ctx, std::forward<Args>(rest)...);
-}
-
-template <typename ...Args>
-inline void systemBuildArgs(Context &ctx, OutFile &&f, Args &&...rest)
-{
-    ctx.set(f);
-    return detail::systemBuildArgs(ctx, std::forward<Args>(rest)...);
-}
-
-template <typename ...Args>
-inline void systemBuildArgs(Context &ctx, ErrFile &&f, Args &&...rest)
-{
-    ctx.set(f);
-    return detail::systemBuildArgs(ctx, std::forward<Args>(rest)...);
-}
-
-template <typename T, typename ...Args>
-inline void systemBuildArgs(Context &ctx, T &&arg, Args &&...rest)
-{
-    ctx.argv.push_back(boost::lexical_cast<std::string>(arg));
-    return detail::systemBuildArgs(ctx, std::forward<Args>(rest)...);
-}
-
-/** Equivalent of system(3); does fork/exec and waits for result.
+/** Execute child process and wait for its completion.
+ *
+ *  Argument can be one of:
+ *     InFile/OutFile/ErrFile: file to redirect stdin/stdout/stderr to/from
+ *     SetEnv: sets environmental variable
+ *     UnsetEnv: unsets environmental variable
+ *     other: positional argument to exec (converted to string
+ *            via boost::lexical_cast)
+ *
+ *  First positional argument is interpreted as path to binary to execute.
  */
-int systemImpl(const std::string &program, const Context &ctx);
+template <typename ...Args>
+int system(const std::string &program, Args &&...args);
 
-int spawnImpl(const std::function<int ()> &func);
+int spawn(const std::function<int ()> &func);
 
-} // namespace detail
+} // namespace utility
+
+#include "./detail/process.hpp"
+
+// implementation
+
+namespace utility {
 
 template <typename ...Args>
 inline int system(const std::string &program, Args &&...args)
@@ -128,6 +103,5 @@ inline int spawn(const std::function<int ()> &func)
 }
 
 } // namespace utility
-
 
 #endif // utility_process_hpp_included_
