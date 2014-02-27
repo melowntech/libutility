@@ -2,7 +2,7 @@
 
 #include <boost/test/unit_test.hpp>
 
-#include "utility/path.hpp"
+#include "../path.hpp"
 
 #include "dbglog/dbglog.hpp"
 

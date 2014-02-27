@@ -2,7 +2,7 @@
 
 #include <boost/test/unit_test.hpp>
 
-#include "utility/tcpendpoint-io.hpp"
+#include "../tcpendpoint-io.hpp"
 
 #include "dbglog/dbglog.hpp"
 
