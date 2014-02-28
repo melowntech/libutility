@@ -60,7 +60,7 @@ BOOST_AUTO_TEST_CASE(utility_process_system_2)
 
     BOOST_CHECK(EXIT_SUCCESS ==
                 utility::system("cat"
-                                , utility::InStream(input)
+                                , utility::Stream(input)
                                 , utility::Stdout(output)
                                 )
                 );

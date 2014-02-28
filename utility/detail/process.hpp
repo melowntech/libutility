@@ -37,8 +37,7 @@ struct Context {
     void apply(const Stdin &arg) { add(arg); }
     void apply(const Stderr &arg) { add(arg); }
     void apply(const Stdout &arg) { add(arg); }
-    void apply(const InStream &arg) { add(arg); }
-    void apply(const OutStream &arg) { add(arg); }
+    void apply(const Stream &arg) { add(arg); }
 
     void apply(const SetEnv &arg) {
         environ[arg.name] = arg.value;
@@ -61,56 +60,6 @@ struct Context {
 };
 
 inline void systemBuildArgs(Context&) {}
-#if 0
-template <typename ...Args>
-inline void systemBuildArgs(Context &ctx, Stdin &&f, Args &&...rest)
-{
-    ctx.set(f);
-    return detail::systemBuildArgs(ctx, std::forward<Args>(rest)...);
-}
-
-template <typename ...Args>
-inline void systemBuildArgs(Context &ctx, Stdout &&f, Args &&...rest)
-{
-    ctx.set(f);
-    return detail::systemBuildArgs(ctx, std::forward<Args>(rest)...);
-}
-
-template <typename ...Args>
-inline void systemBuildArgs(Context &ctx, Stderr &&f, Args &&...rest)
-{
-    ctx.set(f);
-    return detail::systemBuildArgs(ctx, std::forward<Args>(rest)...);
-}
-
-template <typename ...Args>
-inline void systemBuildArgs(Context &ctx, InStream &&f, Args &&...rest)
-{
-    ctx.set(f);
-    return detail::systemBuildArgs(ctx, std::forward<Args>(rest)...);
-}
-
-template <typename ...Args>
-inline void systemBuildArgs(Context &ctx, OutStream &&f, Args &&...rest)
-{
-    ctx.set(f);
-    return detail::systemBuildArgs(ctx, std::forward<Args>(rest)...);
-}
-
-template <typename ...Args>
-inline void systemBuildArgs(Context &ctx, SetEnv &&s, Args &&...rest)
-{
-    ctx.apply(s);
-    return detail::systemBuildArgs(ctx, std::forward<Args>(rest)...);
-}
-
-template <typename ...Args>
-inline void systemBuildArgs(Context &ctx, UnsetEnv &&s, Args &&...rest)
-{
-    ctx.apply(s);
-    return detail::systemBuildArgs(ctx, std::forward<Args>(rest)...);
-}
-#endif
 
 template <typename T, typename ...Args>
 inline void systemBuildArgs(Context &ctx, T &&arg, Args &&...rest)

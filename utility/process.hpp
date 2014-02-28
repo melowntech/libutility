@@ -89,15 +89,13 @@ struct Stderr : RedirectFile {
     explicit Stderr(std::ostream &os) : RedirectFile(STDERR_FILENO, os) {}
 };
 
-struct InStream : RedirectFile {
-    explicit InStream(std::istream &is) : RedirectFile(is) {}
-    explicit InStream(const std::string &format, std::istream &is)
+struct Stream : RedirectFile {
+    explicit Stream(std::istream &is) : RedirectFile(is) {}
+    explicit Stream(const std::string &format, std::istream &is)
         : RedirectFile(format, is) {}
-};
 
-struct OutStream : RedirectFile {
-    explicit OutStream(std::ostream &os) : RedirectFile(os) {}
-    explicit OutStream(const std::string &format, std::ostream &os)
+    explicit Stream(std::ostream &os) : RedirectFile(os) {}
+    explicit Stream(const std::string &format, std::ostream &os)
         : RedirectFile(format, os) {}
 };
 
