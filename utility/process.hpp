@@ -69,49 +69,49 @@ struct RedirectFile {
 };
 
 struct Stdin : RedirectFile {
-    Stdin(int fd) : RedirectFile(STDIN_FILENO, fd) {}
-    Stdin(const boost::filesystem::path &path)
+    explicit Stdin(int fd) : RedirectFile(STDIN_FILENO, fd) {}
+    explicit Stdin(const boost::filesystem::path &path)
         : RedirectFile(STDIN_FILENO, path, false) {}
-    Stdin(std::istream &is) : RedirectFile(STDIN_FILENO, is) {}
+    explicit Stdin(std::istream &is) : RedirectFile(STDIN_FILENO, is) {}
 };
 
 struct Stdout : RedirectFile {
-    Stdout(int fd) : RedirectFile(STDOUT_FILENO, fd) {}
-    Stdout(const boost::filesystem::path &path)
+    explicit Stdout(int fd) : RedirectFile(STDOUT_FILENO, fd) {}
+    explicit Stdout(const boost::filesystem::path &path)
         : RedirectFile(STDOUT_FILENO, path, true) {}
-    Stdout(std::ostream &os) : RedirectFile(STDOUT_FILENO, os) {}
+    explicit Stdout(std::ostream &os) : RedirectFile(STDOUT_FILENO, os) {}
 };
 
 struct Stderr : RedirectFile {
-    Stderr(int fd) : RedirectFile(STDERR_FILENO, fd) {}
-    Stderr(const boost::filesystem::path &path)
+    explicit Stderr(int fd) : RedirectFile(STDERR_FILENO, fd) {}
+    explicit Stderr(const boost::filesystem::path &path)
         : RedirectFile(STDERR_FILENO, path, true) {}
-    Stderr(std::ostream &os) : RedirectFile(STDERR_FILENO, os) {}
+    explicit Stderr(std::ostream &os) : RedirectFile(STDERR_FILENO, os) {}
 };
 
 struct InStream : RedirectFile {
-    InStream(std::istream &is) : RedirectFile(is) {}
-    InStream(const std::string &format, std::istream &is)
+    explicit InStream(std::istream &is) : RedirectFile(is) {}
+    explicit InStream(const std::string &format, std::istream &is)
         : RedirectFile(format, is) {}
 };
 
 struct OutStream : RedirectFile {
-    OutStream(std::ostream &os) : RedirectFile(os) {}
-    OutStream(const std::string &format, std::ostream &os)
+    explicit OutStream(std::ostream &os) : RedirectFile(os) {}
+    explicit OutStream(const std::string &format, std::ostream &os)
         : RedirectFile(format, os) {}
 };
 
 struct SetEnv {
     std::string name;
     std::string value;
-    SetEnv(const std::string &name, const std::string value = "")
+    explicit SetEnv(const std::string &name, const std::string value = "")
         : name(name), value(value)
     {}
 };
 
 struct UnsetEnv {
     std::string name;
-    UnsetEnv(const std::string &name) : name(name) {}
+    explicit UnsetEnv(const std::string &name) : name(name) {}
 };
 
 /** Execute child process and wait for its completion.

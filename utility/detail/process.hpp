@@ -3,6 +3,7 @@
 
 #include <vector>
 #include <map>
+#include <utility>
 
 #include <boost/optional.hpp>
 
@@ -22,63 +23,45 @@ struct Context {
     typedef std::map<std::string, boost::optional<std::string> > Environ;
     Environ environ;
 
-    void set(const RedirectFile &f) {
+    void add(const RedirectFile &arg) {
         // TODO: check for duplicity
 
         placeHolders[redirects.size()] = argv.size();
 
-        redirects.push_back(f);
+        redirects.push_back(arg);
 
-        // placeholder for redirect
+        // placeholder for redirect argument (if any)
         argv.push_back(boost::none);
     }
 
-    void apply(const SetEnv &s) {
-        environ[s.name] = s.value;
+    void apply(const Stdin &arg) { add(arg); }
+    void apply(const Stderr &arg) { add(arg); }
+    void apply(const Stdout &arg) { add(arg); }
+    void apply(const InStream &arg) { add(arg); }
+    void apply(const OutStream &arg) { add(arg); }
+
+    void apply(const SetEnv &arg) {
+        environ[arg.name] = arg.value;
     }
 
-    void apply(const UnsetEnv &s) {
-        environ[s.name] = boost::none;
+    void apply(const UnsetEnv &arg) {
+        environ[arg.name] = boost::none;
+    }
+
+    void apply(const std::string &arg) {
+        argv.push_back(arg);
+    }
+
+    template <typename T>
+    void apply(const T &arg) {
+        argv.push_back(boost::lexical_cast<std::string>(arg));
     }
 
     void setFdPath(int redirectIdx, const RedirectFile::DstArg &arg, int fd);
 };
 
 inline void systemBuildArgs(Context&) {}
-
-inline void systemBuildArgs(Context &ctx, Stdin &&f)
-{
-    ctx.set(f);
-}
-
-inline void systemBuildArgs(Context &ctx, Stdout &&f)
-{
-    ctx.set(f);
-}
-
-inline void systemBuildArgs(Context &ctx, Stderr &&f)
-{
-    ctx.set(f);
-}
-
-inline void systemBuildArgs(Context &ctx, InStream &&f) {
-    ctx.set(f);
-}
-
-inline void systemBuildArgs(Context &ctx, OutStream &&f) {
-    ctx.set(f);
-}
-
-inline void systemBuildArgs(Context &ctx, SetEnv &&s)
-{
-    ctx.apply(s);
-}
-
-inline void systemBuildArgs(Context &ctx, UnsetEnv &&s)
-{
-    ctx.apply(s);
-}
-
+#if 0
 template <typename ...Args>
 inline void systemBuildArgs(Context &ctx, Stdin &&f, Args &&...rest)
 {
@@ -127,11 +110,13 @@ inline void systemBuildArgs(Context &ctx, UnsetEnv &&s, Args &&...rest)
     ctx.apply(s);
     return detail::systemBuildArgs(ctx, std::forward<Args>(rest)...);
 }
+#endif
 
 template <typename T, typename ...Args>
 inline void systemBuildArgs(Context &ctx, T &&arg, Args &&...rest)
 {
-    ctx.argv.push_back(boost::lexical_cast<std::string>(arg));
+    // ctx.argv.push_back(boost::lexical_cast<std::string>(arg));
+    ctx.apply(arg);
     return detail::systemBuildArgs(ctx, std::forward<Args>(rest)...);
 }
 
