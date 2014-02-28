@@ -1,17 +1,39 @@
 #include <iostream>
 #include <cerrno>
 #include <cstdlib>
+#include <stdexcept>
+#include <system_error>
 
 #include <string.h>
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/wait.h>
+#include <sys/socket.h>
+#include <sys/un.h>
+
+#include <boost/asio.hpp>
+#include <boost/format.hpp>
 
 #include "dbglog/dbglog.hpp"
 
 #include "process.hpp"
 
+namespace fs = boost::filesystem;
+
 namespace utility { namespace detail {
+
+void Context::setFdPath(int redirectIdx, int fd)
+{
+    auto fplaceHolders(placeHolders.find(redirectIdx));
+    if (fplaceHolders == placeHolders.end()) {
+        LOGTHROW(err1, std::runtime_error)
+            << "system: invalid redirect index (" << redirectIdx << ").";
+    }
+
+    argv[fplaceHolders->second] = str(boost::format("/dev/fd/%d") % fd);
+}
+
+
 struct ExecArgs {
     typedef std::vector<char*> Argv;
     Argv argv;
@@ -43,24 +65,16 @@ constexpr int EXEC_FAILED = 255;
 
 void useFd(int dst, int src)
 {
-    if (src < 0) { return; }
+    // ignore invalid descriptors
+    if ((src < 0) || (dst < 0)) { return; }
     if (-1 == ::dup2(src, dst)) {
         std::system_error e(errno, std::system_category());
-        LOG(warn3)
+        LOG(warn1)
             << "dup2(" << src << ", " << dst << ") failed: <" << e.code()
             << ", " << e.what() << ">";
         throw e;
     }
     ::close(src);
-}
-
-template <typename File>
-void useFd(int dst, const boost::optional<File> &src)
-{
-    if (src) {
-        // TOOD: distinguish file
-        useFd(dst, src->fd);
-    }
 }
 
 void processEnv(const Context::Environ &environ)
@@ -82,18 +96,21 @@ pid_t execute(const ExecArgs &argv, const boost::function<void()> &afterFork)
     if (-1 == pid) {
         // Oops, failed
         std::system_error e(errno, std::system_category());
-        LOG(warn3) << "fork(2) failed: <" << e.code()
+        LOG(warn1) << "fork(2) failed: <" << e.code()
                    << ", " << e.what() << ">";
         throw e;
     } else if (0 == pid) {
+        // child -> prepare and exec
+
+        // call afterfork callback
         afterFork();
 
-        // child -> exec
+        // exec
         if (::execvpe(argv.argv.front(), &(argv.argv.front())
                       , ::environ) == -1)
         {
             std::system_error e(errno, std::system_category());
-            LOG(warn3) << "execve(2) [" << argv.argv.front()
+            LOG(warn1) << "execve(2) [" << argv.argv.front()
                        << "] failed: <" << e.code() << ", "
                        << e.what() << ">";
             std::exit(EXEC_FAILED);
@@ -107,55 +124,292 @@ pid_t execute(const ExecArgs &argv, const boost::function<void()> &afterFork)
 
 void redirect(const Context::Redirects &redirects)
 {
-    for (const auto &pair : redirects) {
-        const auto &r(pair.second);
-
-        if (r.type == RedirectFile::Type::path) {
+    for (const auto &redirect : redirects) {
+        switch (redirect.type) {
+        case RedirectFile::SrcType::path: {
+            auto path(boost::any_cast<fs::path>(redirect.value));
             int fd(-1);
-            if (r.out) {
-                fd = ::open(r.path.string().c_str()
+            if (redirect.out) {
+                fd = ::open(path.string().c_str()
                             , O_WRONLY | O_CREAT | O_TRUNC
                             , (S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH));
             } else {
-                fd = ::open(r.path.string().c_str(), O_RDONLY);
+                fd = ::open(path.string().c_str(), O_RDONLY);
             }
 
             if (fd == -1) {
                 std::system_error e(errno, std::system_category());
-                LOG(err3) << "Cannot open file " << r.path << ": <"
+                LOG(err1) << "Cannot open file " << path << ": <"
                           << e.code() << ", " << e.what() << ">.";
                 throw e;
             }
-            useFd(r.dst, fd);
-        } else {
-            useFd(r.dst, r.src);
+            useFd(redirect.dst, fd);
+            break;
+        }
+
+        case RedirectFile::SrcType::fd:
+            useFd(redirect.dst, boost::any_cast<int>(redirect.value));
+            break;
+
+        case RedirectFile::SrcType::istream:
+        case RedirectFile::SrcType::ostream:
+            LOGTHROW(err1, std::runtime_error)
+                << "Streams must be converted to file descriptors!";
+            break;
         }
     }
 }
 
-int systemImpl(const std::string &program, const Context &ctx)
-{
-    // prepare arguments
-    detail::ExecArgs argv;
-    argv.arg(program);
-    for (const auto arg : ctx.argv) {
-        argv.arg(arg);
+class Pipe : boost::noncopyable {
+public:
+    Pipe()
+        : pipe_{-1, -1}
+    {
+        if (-1 == ::pipe(pipe_)) {
+            std::system_error e(errno, std::system_category());
+            LOG(warn1)
+                << "Cannot create pipe: "
+                << "<" << e.code() << ", " << e.what() << ">.";
+            throw e;
+        }
     }
-    argv.finish();
 
-    auto pid(detail::execute
-             (argv,
-              [&ctx]() {
-                 try {
-                     redirect(ctx.redirects);
-                     processEnv(ctx.environ);
-                 } catch (const std::exception &e) {
-                     std::exit(EXEC_FAILED);
-                 }
-             }));
+    Pipe(Pipe &&other)
+        : pipe_{ -1, -1}
+    {
+        std::swap(pipe_[0], other.pipe_[0]);
+        std::swap(pipe_[1], other.pipe_[1]);
+    }
 
-    LOG(info2) << "running under pid: " << pid;
+    ~Pipe() {
+        if (in() > -1) { ::close(in()); }
+        if (out() > -1) { ::close(out()); }
+    }
 
+    int in() const { return pipe_[0]; }
+    int out() const { return pipe_[1]; }
+
+    void releaseIn() { pipe_[0] = -1; }
+    void releaseOut() { pipe_[1] = -1; }
+
+    void closeIn() {
+        ::close(pipe_[0]);
+        pipe_[0] = -1;
+    }
+
+    void closeOut() {
+        ::close(pipe_[1]);
+        pipe_[1] = -1;
+    }
+
+private:
+    int pipe_[2];
+};
+
+class OutPipe : public Pipe {
+public:
+    typedef std::shared_ptr<Pipe> pointer;
+
+    OutPipe(std::ostream &stream)
+        : stream_(&stream)
+    {}
+
+    std::ostream &stream() { return *stream_; }
+
+private:
+    std::ostream *stream_;
+};
+
+class InPipe : public Pipe {
+public:
+    typedef std::shared_ptr<Pipe> pointer;
+
+    InPipe(std::istream &stream)
+        : stream_(&stream)
+    {}
+
+    std::istream &stream() { return *stream_; }
+
+private:
+    std::istream *stream_;
+};
+
+namespace asio = boost::asio;
+namespace lib = std;
+namespace placeholders = std::placeholders;
+
+struct InSocket {
+    InSocket(asio::io_service &ios, InPipe &pipe)
+        : socket(ios, pipe.out())
+        , stream(&pipe.stream())
+    {
+        pipe.releaseOut();
+        pipe.closeIn();
+        buffer.resize(4096);
+        socket.non_blocking(true);
+
+        // we want to fail on bad io
+        stream->exceptions(std::ios::badbit);
+    }
+
+    asio::posix::stream_descriptor socket;
+    std::istream *stream;
+    std::vector<char> buffer;
+};
+
+struct OutSocket {
+    OutSocket(asio::io_service &ios, OutPipe &pipe)
+        : socket(ios, pipe.in())
+        , stream(&pipe.stream())
+    {
+        pipe.releaseIn();
+        pipe.closeOut();
+        buffer.resize(4096);
+        socket.non_blocking(true);
+
+        // we want to fail on bad io
+        stream->exceptions(std::ios::badbit);
+    }
+
+    asio::posix::stream_descriptor socket;
+    std::ostream *stream;
+    std::vector<char> buffer;
+};
+
+struct Pump
+{
+    Pump(pid_t pid, std::vector<InPipe> &inPipes
+         , std::vector<OutPipe> &outPipes)
+        : pid(pid), inPipes(inPipes), outPipes(outPipes)
+        , signals(ios, SIGCHLD)
+    {
+        // initialize sockets
+        for (auto &pipe : inPipes) { inSockets.emplace_back(ios, pipe); }
+        for (auto &pipe : outPipes) { outSockets.emplace_back(ios, pipe); }
+    }
+
+    void startSignals() {
+        signals.async_wait(lib::bind(&Pump::signal, this
+                                     , placeholders::_1
+                                     , placeholders::_2));
+    }
+
+    void signal(const boost::system::error_code &e, int signo) {
+        if (e) {
+            if (boost::asio::error::operation_aborted == e) {
+                return;
+            }
+            startSignals();
+        }
+        // ignore signal '0'
+        if (!signo) {
+            startSignals();
+            return;
+        }
+
+        // child terminated
+        LOG(info1) << "stopped";
+        ios.stop();
+    }
+
+    void write(InSocket &s) {
+        // readsome returns data from buffer => we need to force underflow to be
+        // called
+        s.stream->peek();
+        // read data from input
+        auto size(s.stream->readsome(s.buffer.data(), s.buffer.size()));
+        if (!size) {
+            if (s.stream->eof()) {
+                // eof
+                LOG(info1) << "input stream closed";
+                s.socket.close();
+            }
+            // should never happen
+            return;
+        }
+        asio::async_write(s.socket, asio::buffer(s.buffer.data(), size)
+                          , lib::bind(&Pump::allWritten, this
+                                     , placeholders::_1
+                                      , placeholders::_2
+                                      , std::ref(s)));
+    }
+
+    void allWritten(const boost::system::error_code &e
+                    , std::size_t bytes, InSocket &s)
+    {
+        if (!e) {
+            LOG(info1) << "Written: " << bytes << " bytes to child.";
+            write(s);
+        } else if (e.value() != asio::error::operation_aborted) {
+            LOGTHROW(err1, std::runtime_error)
+                << "Write to child process " << pid << " failed: <" << e
+                << ">.";
+        }
+    }
+
+    void read(OutSocket &s) {
+        s.socket.async_read_some(asio::buffer(s.buffer.data(), s.buffer.size())
+                          , lib::bind(&Pump::somethingRead, this
+                                      , placeholders::_1
+                                      , placeholders::_2
+                                      , std::ref(s)));
+    }
+
+    void somethingRead(const boost::system::error_code &e
+                       , std::size_t bytes, OutSocket &s)
+    {
+        if (!e) {
+            LOG(info1) << "read: " << bytes << " bytes.";
+            s.stream->write(s.buffer.data(), bytes);
+            read(s);
+        } else {
+            if ((e.value() == asio::error::operation_aborted)
+                || e.value() == asio::error::eof)
+            {
+                return;
+            }
+            LOGTHROW(err1, std::runtime_error)
+                << "Read from child process " << pid << " failed: <" << e
+                << ">.";
+        }
+    }
+
+    int run();
+
+    pid_t pid;
+    std::vector<InPipe> &inPipes;
+    std::vector<OutPipe> &outPipes;
+
+    asio::io_service ios;
+    asio::signal_set signals;
+
+    std::vector<InSocket> inSockets;
+    std::vector<OutSocket> outSockets;
+};
+
+int Pump::run()
+{
+    startSignals();
+    for (auto &socket : inSockets) { write(socket); }
+    for (auto &socket : outSockets) { read(socket); }
+
+    {
+        // this wrapper kills process on exception leaking from ios.run()
+        // without catching it
+        struct Kill {
+            pid_t pid;
+            Kill(pid_t pid) : pid(pid) {}
+            ~Kill() {
+                if (std::uncaught_exception()) {
+                    ::kill(pid, SIGKILL);
+                }
+            }
+        } kill(pid);
+        ios.run();
+    }
+
+    LOG(info1) << "waiting for child";
+    // wait for child
     int status;
     for (;;) {
         auto res(::waitpid(pid, &status, 0x0));
@@ -163,12 +417,14 @@ int systemImpl(const std::string &program, const Context &ctx)
             if (EINTR == errno) { continue; }
 
             std::system_error e(errno, std::system_category());
-            LOG(warn3) << "waitpid(2) failed: <" << e.code()
+            LOG(warn1) << "waitpid(2) failed: <" << e.code()
                        << ", " << e.what() << ">";
             throw e;
         }
         break;
     }
+
+    LOG(info1) << "waiting for child: status=" << status;
 
     if (WIFEXITED(status)) {
         return WEXITSTATUS(status);
@@ -177,13 +433,91 @@ int systemImpl(const std::string &program, const Context &ctx)
     return -1;
 }
 
+void childClose(std::vector<InPipe> &pipes)
+{
+    for (auto &p : pipes) {
+        p.closeOut();
+    }
+}
+
+void childClose(std::vector<OutPipe> &pipes)
+{
+    for (auto &p : pipes) {
+        p.closeIn();
+    }
+}
+
+int systemImpl(const std::string &program, Context ctx)
+{
+    std::vector<InPipe> inPipes;
+    std::vector<OutPipe> outPipes;
+
+    // prepare redirects
+    int idx(0);
+    for (auto &redirect : ctx.redirects) {
+        switch (redirect.type) {
+        case RedirectFile::SrcType::istream:
+            // add input pipe
+            inPipes.emplace_back(*boost::any_cast<std::istream*>
+                                 (redirect.value));
+            // add pipe's write end to input
+            redirect = { redirect.dst, inPipes.back().in(), false };
+            if (redirect.dst < 0) {
+                // replace argument
+                ctx.setFdPath(idx, inPipes.back().in());
+            }
+            break;
+
+        case RedirectFile::SrcType::ostream:
+            // add output pipe
+            outPipes.emplace_back(*boost::any_cast<std::ostream*>
+                                  (redirect.value));
+            // add pipe's read end to output
+            redirect = { redirect.dst, outPipes.back().out(), true };
+            break;
+
+        default:
+            // keep
+            break;
+        }
+        ++idx;
+    }
+
+    // build arguments
+    detail::ExecArgs argv;
+    argv.arg(program);
+    for (const auto arg : ctx.argv) {
+        if (arg) {
+            argv.arg(*arg);
+        }
+    }
+    argv.finish();
+
+    auto pid(detail::execute
+             (argv,
+              [&ctx, &inPipes, &outPipes]() {
+                 try {
+                     childClose(inPipes);
+                     childClose(outPipes);
+                     redirect(ctx.redirects);
+                     processEnv(ctx.environ);
+                 } catch (const std::exception &e) {
+                     std::exit(EXEC_FAILED);
+                 }
+             }));
+
+    LOG(info2) << "Running under pid: " << pid << ".";
+
+    return Pump(pid, inPipes, outPipes).run();
+}
+
 int spawnImpl(const std::function<int ()> &func)
 {
     auto pid(::fork());
     if (-1 == pid) {
         // Oops, failed
         std::system_error e(errno, std::system_category());
-        LOG(warn3) << "fork(2) failed: <" << e.code()
+        LOG(warn1) << "fork(2) failed: <" << e.code()
                    << ", " << e.what() << ">";
         throw e;
     } else if (0 == pid) {

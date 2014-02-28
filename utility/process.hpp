@@ -8,45 +8,61 @@
 #include <functional>
 #include <stdexcept>
 #include <system_error>
+#include <iosfwd>
 
 #include <boost/lexical_cast.hpp>
 #include <boost/filesystem/path.hpp>
 #include <boost/optional.hpp>
+#include <boost/any.hpp>
 
 namespace utility {
 
 struct RedirectFile {
-    int dst;
-    int src;
-    boost::filesystem::path path;
-    enum class Type { fd, path };
-    Type type;
-    bool out;
-
-    RedirectFile() : dst(-1), src(-1), out(false) {}
+    RedirectFile() : dst(-1), out(false) {}
     RedirectFile(int dst, int src, bool out)
-        : dst(dst), src(src), type(Type::fd), out(out) {}
-    RedirectFile(int dst, const boost::filesystem::path &path
-                 , bool out)
-        : dst(dst), src(-1), path(path), type(Type::path), out(out) {}
+        : dst(dst), value(src), type(SrcType::fd), out(out)
+    {}
+    RedirectFile(int dst, const boost::filesystem::path &path, bool out)
+        : dst(dst), value(path), type(SrcType::path), out(out) {}
+    RedirectFile(int dst, std::istream &is)
+        : dst(dst), value(&is), type(SrcType::istream), out(false) {}
+    RedirectFile(int dst, std::ostream &os)
+        : dst(dst), value(&os), type(SrcType::ostream), out(true) {}
+
+    int dst;
+    boost::any value;
+    enum class SrcType { fd, path, istream, ostream };
+    SrcType type;
+    bool out;
 };
 
 struct Stdin : RedirectFile {
     Stdin(int fd) : RedirectFile(STDIN_FILENO, fd, false) {}
     Stdin(const boost::filesystem::path &path)
         : RedirectFile(STDIN_FILENO, path, false) {}
+    Stdin(std::istream &is) : RedirectFile(STDIN_FILENO, is) {}
 };
 
 struct Stdout : RedirectFile {
     Stdout(int fd) : RedirectFile(STDOUT_FILENO, fd, true) {}
     Stdout(const boost::filesystem::path &path)
         : RedirectFile(STDOUT_FILENO, path, true) {}
+    Stdout(std::ostream &os) : RedirectFile(STDOUT_FILENO, os) {}
 };
 
 struct Stderr : RedirectFile {
     Stderr(int fd) : RedirectFile(STDERR_FILENO, fd, true) {}
     Stderr(const boost::filesystem::path &path)
         : RedirectFile(STDERR_FILENO, path, true) {}
+    Stderr(std::ostream &os) : RedirectFile(STDERR_FILENO, os) {}
+};
+
+struct InStream : RedirectFile {
+    InStream(std::istream &is) : RedirectFile(-1, is) {}
+};
+
+struct OutStream : RedirectFile {
+    OutStream(std::ostream &os) : RedirectFile(-1, os) {}
 };
 
 struct SetEnv {
@@ -65,7 +81,9 @@ struct UnsetEnv {
 /** Execute child process and wait for its completion.
  *
  *  Argument can be one of:
- *     InFile/OutFile/ErrFile: file to redirect stdin/stdout/stderr to/from
+ *     Stdin/Stdout/Stderr: fd/path/stream to redirect stdin/stdout/stderr
+ *                          to/from
+ *     InStream/OutStream: stream input/output
  *     SetEnv: sets environmental variable
  *     UnsetEnv: unsets environmental variable
  *     other: positional argument to exec (converted to string

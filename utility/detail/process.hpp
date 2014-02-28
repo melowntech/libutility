@@ -1,22 +1,36 @@
 #ifndef utility_detail_process_hpp_included_
 #define utility_detail_process_hpp_included_
 
+#include <vector>
 #include <map>
+
+#include <boost/optional.hpp>
 
 #include "../process.hpp"
 
 namespace utility { namespace detail {
 
 struct Context {
-    std::vector<std::string> argv;
-    typedef std::map<int, RedirectFile> Redirects;
+    typedef std::vector<boost::optional<std::string> > Argv;
+    typedef std::vector<RedirectFile> Redirects;
+    typedef std::map<int, int> PlaceHolders;
+
+    Argv argv;
     Redirects redirects;
+    PlaceHolders placeHolders;
 
     typedef std::map<std::string, boost::optional<std::string> > Environ;
     Environ environ;
 
     void set(const RedirectFile &f) {
-        redirects[f.dst] = f;
+        // TODO: check for duplicity
+
+        placeHolders[redirects.size()] = argv.size();
+
+        redirects.push_back(f);
+
+        // placeholder for redirect
+        argv.push_back(boost::none);
     }
 
     void apply(const SetEnv &s) {
@@ -26,6 +40,8 @@ struct Context {
     void apply(const UnsetEnv &s) {
         environ[s.name] = boost::none;
     }
+
+    void setFdPath(int redirectIdx, int fd);
 };
 
 inline void systemBuildArgs(Context&) {}
@@ -42,6 +58,14 @@ inline void systemBuildArgs(Context &ctx, Stdout &&f)
 
 inline void systemBuildArgs(Context &ctx, Stderr &&f)
 {
+    ctx.set(f);
+}
+
+inline void systemBuildArgs(Context &ctx, InStream &&f) {
+    ctx.set(f);
+}
+
+inline void systemBuildArgs(Context &ctx, OutStream &&f) {
     ctx.set(f);
 }
 
@@ -77,6 +101,20 @@ inline void systemBuildArgs(Context &ctx, Stderr &&f, Args &&...rest)
 }
 
 template <typename ...Args>
+inline void systemBuildArgs(Context &ctx, InStream &&f, Args &&...rest)
+{
+    ctx.set(f);
+    return detail::systemBuildArgs(ctx, std::forward<Args>(rest)...);
+}
+
+template <typename ...Args>
+inline void systemBuildArgs(Context &ctx, OutStream &&f, Args &&...rest)
+{
+    ctx.set(f);
+    return detail::systemBuildArgs(ctx, std::forward<Args>(rest)...);
+}
+
+template <typename ...Args>
 inline void systemBuildArgs(Context &ctx, SetEnv &&s, Args &&...rest)
 {
     ctx.apply(s);
@@ -99,7 +137,7 @@ inline void systemBuildArgs(Context &ctx, T &&arg, Args &&...rest)
 
 /** Equivalent of system(3); does fork/exec and waits for result.
  */
-int systemImpl(const std::string &program, const Context &ctx);
+int systemImpl(const std::string &program, Context ctx);
 
 int spawnImpl(const std::function<int ()> &func);
 
