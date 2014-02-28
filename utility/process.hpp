@@ -18,51 +18,87 @@
 namespace utility {
 
 struct RedirectFile {
-    RedirectFile() : dst(-1), out(false) {}
-    RedirectFile(int dst, int src, bool out)
-        : dst(dst), value(src), type(SrcType::fd), out(out)
-    {}
-    RedirectFile(int dst, const boost::filesystem::path &path, bool out)
-        : dst(dst), value(path), type(SrcType::path), out(out) {}
-    RedirectFile(int dst, std::istream &is)
-        : dst(dst), value(&is), type(SrcType::istream), out(false) {}
-    RedirectFile(int dst, std::ostream &os)
-        : dst(dst), value(&os), type(SrcType::ostream), out(true) {}
+    struct SrcPath {
+        SrcPath(const boost::filesystem::path &path, bool out)
+            : path(path), out(out) {}
+        boost::filesystem::path path;
+        bool out;
+    };
 
-    int dst;
-    boost::any value;
+    struct DstArg {
+        DstArg() {}
+        DstArg(const std::string &format) : format(format) {}
+        boost::optional<std::string> format;
+    };
+
+    RedirectFile() {}
+    RedirectFile(int dst, int src)
+        : dst(dst), dstType(DstType::fd)
+        , src(src), srcType(SrcType::fd) {}
+    RedirectFile(int dst, const boost::filesystem::path &path, bool out)
+        : dst(dst), dstType(DstType::fd)
+        , src(SrcPath(path, out)), srcType(SrcType::path) {}
+    RedirectFile(int dst, std::istream &is)
+        : dst(dst), dstType(DstType::fd)
+        , src(&is), srcType(SrcType::istream) {}
+    RedirectFile(int dst, std::ostream &os)
+        : dst(dst), dstType(DstType::fd)
+        , src(&os), srcType(SrcType::ostream) {}
+
+    RedirectFile(std::istream &is)
+        : dst(DstArg()), dstType(DstType::arg)
+        , src(&is), srcType(SrcType::istream) {}
+    RedirectFile(std::ostream &os)
+        : dst(DstArg()), dstType(DstType::arg)
+        , src(&os), srcType(SrcType::ostream) {}
+
+    RedirectFile(const std::string &format, std::istream &is)
+        : dst(DstArg(format)), dstType(DstType::arg)
+        , src(&is), srcType(SrcType::istream) {}
+    RedirectFile(const std::string &format, std::ostream &os)
+        : dst(DstArg(format)), dstType(DstType::arg)
+        , src(&os), srcType(SrcType::ostream) {}
+
+    boost::any dst;
+    enum class DstType { fd, arg };
+    DstType dstType;
+
+    boost::any src;
     enum class SrcType { fd, path, istream, ostream };
-    SrcType type;
-    bool out;
+    SrcType srcType;
 };
 
 struct Stdin : RedirectFile {
-    Stdin(int fd) : RedirectFile(STDIN_FILENO, fd, false) {}
+    Stdin(int fd) : RedirectFile(STDIN_FILENO, fd) {}
     Stdin(const boost::filesystem::path &path)
         : RedirectFile(STDIN_FILENO, path, false) {}
     Stdin(std::istream &is) : RedirectFile(STDIN_FILENO, is) {}
 };
 
 struct Stdout : RedirectFile {
-    Stdout(int fd) : RedirectFile(STDOUT_FILENO, fd, true) {}
+    Stdout(int fd) : RedirectFile(STDOUT_FILENO, fd) {}
     Stdout(const boost::filesystem::path &path)
         : RedirectFile(STDOUT_FILENO, path, true) {}
     Stdout(std::ostream &os) : RedirectFile(STDOUT_FILENO, os) {}
 };
 
 struct Stderr : RedirectFile {
-    Stderr(int fd) : RedirectFile(STDERR_FILENO, fd, true) {}
+    Stderr(int fd) : RedirectFile(STDERR_FILENO, fd) {}
     Stderr(const boost::filesystem::path &path)
         : RedirectFile(STDERR_FILENO, path, true) {}
     Stderr(std::ostream &os) : RedirectFile(STDERR_FILENO, os) {}
 };
 
 struct InStream : RedirectFile {
-    InStream(std::istream &is) : RedirectFile(-1, is) {}
+    InStream(std::istream &is) : RedirectFile(is) {}
+    InStream(const std::string &format, std::istream &is)
+        : RedirectFile(format, is) {}
 };
 
 struct OutStream : RedirectFile {
-    OutStream(std::ostream &os) : RedirectFile(-1, os) {}
+    OutStream(std::ostream &os) : RedirectFile(os) {}
+    OutStream(const std::string &format, std::ostream &os)
+        : RedirectFile(format, os) {}
 };
 
 struct SetEnv {

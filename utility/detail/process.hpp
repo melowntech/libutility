@@ -41,7 +41,7 @@ struct Context {
         environ[s.name] = boost::none;
     }
 
-    void setFdPath(int redirectIdx, int fd);
+    void setFdPath(int redirectIdx, const RedirectFile::DstArg &arg, int fd);
 };
 
 inline void systemBuildArgs(Context&) {}

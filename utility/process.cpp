@@ -22,15 +22,35 @@ namespace fs = boost::filesystem;
 
 namespace utility { namespace detail {
 
-void Context::setFdPath(int redirectIdx, int fd)
+void Context::setFdPath(int redirectIdx, const RedirectFile::DstArg &arg
+                        , int fd)
 {
+    const std::string devPath("/dev/fd/%d");
+
     auto fplaceHolders(placeHolders.find(redirectIdx));
     if (fplaceHolders == placeHolders.end()) {
         LOGTHROW(err1, std::runtime_error)
             << "system: invalid redirect index (" << redirectIdx << ").";
     }
 
-    argv[fplaceHolders->second] = str(boost::format("/dev/fd/%d") % fd);
+    std::string format;
+    // if there is no format -> set to dev path
+    // else if format contains %d -> replace with fd
+    // else if format contains %s -> replace with dev path
+    // otherwise just append dev path
+
+    if (!arg.format) {
+        format = devPath;
+    } else if (arg.format->find("%d") != std::string::npos) {
+        format = *arg.format;
+        // OK
+    } else if (arg.format->find("%s") != std::string::npos) {
+        format = str(boost::format(*arg.format) % devPath);
+    } else {
+        format = *arg.format + devPath;
+    }
+
+    argv[fplaceHolders->second] = str(boost::format(format) % fd);
 }
 
 
@@ -125,36 +145,50 @@ pid_t execute(const ExecArgs &argv, const boost::function<void()> &afterFork)
 void redirect(const Context::Redirects &redirects)
 {
     for (const auto &redirect : redirects) {
-        switch (redirect.type) {
+        switch (redirect.srcType) {
         case RedirectFile::SrcType::path: {
-            auto path(boost::any_cast<fs::path>(redirect.value));
+            if (redirect.dstType != RedirectFile::DstType::fd) {
+                LOGTHROW(err1, std::runtime_error)
+                    << "redirect: path source can be used only with "
+                    "file descriptor destination!";
+            }
+
+            auto src(boost::any_cast<RedirectFile::SrcPath>(redirect.src));
             int fd(-1);
-            if (redirect.out) {
-                fd = ::open(path.string().c_str()
+            if (src.out) {
+                fd = ::open(src.path.string().c_str()
                             , O_WRONLY | O_CREAT | O_TRUNC
                             , (S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH));
             } else {
-                fd = ::open(path.string().c_str(), O_RDONLY);
+                fd = ::open(src.path.string().c_str(), O_RDONLY);
             }
 
             if (fd == -1) {
                 std::system_error e(errno, std::system_category());
-                LOG(err1) << "Cannot open file " << path << ": <"
+                LOG(err1) << "Cannot open file " << src.path << ": <"
                           << e.code() << ", " << e.what() << ">.";
                 throw e;
             }
-            useFd(redirect.dst, fd);
+            useFd(boost::any_cast<int>(redirect.dst), fd);
             break;
         }
 
         case RedirectFile::SrcType::fd:
-            useFd(redirect.dst, boost::any_cast<int>(redirect.value));
+            if (redirect.dstType != RedirectFile::DstType::fd) {
+                LOGTHROW(err1, std::runtime_error)
+                    << "redirect: file descriptor source can be used only "
+                    "with file descriptor destination!";
+            }
+
+            useFd(boost::any_cast<int>(redirect.dst)
+                  , boost::any_cast<int>(redirect.src));
             break;
 
         case RedirectFile::SrcType::istream:
         case RedirectFile::SrcType::ostream:
             LOGTHROW(err1, std::runtime_error)
-                << "Streams must be converted to file descriptors!";
+                << "redirect; streams must be converted to file "
+                "descriptors first!";
             break;
         }
     }
@@ -455,26 +489,48 @@ int systemImpl(const std::string &program, Context ctx)
     // prepare redirects
     int idx(0);
     for (auto &redirect : ctx.redirects) {
-        switch (redirect.type) {
-        case RedirectFile::SrcType::istream:
+        switch (redirect.srcType) {
+        case RedirectFile::SrcType::istream: {
             // add input pipe
             inPipes.emplace_back(*boost::any_cast<std::istream*>
-                                 (redirect.value));
+                                 (redirect.src));
+
             // add pipe's write end to input
-            redirect = { redirect.dst, inPipes.back().in(), false };
-            if (redirect.dst < 0) {
-                // replace argument
-                ctx.setFdPath(idx, inPipes.back().in());
+            int fd(inPipes.back().in());
+            switch (redirect.dstType) {
+            case RedirectFile::DstType::fd:
+                redirect = { boost::any_cast<int>(redirect.dst), fd };
+                break;
+
+            case RedirectFile::DstType::arg:
+                ctx.setFdPath(idx, boost::any_cast<RedirectFile::DstArg>
+                              (redirect.dst), fd);
+                redirect = { -1, -1 };
+                break;
             }
             break;
+        }
 
-        case RedirectFile::SrcType::ostream:
-            // add output pipe
+        case RedirectFile::SrcType::ostream: {
+            // add input pipe
             outPipes.emplace_back(*boost::any_cast<std::ostream*>
-                                  (redirect.value));
-            // add pipe's read end to output
-            redirect = { redirect.dst, outPipes.back().out(), true };
+                                  (redirect.src));
+
+            // add pipe's write end to input
+            int fd(outPipes.back().out());
+            switch (redirect.dstType) {
+            case RedirectFile::DstType::fd:
+                redirect = { boost::any_cast<int>(redirect.dst), fd };
+                break;
+
+            case RedirectFile::DstType::arg:
+                ctx.setFdPath(idx, boost::any_cast<RedirectFile::DstArg>
+                              (redirect.dst), fd);
+                redirect = { -1, -1 };
+                break;
+            }
             break;
+        }
 
         default:
             // keep
