@@ -22,8 +22,8 @@ namespace fs = boost::filesystem;
 
 namespace utility { namespace detail {
 
-void Context::setFdPath(int redirectIdx, const RedirectFile::DstArg &arg
-                        , int fd)
+void SystemContext::setFdPath(int redirectIdx, const RedirectFile::DstArg &arg
+                              , int fd)
 {
     const std::string devPath("/dev/fd/%d");
 
@@ -39,15 +39,13 @@ void Context::setFdPath(int redirectIdx, const RedirectFile::DstArg &arg
     // else if format contains %s -> replace with dev path
     // otherwise just append dev path
 
-    if (!arg.format) {
-        format = devPath;
-    } else if (arg.format->find("%d") != std::string::npos) {
-        format = *arg.format;
+    if (arg.format.find("%d") != std::string::npos) {
+        format = arg.format;
         // OK
-    } else if (arg.format->find("%s") != std::string::npos) {
-        format = str(boost::format(*arg.format) % devPath);
+    } else if (arg.format.find("%s") != std::string::npos) {
+        format = str(boost::format(arg.format) % devPath);
     } else {
-        format = *arg.format + devPath;
+        format = arg.format + devPath;
     }
 
     argv[fplaceHolders->second] = str(boost::format(format) % fd);
@@ -97,7 +95,7 @@ void useFd(int dst, int src)
     ::close(src);
 }
 
-void processEnv(const Context::Environ &environ)
+void processEnv(const SystemContext::Environ &environ)
 {
     for (const auto &e : environ) {
         if (e.second) {
@@ -142,7 +140,7 @@ pid_t execute(const ExecArgs &argv, const boost::function<void()> &afterFork)
     return pid;
 }
 
-void redirect(const Context::Redirects &redirects)
+void redirect(const SystemContext::Redirects &redirects)
 {
     for (const auto &redirect : redirects) {
         switch (redirect.srcType) {
@@ -481,7 +479,7 @@ void childClose(std::vector<OutPipe> &pipes)
     }
 }
 
-int systemImpl(const std::string &program, Context ctx)
+int systemImpl(const std::string &program, SystemContext ctx)
 {
     std::vector<InPipe> inPipes;
     std::vector<OutPipe> outPipes;
@@ -507,6 +505,11 @@ int systemImpl(const std::string &program, Context ctx)
                               (redirect.dst), fd);
                 redirect = { -1, -1 };
                 break;
+
+            case RedirectFile::DstType::none:
+                // forget
+                redirect = { -1, -1 };
+                break;
             }
             break;
         }
@@ -526,6 +529,11 @@ int systemImpl(const std::string &program, Context ctx)
             case RedirectFile::DstType::arg:
                 ctx.setFdPath(idx, boost::any_cast<RedirectFile::DstArg>
                               (redirect.dst), fd);
+                redirect = { -1, -1 };
+                break;
+
+            case RedirectFile::DstType::none:
+                // forget
                 redirect = { -1, -1 };
                 break;
             }

@@ -29,7 +29,7 @@ set(utility_SOURCES
   config.hpp detail/config.hpp detail/config.cpp
   multivalue.hpp detail/multivalue.hpp
   scopedguard.hpp
-  process.hpp process.cpp
+  process.hpp process.cpp detail/process.hpp detail/redirectfile.hpp
   interprocess.hpp
   runnable.hpp runnable.cpp
   iohelpers.hpp
