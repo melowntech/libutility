@@ -213,6 +213,12 @@ public:
         std::swap(pipe_[1], other.pipe_[1]);
     }
 
+    Pipe& operator=(Pipe &&other) {
+        std::swap(pipe_[0], other.pipe_[0]);
+        std::swap(pipe_[1], other.pipe_[1]);
+        return *this;
+    }
+
     ~Pipe() {
         if (in() > -1) { ::close(in()); }
         if (out() > -1) { ::close(out()); }
@@ -240,8 +246,6 @@ private:
 
 class OutPipe : public Pipe {
 public:
-    typedef std::shared_ptr<Pipe> pointer;
-
     OutPipe(std::ostream &stream)
         : stream_(&stream)
     {}
@@ -254,8 +258,6 @@ private:
 
 class InPipe : public Pipe {
 public:
-    typedef std::shared_ptr<Pipe> pointer;
-
     InPipe(std::istream &stream)
         : stream_(&stream)
     {}
