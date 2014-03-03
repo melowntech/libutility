@@ -488,29 +488,28 @@ int systemImpl(const std::string &program, SystemContext ctx)
 
     // prepare redirects
     int idx(0);
-    for (auto &redirect : ctx.redirects) {
-        switch (redirect.srcType) {
+    for (auto &r : ctx.redirects) {
+        switch (r.srcType) {
         case RedirectFile::SrcType::istream: {
             // add input pipe
-            inPipes.emplace_back(*boost::any_cast<std::istream*>
-                                 (redirect.src));
+            inPipes.emplace_back(*boost::any_cast<std::istream*>(r.src));
 
             // add pipe's write end to input
             int fd(inPipes.back().in());
-            switch (redirect.dstType) {
+            switch (r.dstType) {
             case RedirectFile::DstType::fd:
-                redirect = { boost::any_cast<int>(redirect.dst), fd };
+                r = { boost::any_cast<int>(r.dst), fd };
                 break;
 
             case RedirectFile::DstType::arg:
                 ctx.setFdPath(idx, boost::any_cast<RedirectFile::DstArg>
-                              (redirect.dst), fd);
-                redirect = { -1, -1 };
+                              (r.dst), fd);
+                r = { -1, -1 };
                 break;
 
             case RedirectFile::DstType::none:
                 // forget
-                redirect = { -1, -1 };
+                r = { -1, -1 };
                 break;
             }
             break;
@@ -518,25 +517,24 @@ int systemImpl(const std::string &program, SystemContext ctx)
 
         case RedirectFile::SrcType::ostream: {
             // add input pipe
-            outPipes.emplace_back(*boost::any_cast<std::ostream*>
-                                  (redirect.src));
+            outPipes.emplace_back(*boost::any_cast<std::ostream*>(r.src));
 
             // add pipe's write end to input
             int fd(outPipes.back().out());
-            switch (redirect.dstType) {
+            switch (r.dstType) {
             case RedirectFile::DstType::fd:
-                redirect = { boost::any_cast<int>(redirect.dst), fd };
+                r = { boost::any_cast<int>(r.dst), fd };
                 break;
 
             case RedirectFile::DstType::arg:
                 ctx.setFdPath(idx, boost::any_cast<RedirectFile::DstArg>
-                              (redirect.dst), fd);
-                redirect = { -1, -1 };
+                              (r.dst), fd);
+                r = { -1, -1 };
                 break;
 
             case RedirectFile::DstType::none:
                 // forget
-                redirect = { -1, -1 };
+                r = { -1, -1 };
                 break;
             }
             break;
