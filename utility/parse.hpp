@@ -6,6 +6,7 @@
 #include <iostream>
 #include <fstream>
 #include <limits>
+#include <functional>
 
 #include <boost/tokenizer.hpp>
 #include <boost/algorithm/string/trim.hpp>
@@ -140,7 +141,7 @@ Row split(const std::string &line, const std::string &separator
 {
     boost::optional<Row> row;
     split(line, separator, [&row] (const std::vector<std::string> &v) {
-            row = boost::in_place(boost::cref(v));
+            row = boost::in_place(std::cref(v));
         }, flags);
 
     return *row;
