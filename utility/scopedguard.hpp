@@ -21,7 +21,7 @@ public:
         : cleanup_(cleanup)
     {}
 
-    ~ScopedGuard() {
+    ~ScopedGuard() noexcept(false) {
         if (std::uncaught_exception()) {
             // some other exception -> do not propagate
             try { cleanup_(); } catch (...) {}
