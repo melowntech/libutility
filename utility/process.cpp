@@ -197,6 +197,7 @@ public:
     Pipe()
         : pipe_{-1, -1}
     {
+        LOG(info1) << "creating pipe";
         if (-1 == ::pipe(pipe_)) {
             std::system_error e(errno, std::system_category());
             LOG(warn1)
@@ -220,8 +221,8 @@ public:
     }
 
     ~Pipe() {
-        if (in() > -1) { ::close(in()); }
-        if (out() > -1) { ::close(out()); }
+        closeIn();
+        closeOut();
     }
 
     int in() const { return pipe_[0]; }
@@ -231,13 +232,17 @@ public:
     void releaseOut() { pipe_[1] = -1; }
 
     void closeIn() {
-        ::close(pipe_[0]);
-        pipe_[0] = -1;
+        if (in() > -1) {
+            ::close(in());
+            pipe_[0] = -1;
+        }
     }
 
     void closeOut() {
-        ::close(pipe_[1]);
-        pipe_[1] = -1;
+        if (out() > -1) {
+            ::close(out());
+            pipe_[1] = -1;
+        }
     }
 
 private:
