@@ -1,6 +1,9 @@
 #ifndef utility_mysqldb_hpp_included_
 #define utility_mysqldb_hpp_included_
 
+// needed by sleep
+#include <unistd.h>
+
 #include <ctime>
 #include <string>
 #include <type_traits>
@@ -168,7 +171,11 @@ void Tx<Connector>::open()
                 << "Error starting transaction: <" << e.what()
                 << ">; retrying.";
             connector_->closeDb();
+#if 0
             std::this_thread::sleep_for(std::chrono::seconds(1));
+#else
+            sleep(1);
+#endif
         }
     }
 }
@@ -315,7 +322,11 @@ void failIfNotRestartable(const Exception &e)
         "safe to restart transaction: <" << e.what()
         << ">; retrying.";
     // sleep a bit
+#if 0
     std::this_thread::sleep_for(std::chrono::seconds(1));
+#else
+    sleep(1);
+#endif
 }
 
 } // detail
