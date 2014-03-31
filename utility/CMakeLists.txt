@@ -51,6 +51,8 @@ set(utility_SOURCES
   lockfile.hpp lockfile.cpp
 
   naturalsort.hpp
+
+  progress.hpp
   )
 
 if(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
