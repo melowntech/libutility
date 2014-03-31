@@ -52,7 +52,7 @@ set(utility_SOURCES
 
   naturalsort.hpp
 
-  progress.hpp
+  progress.hpp progress.cpp
   )
 
 if(${CMAKE_SYSTEM_NAME} MATCHES "Linux")

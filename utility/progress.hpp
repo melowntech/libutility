@@ -13,19 +13,29 @@ namespace utility {
 
 class Progress {
 public:
-    Progress(std::size_t total) : total_(total), current_() {}
+    typedef boost::rational<std::size_t> ratio_t;
 
-    Progress& operator++() { ++current_; return *this; }
+    Progress(std::size_t total) : total_(total), value_(), reportedValue_() {}
 
-    Progress& operator+=(std::size_t inc) { current_ += inc; return *this; }
+    Progress& operator++() { ++value_; return *this; }
 
-    double percentage() const { return (100. * current_) / total_; }
+    Progress& operator+=(std::size_t inc) { value_ += inc; return *this; }
 
-    boost::rational<std::size_t> value() const { return { current_, total_ }; }
+    std::size_t total() const { return total_; }
+
+    std::size_t value() const { return value_; }
+
+    double percentage() const { return (100. * value_) / total_; }
+
+    ratio_t ratio() const { return { value_, total_ }; }
+
+    void report(const ratio_t &threshold
+                , const std::string &name = std::string());
 
 private:
     std::size_t total_;
-    std::size_t current_;
+    std::size_t value_;
+    std::size_t reportedValue_;
 };
 
 
