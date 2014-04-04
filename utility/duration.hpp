@@ -46,6 +46,15 @@ private:
 
 typedef DurationMeter::duration_type Duration;
 
+/** Measure duration of operation `op`.
+ */
+template <typename Op>
+Duration measureDuration(const Op &op)
+{
+    DurationMeter dm;
+    op();
+    return dm.duration();
+}
 
 //static class for counter registering .. NOT threadsafe
 class TimeMetrics {
