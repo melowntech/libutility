@@ -109,6 +109,20 @@ cutPathPrefix(const boost::filesystem::path &path
     return res;
 }
 
+/** Filename matching.
+ */
+namespace FileMatch {
+    enum {
+        icase = 0x1   //!< case-insensitive matching
+    };
+}
+
+/** Match path againts glob pattern.
+ */
+bool match(const std::string &globPattern
+           , const boost::filesystem::path &path
+           , int flags = 0x0);
+
 } // namespace utility
 
 #endif // utility_path_hpp_included_

@@ -42,6 +42,7 @@ set(utility_SOURCES
   raise.hpp
   expect.hpp
 
+  path.hpp path.cpp
   filesystem.hpp filesystem.cpp
   detail/filesystem.hpp detail/filesystem.cpp
   tcpendpoint.hpp tcpendpoint-io.hpp tcpendpoint-io.cpp
