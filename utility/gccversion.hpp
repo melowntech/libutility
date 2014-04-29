@@ -29,4 +29,11 @@
     ; static_assert(false, "error message allowed only in GCC")
 #endif
 
+// pre-4.8 gcc has no thread_local storage specifier but uses __thread extension
+#if GCC_VERSION && (GCC_VERSION < 40800)
+#    define UTILITY_THREAD_LOCAL __thread
+#else
+#    define UTILITY_THREAD_LOCAL thread_local
+#endif
+
 #endif // SHARED_UTILITY_GCCVERSION_HPP_INCLUDED_
