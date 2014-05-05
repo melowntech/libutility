@@ -47,6 +47,8 @@ set(utility_SOURCES
   detail/filesystem.hpp detail/filesystem.cpp
   tcpendpoint.hpp tcpendpoint-io.hpp tcpendpoint-io.cpp
   detail/iface.hpp
+  meminfo.hpp
+  cpuinfo.hpp cpuinfo.cpp
 
   atfork.hpp atfork.cpp
   lockfile.hpp lockfile.cpp
