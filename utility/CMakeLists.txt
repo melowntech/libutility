@@ -59,10 +59,12 @@ set(utility_SOURCES
 if(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
   list(APPEND utility_SOURCES
     detail/iface.linux.cpp
+    detail/meminfo.linux.cpp
     )
 else()
   list(APPEND utility_SOURCES
     detail/iface.unsupported.cpp
+    detail/meminfo.unsupported.cpp
     )
 endif()
 
