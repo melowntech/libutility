@@ -95,17 +95,6 @@ void useFd(int dst, int src)
     ::close(src);
 }
 
-void processEnv(const SystemContext::Environ &environ)
-{
-    for (const auto &e : environ) {
-        if (e.second) {
-            ::setenv(e.first.c_str(), e.second->c_str(), true);
-        } else {
-            ::unsetenv(e.first.c_str());
-        }
-    }
-}
-
 pid_t execute(const ExecArgs &argv, const boost::function<void()> &afterFork)
 {
     LOG(info2) << "Executing: " << argv;
@@ -569,7 +558,7 @@ int systemImpl(const std::string &program, SystemContext ctx)
                      childClose(inPipes);
                      childClose(outPipes);
                      redirect(ctx.redirects);
-                     processEnv(ctx.environ);
+                     apply(ctx.environ);
                  } catch (const std::exception &e) {
                      std::exit(EXEC_FAILED);
                  }
@@ -596,5 +585,17 @@ int spawnImpl(const std::function<int ()> &func)
     return pid;
 }
 
-} } // namespace utility::detail
+}
 
+void apply(const Environment &environ)
+{
+    for (const auto &e : environ) {
+        if (e.second) {
+            ::setenv(e.first.c_str(), e.second->c_str(), true);
+        } else {
+            ::unsetenv(e.first.c_str());
+        }
+    }
+}
+
+} // namespace utility::detail

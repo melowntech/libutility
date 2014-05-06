@@ -9,6 +9,7 @@
 #include <boost/lexical_cast.hpp>
 
 #include "../process.hpp"
+#include "../environment.hpp"
 
 namespace utility { namespace detail {
 
@@ -21,8 +22,7 @@ struct SystemContext {
     Redirects redirects;
     PlaceHolders placeHolders;
 
-    typedef std::map<std::string, boost::optional<std::string> > Environ;
-    Environ environ;
+    Environment environ;
 
     void add(const RedirectFile &arg) {
         // TODO: check for duplicity
