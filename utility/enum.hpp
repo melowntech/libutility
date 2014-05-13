@@ -30,17 +30,28 @@ namespace detail {
     struct UnderlyingType<sizeof(TYPE), std::is_signed<TYPE>::value >   \
     { typedef TYPE type; }
 
-    GENERATE(std::int8_t);
-    GENERATE(std::uint8_t);
+    GENERATE(signed char);
+    GENERATE(unsigned char);
 
-    GENERATE(std::int16_t);
-    GENERATE(std::uint16_t);
+#if USHRT_MAX > UCHAR_MAX
+    GENERATE(signed short);
+    GENERATE(unsigned short);
+#endif
 
-    GENERATE(std::int32_t);
-    GENERATE(std::uint32_t);
+#if UINT_MAX > USHRT_MAX
+    GENERATE(signed int);
+    GENERATE(unsigned int);
+#endif
 
-    GENERATE(std::int64_t);
-    GENERATE(std::uint64_t);
+#if ULONG_MAX > UINT_MAX
+    GENERATE(signed long);
+    GENERATE(unsigned long);
+#endif
+
+#if ULLONG_MAX > ULONG_MAX
+    GENERATE(signed long long);
+    GENERATE(unsigned long long);
+#endif
 
 #undef GENERATE
 }
