@@ -10,9 +10,13 @@
 
 namespace utility {
 
-struct Null {
+class Null {
+public:
     template <typename T> operator T*() const { return 0x0; }
-    template <typename T> operator const T*() const { return 0x0; }
+    template<class C, class T> inline operator T C::*() const { return 0x0; }
+
+private:
+    void operator&() const = delete;
 };
 
 const Null null;
