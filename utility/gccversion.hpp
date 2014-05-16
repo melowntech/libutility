@@ -36,4 +36,11 @@
 #    define UTILITY_THREAD_LOCAL thread_local
 #endif
 
+#if GCC_VERSION
+#    define UTILITY_INIT_PRIORITY(PRIORITY) \
+    __attribute__ ((init_priority (PRIORITY)))
+#else
+#    define UTILITY_INIT_PRIORITY(PRIORITY)
+#endif
+
 #endif // SHARED_UTILITY_GCCVERSION_HPP_INCLUDED_
