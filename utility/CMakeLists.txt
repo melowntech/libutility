@@ -57,6 +57,8 @@ set(utility_SOURCES
 
   progress.hpp progress.cpp
   environment.hpp
+
+  lrucache.hpp
   )
 
 if(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
