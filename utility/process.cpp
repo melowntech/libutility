@@ -113,8 +113,12 @@ pid_t execute(const ExecArgs &argv, const boost::function<void()> &afterFork)
         afterFork();
 
         // exec
+#ifdef __APPLE__
+        if (::execvp(argv.argv.front(), &(argv.argv.front())) == -1)
+#else
         if (::execvpe(argv.argv.front(), &(argv.argv.front())
                       , ::environ) == -1)
+#endif
         {
             std::system_error e(errno, std::system_category());
             LOG(warn1) << "execve(2) [" << argv.argv.front()
