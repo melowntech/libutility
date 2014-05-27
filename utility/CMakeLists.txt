@@ -76,6 +76,7 @@ endif()
 add_library(utility STATIC ${utility_SOURCES} ${utility_MYSQL++_SOURCES})
 buildsys_library(utility)
 target_link_libraries(utility ${MODULE_LIBRARIES})
+target_compile_definitions(utility PRIVATE ${MODULE_DEFINITIONS})
 
 # fallback to pre C++11 compiler for Boost.Filesystem operations
 if (${CMAKE_C_COMPILER_ID} MATCHES GNU)
