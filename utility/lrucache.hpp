@@ -80,6 +80,10 @@ public:
      */
     std::size_t trim(cost_type limit);
 
+    /** Return total cost of items in cache 
+     */
+    cost_type totalCost() { return totalCost_; };
+
 private:
     typedef std::uint64_t priority_type;
 
