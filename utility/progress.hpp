@@ -32,6 +32,9 @@ public:
     void report(const ratio_t &threshold
                 , const std::string &name = std::string());
 
+    void incrementAndReport(const ratio_t &threshold
+                            , const std::string &name = std::string());
+
 private:
     std::size_t total_;
     std::size_t value_;

@@ -27,4 +27,12 @@ void Progress::report(const ratio_t &threshold, const std::string &name)
     reportedValue_ = value_;
 }
 
+void Progress::incrementAndReport(const ratio_t &threshold
+                                  , const std::string &name)
+{
+    // TODO: make atomic
+    ++value_;
+    report(threshold, name);
+}
+
 } // namespace utility
