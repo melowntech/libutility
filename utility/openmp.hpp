@@ -20,7 +20,7 @@
  *  "#pragma omp" declaration.
  *
  *  Example:
- *          UTILITY_OMP("critical")
+ *          UTILITY_OMP(critical)
  /      expands to
  *          _Pragma("omp critical")
  *      which preprocessor replaces with
