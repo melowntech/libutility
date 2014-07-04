@@ -59,6 +59,8 @@ set(utility_SOURCES
   environment.hpp
 
   lrucache.hpp
+
+  openmp.hpp
   )
 
 if(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
