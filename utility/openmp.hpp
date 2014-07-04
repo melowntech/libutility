@@ -14,28 +14,24 @@
 # include <omp.h>
 #endif
 
-/** Onky ifg OpenMP is enabled then this macro expands argument to
- *  praga. Otherwise, nothing is expanded at all. Argument must be a signle
- *  string literal that contains what would normally be written after #pragma
- *  keyword.
+/** Only ifg OpenMP is enabled then this macro expands argument to
+ *  praga. Otherwise, nothing is expanded at all. There must be at least one
+ *  argument. Macro arguments must contains what would normally be written after
+ *  "#pragma omp" declaration.
  *
  *  Example:
- *          UTILITY_OMP("omp critical")
- /      expadns to
+ *          UTILITY_OMP("critical")
+ /      expands to
  *          _Pragma("omp critical")
  *      which preprocessor replaces with
  *          #pragma omp critical
- *
- *  NB: name ends with _S to indicate string literal version
- *
- *  TODO: use preprocessor magic to write non-string arugment (we have to handle
- *        variadic macro properly since comma separates arguments) under name
- *        UTILITY_OMP
+ *      that is seen by compiler
  */
 #ifdef _OPENMP
-#define UTILITY_OMP_S(STRING_CLAUSE) _Pragma(STRING_CLAUSE)
+#define UTILITY_OMP(...) UTILITY_OMP_(omp __VA_ARGS__)
 #else
-#define UTILITY_OMP_S(STRING_CLAUSE)
+#define UTILITY_OMP(...)
 #endif
+#define UTILITY_OMP_(...) _Pragma(#__VA_ARGS__)
 
 #endif // utility_openmp_hpp_included_
