@@ -75,11 +75,8 @@ private:
     std::size_t calculateNextReportValue(std::size_t v) {
         auto next(boost::rational_cast<std::size_t>
                   (total_ * (Ratio(v, total_) + reportTreshold_)));
-        if (next == v) {
-            // too small treshold, add just one
-            return next + 1;
-        }
-        return next;
+        // add one because we can get same value for really little treshold
+        return next + 1;
     }
 
     void report(std::size_t rv);

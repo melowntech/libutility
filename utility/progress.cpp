@@ -39,7 +39,7 @@ namespace ts {
 void Progress::report(std::size_t rv)
 {
     auto nextReportValue(nextReportValue_.load());
-    if (rv > nextReportValue) {
+    if (rv >= nextReportValue) {
         // this should be reported, maybe :)
         std::lock_guard<std::mutex> lock(mutex_);
 
