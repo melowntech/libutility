@@ -602,4 +602,30 @@ void apply(const Environment &environ)
     }
 }
 
+
+bool checkTermination(::pid_t expectedPid)
+{
+    if (!expectedPid) {
+        return true;
+    }
+
+    int status;
+    pid_t pid(::waitpid(expectedPid, &status, WNOHANG));
+    if (!pid) {
+        return false;
+    }
+    if (pid == -1) {
+        if (errno != ECHILD) {
+            std::system_error e(errno, std::system_category());
+            LOG(warn3) << "waitpid(2) failed: <" << e.code()
+                       << ", " << e.what() << ">";
+            return false;
+        }
+        // no such child -> bail out
+        return true;
+    }
+
+    return pid == expectedPid;
+}
+
 } // namespace utility::detail

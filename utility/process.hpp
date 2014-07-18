@@ -84,6 +84,10 @@ int system(const std::string &program, Args &&...args);
 
 int spawn(const std::function<int ()> &func);
 
+/** Simple termination checker.
+ */
+bool checkTermination(::pid_t expectedPid);
+
 } // namespace utility
 
 #include "./detail/process.hpp"
