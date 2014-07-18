@@ -78,6 +78,7 @@
 #include <stddef.h>
 #include <string>
 #include <cstring>
+#include <vector>
 
 namespace utility { namespace md5 {
 

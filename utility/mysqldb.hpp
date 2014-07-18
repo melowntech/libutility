@@ -51,7 +51,8 @@ public:
                            , boost::program_options::options_description
                            &config);
 
-        void configure(const boost::program_options::variables_map &) {}
+        void configure(const std::string&
+                       , const boost::program_options::variables_map &) {}
 
         template <typename E, typename T>
         std::basic_ostream<E, T>& dump(std::basic_ostream<E, T> &os

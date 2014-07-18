@@ -31,7 +31,7 @@ inline void readConfig(const boost::filesystem::path &file
     boost::program_options::variables_map vm;
     detail::readConfig(file, od, vm);
 
-    config.configure(vm);
+    config.configure(section, vm);
 }
 
 } // namespace utility
