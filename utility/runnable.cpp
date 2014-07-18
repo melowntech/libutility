@@ -17,7 +17,7 @@ public:
         , terminated_(*new (mem_.get_address()) std::atomic_bool(false))
     {}
 
-    bool isRunning() { return !terminated_; }
+    bool isRunning() { return !terminated_.load(); }
     void stop() { terminated_ = true; }
 
 private:
