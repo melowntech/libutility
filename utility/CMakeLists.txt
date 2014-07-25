@@ -52,6 +52,7 @@ set(utility_SOURCES
 
   atfork.hpp atfork.cpp
   lockfile.hpp lockfile.cpp
+  identity.hpp identity.cpp
 
   naturalsort.hpp
 
