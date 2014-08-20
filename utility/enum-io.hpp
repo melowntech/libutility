@@ -22,6 +22,10 @@
  * If string representation is different than C++ identifier add second element
  * to mapping tupple, e.g. for ImageOrientation::left_top represented as
  * "left-top" write: ((left_top)("left-top"))
+ *
+ * These support functions are also generated:
+ *     std::initializer_list<Type> enumerationValues(Type)
+ *     const char* enumerationString(Type)
  */
 
 #ifndef utility_enum_io_hpp_included_
@@ -59,6 +63,32 @@
     BOOST_PP_CAT(UTILITY_DETAIL_toEnum_element,BOOST_PP_SEQ_SIZE(value)) \
     (r,type,value)
 
+#define UTILITY_DETAIL_value1(Type,value)                               \
+    Type::BOOST_PP_SEQ_ELEM(0, value)
+
+#define UTILITY_DETAIL_value2(Type,value)                               \
+    Type::BOOST_PP_SEQ_ELEM(0, value)
+
+#define UTILITY_DETAIL_value(Type,value)                                \
+    BOOST_PP_CAT(UTILITY_DETAIL_value,BOOST_PP_SEQ_SIZE(value))         \
+    (Type,value)
+
+#define UTILITY_DETAIL_name1(Type,value)                                \
+    BOOST_PP_STRINGIZE(BOOST_PP_SEQ_ELEM(0, value))
+
+#define UTILITY_DETAIL_name2(Type,value)                                \
+    BOOST_PP_SEQ_ELEM(1, value)
+
+#define UTILITY_DETAIL_name(Type,value)                                 \
+    BOOST_PP_CAT(UTILITY_DETAIL_name,BOOST_PP_SEQ_SIZE(value))          \
+    (Type,value)
+
+#define UTILITY_DETAIL_comma_value(r,Type,value)                        \
+    , UTILITY_DETAIL_value(Type,value)
+
+#define UTILITY_DETAIL_comma_name(r,Type,value)                         \
+    ", " UTILITY_DETAIL_name(Type,value)
+
 #define UTILITY_GENERATE_ENUM_IO(Type, seq)                             \
     template <typename E, typename T>                                   \
     inline std::basic_ostream<E, T>&                                    \
@@ -82,5 +112,21 @@
         is.setstate(std::ios::failbit);                                 \
         return is;                                                      \
     }                                                                   \
+                                                                        \
+    inline std::initializer_list<Type> enumerationValues(Type)          \
+    {                                                                   \
+        return {                                                        \
+            UTILITY_DETAIL_value(Type, BOOST_PP_SEQ_HEAD(seq))          \
+                BOOST_PP_SEQ_FOR_EACH(UTILITY_DETAIL_comma_value        \
+                                      , Type, BOOST_PP_SEQ_TAIL(seq))   \
+                };                                                      \
+    }                                                                   \
+                                                                        \
+    inline const char* enumerationString(Type)                          \
+    {                                                                   \
+        return UTILITY_DETAIL_name(Type, BOOST_PP_SEQ_HEAD(seq))        \
+            BOOST_PP_SEQ_FOR_EACH(UTILITY_DETAIL_comma_name, Type       \
+                                  , BOOST_PP_SEQ_TAIL(seq));            \
+    }
 
 #endif // utility_enum_io_hpp_included_
