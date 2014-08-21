@@ -89,6 +89,12 @@
 #define UTILITY_DETAIL_comma_name(r,Type,value)                         \
     ", " UTILITY_DETAIL_name(Type,value)
 
+#define UTILITY_DETAIL_untyped_value(Type,value)                        \
+    BOOST_PP_SEQ_ELEM(0, value)
+
+#define UTILITY_DETAIL_comma_untyped_value(r,Type,value)                \
+    , UTILITY_DETAIL_untyped_value(Type,value)
+
 /** Generate I/O code for any enum (stream operator<< and operator>>)
  */
 #define UTILITY_GENERATE_ENUM_IO(Type, seq)                             \
@@ -135,8 +141,8 @@
  */
 #define UTILITY_GENERATE_ENUM(Type, seq)                                \
     enum class Type {                                                   \
-        UTILITY_DETAIL_value(Type, BOOST_PP_SEQ_HEAD(seq))              \
-        BOOST_PP_SEQ_FOR_EACH(UTILITY_DETAIL_comma_value                \
+        UTILITY_DETAIL_untyped_value(Type, BOOST_PP_SEQ_HEAD(seq))      \
+        BOOST_PP_SEQ_FOR_EACH(UTILITY_DETAIL_comma_untyped_value                \
                               , Type, BOOST_PP_SEQ_TAIL(seq))           \
     };                                                                  \
                                                                         \
