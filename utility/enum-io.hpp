@@ -89,6 +89,8 @@
 #define UTILITY_DETAIL_comma_name(r,Type,value)                         \
     ", " UTILITY_DETAIL_name(Type,value)
 
+/** Generate I/O code for any enum (stream operator<< and operator>>)
+ */
 #define UTILITY_GENERATE_ENUM_IO(Type, seq)                             \
     template <typename E, typename T>                                   \
     inline std::basic_ostream<E, T>&                                    \
@@ -117,9 +119,9 @@
     {                                                                   \
         return {                                                        \
             UTILITY_DETAIL_value(Type, BOOST_PP_SEQ_HEAD(seq))          \
-                BOOST_PP_SEQ_FOR_EACH(UTILITY_DETAIL_comma_value        \
-                                      , Type, BOOST_PP_SEQ_TAIL(seq))   \
-                };                                                      \
+            BOOST_PP_SEQ_FOR_EACH(UTILITY_DETAIL_comma_value            \
+                                  , Type, BOOST_PP_SEQ_TAIL(seq))       \
+        };                                                              \
     }                                                                   \
                                                                         \
     inline const char* enumerationString(Type)                          \
@@ -128,5 +130,16 @@
             BOOST_PP_SEQ_FOR_EACH(UTILITY_DETAIL_comma_name, Type       \
                                   , BOOST_PP_SEQ_TAIL(seq));            \
     }
+
+/** Generate enum class and I/O stuff at one go
+ */
+#define UTILITY_GENERATE_ENUM(Type, seq)                                \
+    enum class Type {                                                   \
+        UTILITY_DETAIL_value(Type, BOOST_PP_SEQ_HEAD(seq))              \
+        BOOST_PP_SEQ_FOR_EACH(UTILITY_DETAIL_comma_value                \
+                              , Type, BOOST_PP_SEQ_TAIL(seq))           \
+    };                                                                  \
+                                                                        \
+    UTILITY_GENERATE_ENUM_IO(Type, seq)
 
 #endif // utility_enum_io_hpp_included_
