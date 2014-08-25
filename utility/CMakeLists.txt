@@ -14,6 +14,16 @@ else()
   message(STATUS "utility: compiling without MySQL++ support")
 endif()
 
+if(LIBPROC_FOUND)
+  message(STATUS "utility: compiling in libproc support")
+
+  list(APPEND utility_DEPENDS LIBPROC)
+
+  set(utility_LIBPROC_SOURCES procstat.hpp procstat.cpp)
+else()
+  message(STATUS "utility: compiling without libproc support")
+endif()
+
 define_module(LIBRARY utility DEPENDS ${utility_DEPENDS})
 
 set(utility_SOURCES
@@ -79,7 +89,10 @@ else()
     )
 endif()
 
-add_library(utility STATIC ${utility_SOURCES} ${utility_MYSQL++_SOURCES})
+add_library(utility STATIC
+  ${utility_SOURCES}
+  ${utility_MYSQL++_SOURCES}
+  ${utility_LIBPROC_SOURCES})
 buildsys_library(utility)
 target_link_libraries(utility ${MODULE_LIBRARIES})
 buildsys_target_compile_definitions(utility ${MODULE_DEFINITIONS})
