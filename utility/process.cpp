@@ -13,6 +13,7 @@
 
 #include <boost/asio.hpp>
 #include <boost/format.hpp>
+#include <boost/filesystem.hpp>
 
 #include "dbglog/dbglog.hpp"
 
@@ -563,6 +564,8 @@ int systemImpl(const std::string &program, SystemContext ctx)
                      childClose(outPipes);
                      redirect(ctx.redirects);
                      apply(ctx.environ);
+                     // chdir to wd if set
+                     if (ctx.cwd) { current_path(*ctx.cwd); }
                  } catch (const std::exception &e) {
                      std::exit(EXEC_FAILED);
                  }

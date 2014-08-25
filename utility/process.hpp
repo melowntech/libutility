@@ -66,6 +66,13 @@ struct UnsetEnv {
     explicit UnsetEnv(const std::string &name) : name(name) {}
 };
 
+/** Changes current working directory of a new process after fork.
+ */
+struct ChangeCwd {
+    boost::filesystem::path wd;
+    explicit ChangeCwd(const boost::filesystem::path &wd) : wd(wd) {}
+};
+
 /** Execute child process and wait for its completion.
  *
  *  Argument can be one of:
@@ -74,6 +81,7 @@ struct UnsetEnv {
  *     Stream/Stream: stream input/output
  *     SetEnv: sets environmental variable
  *     UnsetEnv: unsets environmental variable
+ *     ChangeCwd: changes current working directory after fork
  *     other: positional argument to exec (converted to string
  *            via boost::lexical_cast)
  *

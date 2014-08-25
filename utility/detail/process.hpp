@@ -24,6 +24,8 @@ struct SystemContext {
 
     Environment environ;
 
+    boost::optional<boost::filesystem::path> cwd;
+
     void add(const RedirectFile &arg) {
         // TODO: check for duplicity
 
@@ -41,6 +43,7 @@ struct SystemContext {
     void apply(const Stream &arg) { add(arg); }
     void apply(const SetEnv &arg) { environ[arg.name] = arg.value; }
     void apply(const UnsetEnv &arg) { environ[arg.name] = boost::none; }
+    void apply(const ChangeCwd &arg) { cwd = arg.wd; }
     void apply(const std::string &arg) { argv.push_back(arg); }
 
     template <typename T>
