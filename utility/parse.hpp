@@ -26,6 +26,25 @@ struct LineRange {
     std::size_t to;
 };
 
+template <typename LineProcessor>
+std::size_t readLines(std::istream &is
+                      , LineProcessor processor
+                      , const LineRange &range = LineRange())
+{
+    std::string line;
+    std::size_t index(0);
+    while (getline(is, line) && (index <= range.to)) {
+        // skip until from is reached
+        if (index++ < range.from) { continue; }
+        auto trimmed(boost::algorithm::trim_copy(line));
+        if (trimmed.empty() || (line[0] == '#')) { continue; }
+
+        ++index;
+        processor(line);
+    }
+    return index;
+}
+
 namespace separated_values {
 
 enum {
