@@ -75,6 +75,8 @@ set(utility_SOURCES
   openmp.hpp
 
   atomic.hpp
+
+  algorithm.hpp
   )
 
 if(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
