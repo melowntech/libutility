@@ -12,6 +12,7 @@
 #include <algorithm>
 #include <boost/filesystem/path.hpp>
 #include <boost/algorithm/string/case_conv.hpp>
+#include <boost/optional.hpp>
 
 #include "detail/path.hpp"
 
@@ -122,6 +123,25 @@ namespace FileMatch {
 bool match(const std::string &globPattern
            , const boost::filesystem::path &path
            , int flags = 0x0);
+
+/** Returns index-th component of path.
+ *  Remember that 0-th component of absolute path is '/' on UNIX!
+ *
+ * \param path path to analyze
+ * \param index index of path to return
+ * \return index-th component or boost::none if index is out of bounds
+ */
+inline boost::optional<boost::filesystem::path>
+pathComponent(const boost::filesystem::path &path
+              , unsigned int index)
+{
+    for (const auto &c : path) {
+        if (!index--) {
+            return c;
+        }
+    }
+    return boost::none;
+}
 
 } // namespace utility
 
