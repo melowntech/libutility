@@ -38,6 +38,8 @@ public:
     void incrementAndReport(const ratio_t &threshold
                             , const std::string &name = std::string());
 
+    bool full() const { return value_ >= total_; }
+
 private:
     std::size_t total_;
     std::size_t value_;

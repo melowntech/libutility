@@ -11,7 +11,7 @@ namespace utility {
 
 void Progress::report(const ratio_t &threshold, const std::string &name)
 {
-    if (ratio_t(value_ - reportedValue_, total_) < threshold) {
+    if (full() || (ratio_t(value_ - reportedValue_, total_) < threshold)) {
         return;
     }
 
@@ -20,7 +20,7 @@ void Progress::report(const ratio_t &threshold, const std::string &name)
     auto decimals(boost::rational_cast<int>((r * 10000) - (integral * 100)));
 
     LOG(info3)
-        << name << "Progress: " << std::setw(3) << std::setfill(' ')
+        << name << "progress: " << std::setw(3) << std::setfill(' ')
         << integral << "." << std::setw(2) << std::setfill('0')
         << decimals << " %.";
 

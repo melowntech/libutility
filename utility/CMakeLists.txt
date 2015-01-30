@@ -77,6 +77,9 @@ set(utility_SOURCES
   atomic.hpp
 
   algorithm.hpp
+
+  filedes.hpp filedes.cpp
+  tar.hpp tar.cpp
   )
 
 if(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
