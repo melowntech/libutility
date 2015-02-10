@@ -84,11 +84,27 @@ struct ChangeCwd {
  *     ChangeCwd: changes current working directory after fork
  *     other: positional argument to exec (converted to string
  *            via boost::lexical_cast)
+ *     std::vector<T>: each element is interpretted based on type
  *
  *  First positional argument is interpreted as path to binary to execute.
  */
 template <typename ...Args>
 int system(const std::string &program, Args &&...args);
+
+/** Execute another binary in current process
+ *
+ *  Argument can be one of:
+ *     SetEnv: sets environmental variable
+ *     UnsetEnv: unsets environmental variable
+ *     ChangeCwd: changes current working directory after fork
+ *     other: positional argument to exec (converted to string
+ *            via boost::lexical_cast)
+ *     std::vector<T>: each element is interpretted based on type
+ *
+ *  First positional argument is interpreted as path to binary to execute.
+ */
+template <typename ...Args>
+void exec(const std::string &program, Args &&...args);
 
 int spawn(const std::function<int ()> &func);
 
@@ -110,6 +126,14 @@ inline int system(const std::string &program, Args &&...args)
     detail::SystemContext ctx;
     detail::systemBuildArgs(ctx, std::forward<Args>(args)...);
     return detail::systemImpl(program, ctx);
+}
+
+template <typename ...Args>
+inline void exec(const std::string &program, Args &&...args)
+{
+    detail::SystemContext ctx;
+    detail::systemBuildArgs(ctx, std::forward<Args>(args)...);
+    return detail::execImpl(program, ctx);
 }
 
 /** Call function in new process.

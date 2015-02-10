@@ -134,6 +134,27 @@ pid_t execute(const ExecArgs &argv, const boost::function<void()> &afterFork)
     return pid;
 }
 
+void execute(const ExecArgs &argv)
+{
+    LOG(info2) << "Executing: " << argv;
+
+    // exec
+#ifdef __APPLE__
+    if (::execvp(argv.argv.front(), &(argv.argv.front())) == -1)
+#else
+    if (::execvpe(argv.argv.front(), &(argv.argv.front())
+                  , ::environ) == -1)
+#endif
+    {
+        std::system_error e(errno, std::system_category());
+        LOG(warn1) << "execve(2) [" << argv.argv.front()
+                   << "] failed: <" << e.code() << ", "
+                   << e.what() << ">";
+        throw(e);
+    }
+    // never reached
+}
+
 void redirect(const SystemContext::Redirects &redirects)
 {
     for (const auto &redirect : redirects) {
@@ -574,6 +595,25 @@ int systemImpl(const std::string &program, SystemContext ctx)
     LOG(info2) << "Running under pid: " << pid << ".";
 
     return Pump(pid, inPipes, outPipes).run();
+}
+
+void execImpl(const std::string &program, SystemContext ctx)
+{
+    // build arguments
+    detail::ExecArgs argv;
+    argv.arg(program);
+    for (const auto arg : ctx.argv) {
+        if (arg) {
+            argv.arg(*arg);
+        }
+    }
+    argv.finish();
+
+    apply(ctx.environ);
+    // chdir to wd if set
+    if (ctx.cwd) { current_path(*ctx.cwd); }
+
+    detail::execute(argv);
 }
 
 int spawnImpl(const std::function<int ()> &func)

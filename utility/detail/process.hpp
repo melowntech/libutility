@@ -76,6 +76,10 @@ inline void systemBuildArgs(SystemContext &ctx, T &&arg, Args &&...rest)
  */
 int systemImpl(const std::string &program, SystemContext ctx);
 
+/** Equivalent of execvpe(3); replaces current process
+ */
+void execImpl(const std::string &program, SystemContext ctx);
+
 int spawnImpl(const std::function<int ()> &func);
 
 } } // namespace utility::detail
