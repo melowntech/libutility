@@ -51,6 +51,14 @@ struct SystemContext {
         argv.push_back(boost::lexical_cast<std::string>(arg));
     }
 
+    template <typename T>
+    void apply(const std::vector<T> &args)
+    {
+        for (const auto &arg : args) {
+            apply(arg);
+        }
+    }
+
     void setFdPath(int redirectIdx, const RedirectFile::DstArg &arg, int fd);
 };
 
