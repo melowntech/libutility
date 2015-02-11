@@ -143,6 +143,10 @@ pathComponent(const boost::filesystem::path &path
     return boost::none;
 }
 
+/** Returns path to this executable, if known.
+ */
+boost::optional<boost::filesystem::path> exePath();
+
 } // namespace utility
 
 #endif // utility_path_hpp_included_
