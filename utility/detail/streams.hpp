@@ -16,6 +16,8 @@
 #include <fstream>
 #include <algorithm>
 
+#include <boost/optional.hpp>
+
 namespace utility { namespace detail {
 
 template<typename CharT, typename Traits>
@@ -196,6 +198,75 @@ operator<<(std::basic_ostream<E, T> &os, const Join<Container> &j)
     }
     return os;
 }
+
+namespace first_valid {
+
+template <typename ...Args>
+struct Writer {
+    Writer(Args &&...args)
+        : args(std::forward<Args>(args)...)
+    {}
+
+    const std::tuple<Args...> args;
+
+private:
+    Writer& operator=(Writer&) = delete;
+};
+
+template<std::size_t> struct int_{};
+
+template <typename E, typename T, typename V>
+bool tryPrint(std::basic_ostream<E, T> &os, const V &t)
+{
+    os << t;
+    return true;
+}
+
+template <typename E, typename T, typename V>
+bool tryPrint(std::basic_ostream<E, T> &os, const boost::optional<V> &t)
+{
+    if (t) {
+        os << *t;
+        return true;
+    }
+    return false;
+}
+
+template <typename E, typename T, typename V>
+bool tryPrint(std::basic_ostream<E, T> &os, const V *t)
+{
+    if (t) {
+        os << *t;
+        return true;
+    }
+    return false;
+}
+
+template <typename E, typename T, typename Tuple, std::size_t I>
+bool printFirst(std::basic_ostream<E, T> &os, const Tuple &t, int_<I>)
+{
+    if (printFirst(os, t, int_<I - 1>())) {
+        return true;
+    }
+    return tryPrint(os, std::get<I>(t));
+}
+
+template <typename E, typename T, typename Tuple>
+bool printFirst(std::basic_ostream<E, T> &os, const Tuple &t, int_<0>)
+{
+    return tryPrint(os, std::get<0>(t));
+}
+
+template <typename E, typename T, typename ...Args>
+std::basic_ostream<E, T>&
+operator<<(std::basic_ostream<E, T> &os
+           , const Writer<Args...> &fvw)
+{
+    printFirst(os, fvw.args, int_<sizeof...(Args) - 1>());
+    return os;
+}
+
+} // namespace first_valid
 
 } } // namespace utility::detail
 

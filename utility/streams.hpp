@@ -213,6 +213,13 @@ print(const Container &container
     return {container, separator};
 }
 
+template <typename ...Args>
+detail::first_valid::Writer<Args...> printFirst(Args &&...args)
+{
+    return detail::first_valid::Writer<Args...>
+        (std::forward<Args>(args)...);
+}
+
 } // namespace utility
 
 #endif // utility_streams_hpp_included_
