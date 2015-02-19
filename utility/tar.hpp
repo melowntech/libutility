@@ -9,6 +9,8 @@
 
 namespace utility { namespace tar {
 
+enum class Type { invalid, ustar, posix };
+
 struct Header {
     char name[100];
     char mode[8];
@@ -28,7 +30,9 @@ struct Header {
     char prefix[155];
     char padding[12];
 
-    bool valid() const;
+    Type type() const;
+
+    bool valid() const { return type() != Type::invalid; }
 
     std::size_t getSize() const;
 

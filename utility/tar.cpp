@@ -36,9 +36,19 @@ std::string getString(const char(&v)[size])
 
 } // namespace
 
-bool Header::valid() const {
-    return (!std::memcmp(TMAGIC, magic, TMAGLEN)
-            && !std::memcmp(TVERSION, version, TVERSLEN));
+Type Header::type() const
+{
+    if (!std::memcmp(TMAGIC, magic, TMAGLEN)
+        && !std::memcmp(TVERSION, version, TVERSLEN))
+    {
+        return Type::ustar;
+    }
+
+    if (!std::memcmp("ustar  ", magic, 8)) {
+        return Type::posix;
+    }
+
+    return Type::invalid;
 }
 
 std::size_t Header::getSize() const {
