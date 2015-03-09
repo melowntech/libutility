@@ -69,6 +69,34 @@ inline typename underlying_type<T>::type to_underlying(T e) {
 }
 #endif
 
+/** Tells whether t is one of args.
+ */
+template <typename T, typename ...Args>
+bool in(const T &t, Args &&...args);
+
+namespace detail {
+
+template <typename T, typename U, typename ...Args>
+bool oneOf(const T &t, const U &u)
+{
+    return (t == u);
+}
+
+template <typename T, typename U, typename ...Args>
+bool oneOf(const T &t, const U &u, Args &&...args)
+{
+    if (t == u) { return true; }
+    return detail::oneOf(t, std::forward<Args>(args)...);
+}
+
+} // detail
+
+template <typename T, typename ...Args>
+bool in(const T &t, Args &&...args)
+{
+    return detail::oneOf(t, std::forward<Args>(args)...);
+}
+
 } // namespace utility
 
 #endif // utility_enum_hpp_included_
