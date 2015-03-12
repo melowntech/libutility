@@ -80,14 +80,26 @@ inline void write(std::ostream &os, const T(&v)[size]) {
     os.write(reinterpret_cast<const char*>(v), size * sizeof(T));
 }
 
-template<typename T, int size>
-inline void write(const boost::filesystem::path &file, const T(&v)[size])
+template<typename T>
+inline void write(std::ostream &os, const T *v, std::size_t size) {
+    os.write(reinterpret_cast<const char*>(v), size * sizeof(T));
+}
+
+template<typename T>
+inline void write(const boost::filesystem::path &file
+                  , const T *v, std::size_t size)
 {
     std::ofstream f;
     f.exceptions(std::ios::badbit | std::ios::failbit);
     f.open(file.string(), std::ios_base::out | std::ios_base::trunc);
-    write(f, v);
+    write(f, v, size);
     f.close();
+}
+
+template<typename T, std::size_t size>
+inline void write(const boost::filesystem::path &file, const T(&v)[size])
+{
+    write(file, v, size);
 }
 
 inline std::string read(const boost::filesystem::path &file)
