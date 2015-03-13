@@ -55,6 +55,9 @@ std::size_t Header::getSize() const {
     return parse(size);
 }
 
+std::time_t Header::getTime() const {
+    return parse(mtime);
+}
 
 fs::path Header::getPath() const {
     auto p(getString(prefix));

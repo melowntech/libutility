@@ -1,6 +1,7 @@
 #ifndef utility_tar_hpp_included_
 #define utility_tar_hpp_included_
 
+#include <ctime>
 #include <array>
 
 #include <boost/filesystem/path.hpp>
@@ -17,7 +18,7 @@ struct Header {
     char uid[8];
     char gid[8];
     char size[12];
-    char mktime[12];
+    char mtime[12];
     char chksum[8];
     char typeflag[1];
     char linkname[100];
@@ -47,6 +48,8 @@ struct Header {
     boost::filesystem::path getPath() const;
 
     bool isFile() const;
+
+    std::time_t getTime() const;
 };
 
 union Block {
