@@ -97,11 +97,13 @@ if(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
     detail/iface.linux.cpp
     detail/meminfo.linux.cpp
     detail/path.linux.cpp
+    detail/rlimit.linux.cpp
     )
 else()
   list(APPEND utility_SOURCES
     detail/iface.unsupported.cpp
     detail/path.unsupported.cpp
+    detail/rlimit.unsupported.cpp
     )
 endif()
 

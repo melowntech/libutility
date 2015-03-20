@@ -10,10 +10,12 @@ namespace utility {
 
 typedef std::remove_pointer< ::magic_t>::type MagicCookie;
 
-Magic::Magic()
-    : magic_(magic_open(MAGIC_MIME_TYPE), [] (magic_t m) {
-            if (m) ::magic_close(m);
-        })
+Magic::Magic(bool followSymlinks)
+    : magic_(magic_open(MAGIC_MIME_TYPE
+                        | (followSymlinks ? MAGIC_SYMLINK : 0))
+             , [] (magic_t m) {
+                 if (m) ::magic_close(m);
+             })
 {
     auto cookie(std::static_pointer_cast<MagicCookie>(magic_).get());
     if (::magic_load(cookie, nullptr) == -1) {

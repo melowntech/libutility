@@ -16,7 +16,7 @@ struct MagicError : std::runtime_error {
 
 class Magic {
 public:
-    Magic();
+    Magic(bool followSymlinks = true);
 
     std::string mime(const void *buffer, std::size_t length) const;
 
