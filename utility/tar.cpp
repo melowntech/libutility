@@ -71,12 +71,12 @@ bool Header::isFile() const {
 }
 
 Reader::Reader(const fs::path &path)
-    : path_(path), fd_(::open(path.string().c_str(), O_RDONLY))
+    : fd_(::open(path.string().c_str(), O_RDONLY), path)
     , cursor_(0)
 {
     if (fd_ == -1) {
         std::system_error e(errno, std::system_category());
-        LOG(err2) << "Cannot open tar file " << path_ << ": <"
+        LOG(err2) << "Cannot open tar file " << fd_.path() << ": <"
                   << e.code() << ", " << e.what() << ">.";
         throw e;
     }
@@ -87,7 +87,7 @@ void Reader::seek(std::size_t blocks)
     auto res(::lseek(fd_, blocks * 512, SEEK_SET));
     if (res == -1) {
         std::system_error e(errno, std::system_category());
-        LOG(err2) << "Cannot seek in tar file " << path_ << ": <"
+        LOG(err2) << "Cannot seek in tar file " << fd_.path() << ": <"
                   << e.code() << ", " << e.what() << ">.";
         throw e;
     }
@@ -100,7 +100,7 @@ void Reader::advance(std::size_t blocks)
     auto res(::lseek(fd_, blocks * 512, SEEK_CUR));
     if (res == -1) {
         std::system_error e(errno, std::system_category());
-        LOG(err2) << "Cannot seek in tar file " << path_ << ": <"
+        LOG(err2) << "Cannot seek in tar file " << fd_.path() << ": <"
                   << e.code() << ", " << e.what() << ">.";
         throw e;
     }
@@ -113,7 +113,7 @@ bool Reader::read(Block &block)
     auto bytes(TEMP_FAILURE_RETRY(::read(fd_, block.raw.data(), 512)));
     if (bytes == -1) {
         std::system_error e(errno, std::system_category());
-        LOG(err2) << "Cannot read from tar file " << path_ << ": <"
+        LOG(err2) << "Cannot read from tar file " << fd_.path() << ": <"
                   << e.code() << ", " << e.what() << ">.";
         throw e;
     }
@@ -122,7 +122,7 @@ bool Reader::read(Block &block)
 
     if (bytes != 512) {
         LOGTHROW(err2, std::runtime_error)
-            << "Short read from tar file " << path_ << ".";
+            << "Short read from tar file " << fd_.path() << ".";
     }
 
     ++cursor_;
@@ -144,7 +144,7 @@ Reader::Data Reader::readData(std::size_t block, std::size_t size)
 
         if (bytes == -1) {
             std::system_error e(errno, std::system_category());
-            LOG(err2) << "Cannot read from tar file " << path_ << ": <"
+            LOG(err2) << "Cannot read from tar file " << fd_.path() << ": <"
                       << e.code() << ", " << e.what() << ">.";
             throw e;
         }
@@ -155,11 +155,17 @@ Reader::Data Reader::readData(std::size_t block, std::size_t size)
 
     if (size) {
         LOGTHROW(err2, std::runtime_error)
-            << "Too few data in " << path_ << " at position "
+            << "Too few data in " << fd_.path() << " at position "
             << block << ".";
     }
 
     return data;
+}
+
+Reader::Filedes Reader::filedes(std::size_t block, std::size_t size)
+{
+    return { fd_.get(), std::size_t(block * 512)
+            , std::size_t(block * 512) + size };
 }
 
 } } // namespace utility::tar

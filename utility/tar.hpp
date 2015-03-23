@@ -83,8 +83,19 @@ public:
      */
     Data readData(std::size_t block, std::size_t size);
 
+    /** Simple structure for file descriptor and block start/end.
+     */
+    struct Filedes {
+        int fd;
+        std::size_t start;
+        std::size_t end;
+    };
+
+    /** Return file descriptor for block index and size.
+     */
+    Filedes filedes(std::size_t block, std::size_t size);
+
 private:
-    const boost::filesystem::path path_;
     utility::Filedes fd_;
 
     std::size_t cursor_;
