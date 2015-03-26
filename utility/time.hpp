@@ -1,6 +1,8 @@
 #ifndef utility_time_hpp_included_
 #define utility_time_hpp_included_
 
+#include <cstdint>
+#include <utility>
 #include <sstream>
 #include <iomanip>
 #include <chrono>
@@ -28,6 +30,8 @@ std::string formatDuration(const TimeDuration &d)
 }
 
 std::string formatDateTime(const std::time_t t, bool gmt = false);
+
+std::pair<std::uint64_t, std::uint64_t> currentTime();
 
 } // namespace utility
 

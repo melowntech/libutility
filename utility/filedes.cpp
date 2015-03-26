@@ -17,9 +17,15 @@ namespace utility {
 #endif
 
 Filedes::~Filedes() {
+    close();
+}
+
+void Filedes::close()
+{
     if (fd_ >= 0) {
         TEMP_FAILURE_RETRY(::close(fd_));
     }
+    fd_ = -1;
 }
 
 } // namespace utility

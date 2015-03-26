@@ -44,6 +44,10 @@ public:
         return fd;
     }
 
+    /** Closes underlying file descriptor and invalidates this object.
+     */
+    void close();
+
     Filedes(const Filedes&) = delete;
     Filedes& operator=(const Filedes&) = delete;
 
