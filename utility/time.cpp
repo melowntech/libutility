@@ -24,5 +24,12 @@ std::pair<std::uint64_t, std::uint64_t> currentTime()
     return { now.tv_sec, now. tv_usec };
 }
 
+std::uint64_t usecFromEpoch()
+{
+    timeval now;
+    ::gettimeofday(&now, 0x0);
+    return std::uint64_t(now.tv_sec) * 1000000 + now.tv_usec;
+}
+
 } // namespace utility
 

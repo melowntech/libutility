@@ -33,6 +33,8 @@ std::string formatDateTime(const std::time_t t, bool gmt = false);
 
 std::pair<std::uint64_t, std::uint64_t> currentTime();
 
+std::uint64_t usecFromEpoch();
+
 } // namespace utility
 
 #endif // utility_time_hpp_included_
