@@ -95,6 +95,8 @@ public:
      */
     Filedes filedes(std::size_t block, std::size_t size);
 
+    int filedes() const { return fd_; }
+
 private:
     utility::Filedes fd_;
 
