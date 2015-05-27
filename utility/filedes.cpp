@@ -1,6 +1,10 @@
 #include <unistd.h>
+#include <fcntl.h>
 
 #include <cerrno>
+#include <system_error>
+
+#include "dbglog/dbglog.hpp"
 
 #include "filedes.hpp"
 
@@ -26,6 +30,32 @@ void Filedes::close()
         TEMP_FAILURE_RETRY(::close(fd_));
     }
     fd_ = -1;
+}
+
+void Filedes::closeOnExec(bool value)
+{
+    // no log file -> fine
+    if (fd_ < 0) { return; }
+
+    int flags(::fcntl(fd_, F_GETFD, 0));
+    if (flags == -1) {
+        std::system_error e(errno, std::system_category());
+        LOG(warn2) << "fcntl(" << fd_ << ", F_GETFD) failed: <"
+                   << e.code() << ", " << e.what() << ">";
+        throw e;
+    }
+    if (value) {
+        flags |= FD_CLOEXEC;
+    } else {
+        flags &= ~FD_CLOEXEC;
+    }
+
+    if (::fcntl(fd_, F_SETFD, flags) == -1) {
+        std::system_error e(errno, std::system_category());
+        LOG(warn2) << "fcntl(" << fd_ << ", F_SETFD) failed: <"
+                   << e.code() << ", " << e.what() << ">";
+        throw e;
+    }
 }
 
 } // namespace utility

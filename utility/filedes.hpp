@@ -48,6 +48,8 @@ public:
      */
     void close();
 
+    void closeOnExec(bool value);
+
     Filedes(const Filedes&) = delete;
     Filedes& operator=(const Filedes&) = delete;
 
