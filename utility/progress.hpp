@@ -34,6 +34,8 @@ public:
 
     void report(const ratio_t &threshold
                 , const std::string &name = std::string());
+    
+    void reportRational(const std::string &name = std::string());
 
     void incrementAndReport(const ratio_t &threshold
                             , const std::string &name = std::string());

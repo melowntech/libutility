@@ -27,6 +27,21 @@ void Progress::report(const ratio_t &threshold, const std::string &name)
     reportedValue_ = value_;
 }
 
+void Progress::reportRational(const std::string &name)
+{
+    if (full() || value_ == reportedValue_) {
+        return;
+    }
+
+    int numLen(log(total_) / log(10.0));
+    
+    LOG(info3)
+        << name << "progress: " << std::setw(numLen + 1) << std::setfill(' ')
+        << value_ << " / " << total_ << ".";
+
+    reportedValue_ = value_;
+}
+
 void Progress::incrementAndReport(const ratio_t &threshold
                                   , const std::string &name)
 {
