@@ -43,7 +43,22 @@
     case Type::BOOST_PP_SEQ_ELEM(0, value):              \
     return os << BOOST_PP_SEQ_ELEM(1, value);
 
-#define UTILITY_DETAIL_fromEnum_element(r,type,value)                     \
+#define UTILITY_DETAIL_fromEnum_element3(r,Type,value)   \
+    UTILITY_DETAIL_fromEnum_element2(r,Type,value)
+
+#define UTILITY_DETAIL_fromEnum_element4(r,Type,value)  \
+    UTILITY_DETAIL_fromEnum_element2(r,Type,value)
+
+#define UTILITY_DETAIL_fromEnum_element5(r,Type,value)  \
+    UTILITY_DETAIL_fromEnum_element2(r,Type,value)
+
+#define UTILITY_DETAIL_fromEnum_element6(r,Type,value)  \
+    UTILITY_DETAIL_fromEnum_element2(r,Type,value)
+
+#define UTILITY_DETAIL_fromEnum_element7(r,Type,value)  \
+    UTILITY_DETAIL_fromEnum_element2(r,Type,value)
+
+#define UTILITY_DETAIL_fromEnum_element(r,type,value)                   \
     BOOST_PP_CAT(UTILITY_DETAIL_fromEnum_element,BOOST_PP_SEQ_SIZE(value)) \
     (r,type,value)
 
@@ -59,25 +74,68 @@
         return is;                                                  \
     }
 
+#define UTILITY_DETAIL_toEnum_element3(r,Type,value)                \
+    UTILITY_DETAIL_toEnum_element2(r,Type,value)                    \
+    if (s == BOOST_PP_SEQ_ELEM(2, value)) {                         \
+        out = Type::BOOST_PP_SEQ_ELEM(0, value);                    \
+        return is;                                                  \
+    }
+
+#define UTILITY_DETAIL_toEnum_element4(r,Type,value)                \
+    UTILITY_DETAIL_toEnum_element3(r,Type,value)                    \
+    if (s == BOOST_PP_SEQ_ELEM(3, value)) {                         \
+        out = Type::BOOST_PP_SEQ_ELEM(0, value);                    \
+        return is;                                                  \
+    }
+
+#define UTILITY_DETAIL_toEnum_element5(r,Type,value)                \
+    UTILITY_DETAIL_toEnum_element4(r,Type,value)                    \
+    if (s == BOOST_PP_SEQ_ELEM(4, value)) {                         \
+        out = Type::BOOST_PP_SEQ_ELEM(0, value);                    \
+        return is;                                                  \
+    }
+
+#define UTILITY_DETAIL_toEnum_element6(r,Type,value)                \
+    UTILITY_DETAIL_toEnum_element5(r,Type,value)                    \
+    if (s == BOOST_PP_SEQ_ELEM(5, value)) {                         \
+        out = Type::BOOST_PP_SEQ_ELEM(0, value);                    \
+        return is;                                                  \
+    }
+
+#define UTILITY_DETAIL_toEnum_element7(r,Type,value)                \
+    UTILITY_DETAIL_toEnum_element6(r,Type,value)                    \
+    if (s == BOOST_PP_SEQ_ELEM(6, value)) {                         \
+        out = Type::BOOST_PP_SEQ_ELEM(0, value);                    \
+        return is;                                                  \
+    }
+
 #define UTILITY_DETAIL_toEnum_element(r,type,value)                     \
     BOOST_PP_CAT(UTILITY_DETAIL_toEnum_element,BOOST_PP_SEQ_SIZE(value)) \
     (r,type,value)
 
-#define UTILITY_DETAIL_value1(Type,value)                               \
-    Type::BOOST_PP_SEQ_ELEM(0, value)
-
-#define UTILITY_DETAIL_value2(Type,value)                               \
-    Type::BOOST_PP_SEQ_ELEM(0, value)
-
 #define UTILITY_DETAIL_value(Type,value)                                \
-    BOOST_PP_CAT(UTILITY_DETAIL_value,BOOST_PP_SEQ_SIZE(value))         \
-    (Type,value)
+    Type::BOOST_PP_SEQ_ELEM(0, value)
 
 #define UTILITY_DETAIL_name1(Type,value)                                \
     BOOST_PP_STRINGIZE(BOOST_PP_SEQ_ELEM(0, value))
 
 #define UTILITY_DETAIL_name2(Type,value)                                \
     BOOST_PP_SEQ_ELEM(1, value)
+
+#define UTILITY_DETAIL_name3(Type,value)                                \
+    UTILITY_DETAIL_name2(Type,value)
+
+#define UTILITY_DETAIL_name4(Type,value)                                \
+    UTILITY_DETAIL_name2(Type,value)
+
+#define UTILITY_DETAIL_name5(Type,value)                                \
+    UTILITY_DETAIL_name2(Type,value)
+
+#define UTILITY_DETAIL_name6(Type,value)                                \
+    UTILITY_DETAIL_name2(Type,value)
+
+#define UTILITY_DETAIL_name7(Type,value)                                \
+    UTILITY_DETAIL_name2(Type,value)
 
 #define UTILITY_DETAIL_name(Type,value)                                 \
     BOOST_PP_CAT(UTILITY_DETAIL_name,BOOST_PP_SEQ_SIZE(value))          \
@@ -142,7 +200,7 @@
 #define UTILITY_GENERATE_ENUM(Type, seq)                                \
     enum class Type {                                                   \
         UTILITY_DETAIL_untyped_value(Type, BOOST_PP_SEQ_HEAD(seq))      \
-        BOOST_PP_SEQ_FOR_EACH(UTILITY_DETAIL_comma_untyped_value                \
+        BOOST_PP_SEQ_FOR_EACH(UTILITY_DETAIL_comma_untyped_value        \
                               , Type, BOOST_PP_SEQ_TAIL(seq))           \
     };                                                                  \
                                                                         \
