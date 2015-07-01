@@ -54,7 +54,7 @@ set(utility_SOURCES
   runnable.hpp runnable.cpp
   iohelpers.hpp
 
-  uri.hpp
+  uri.hpp uri.cpp
   parse.hpp
   base64.hpp
   md5.hpp

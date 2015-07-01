@@ -105,6 +105,7 @@ inline std::string extractUserpass(std::string &in) {
 
 } // namespace detail
 
+std::string urlEncode(const std::string &in, bool plus = true);
 
 //--- Public Interface --------------------------------------------------------
 inline Uri parseUri(std::string in) {
