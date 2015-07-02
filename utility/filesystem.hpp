@@ -33,6 +33,8 @@ void copyTree(const boost::filesystem::path &from
               , const boost::filesystem::path &to
               , boost::system::error_code &ec);
 
+std::time_t lastModified(const boost::filesystem::path &path);
+
 } // namespace utility
 
 // impelemtation

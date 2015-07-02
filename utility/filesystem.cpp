@@ -1,7 +1,16 @@
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
+
+#include <cerrno>
+#include <system_error>
+
 #include <boost/filesystem/operations.hpp>
 
-#include "filesystem.hpp"
-#include "streams.hpp"
+#include "dbglog/dbglog.hpp"
+
+#include "./filesystem.hpp"
+#include "./streams.hpp"
 
 namespace fs = boost::filesystem;
 
@@ -118,6 +127,18 @@ void processFile( const boost::filesystem::path &from
     processFile(f, of, lineProcessor);
 
     of.close();
+}
+
+std::time_t lastModified(const boost::filesystem::path &path)
+{
+    struct ::stat buf;
+    if (-1 == ::stat(path.c_str(), &buf)) {
+        std::system_error e(errno, std::system_category());
+        LOG(err3) << "Cannot stat file " << path << ": <"
+                  << e.code() << ", " << e.what() << ">.";
+        throw e;
+    }
+    return buf.st_mtime;
 }
 
 } // namespace utility
