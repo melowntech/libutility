@@ -129,7 +129,7 @@ inline std::string Uri::join() const
 {
     std::ostringstream os;
 
-    os << schema;
+    os << schema << "://";
     if (!user.empty()) {
         os << user;
         if (!password.empty()) {
