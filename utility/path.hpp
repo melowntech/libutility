@@ -147,6 +147,10 @@ pathComponent(const boost::filesystem::path &path
  */
 boost::optional<boost::filesystem::path> exePath();
 
+/** Returns home directory.
+ */
+boost::filesystem::path homeDir();
+
 } // namespace utility
 
 #endif // utility_path_hpp_included_
