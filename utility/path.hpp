@@ -144,7 +144,7 @@ pathComponent(const boost::filesystem::path &path
 }
 
 inline std::size_t
-numberOfPathComponent(const boost::filesystem::path &path)
+numberOfPathComponents(const boost::filesystem::path &path)
 {
     return std::distance(path.begin(), path.end());
 }
