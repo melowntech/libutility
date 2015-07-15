@@ -143,6 +143,12 @@ pathComponent(const boost::filesystem::path &path
     return boost::none;
 }
 
+inline std::size_t
+numberOfPathComponent(const boost::filesystem::path &path)
+{
+    return std::distance(path.begin(), path.end());
+}
+
 /** Returns path to this executable, if known.
  */
 boost::optional<boost::filesystem::path> exePath();
