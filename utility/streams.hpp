@@ -116,6 +116,43 @@ inline std::string read(const boost::filesystem::path &file)
     return { tmp.begin(), tmp.end() };
 }
 
+template<class CharT, class Traits>
+class ScopedStreamExceptions {
+public:
+    ScopedStreamExceptions(std::basic_ios<CharT, Traits> &ios)
+        : ios_(&ios), state_(ios.exceptions())
+    {}
+
+    ScopedStreamExceptions(ScopedStreamExceptions &&other)
+        : ios_(other.ios_), state_(other.state_)
+    {
+        other.ios_ = nullptr;
+    }
+
+    ScopedStreamExceptions& operator=(ScopedStreamExceptions &&other) = delete;
+
+    ScopedStreamExceptions(const ScopedStreamExceptions &other) = delete;
+    ScopedStreamExceptions&
+    operator=(const ScopedStreamExceptions &other) = delete;
+
+    ~ScopedStreamExceptions() {
+        if (ios_) { ios_->exceptions(state_); }
+    }
+
+    std::ios_base::iostate state() const { return state_; }
+
+private:
+    std::basic_ios<CharT, Traits> *ios_;
+    std::ios_base::iostate state_;
+};
+
+template<class CharT, class Traits>
+ScopedStreamExceptions<CharT, Traits>
+scopedStreamExceptions(std::basic_ios<CharT, Traits> &ios)
+{
+    return { ios };
+}
+
 // helper classes for stream I/O with increased buffer size
 
 namespace detail {
