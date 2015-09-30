@@ -2,6 +2,7 @@
 #define utility_binaryio_hpp_included_
 
 #include <iostream>
+#include <vector>
 
 namespace utility { namespace binaryio {
 
@@ -26,25 +27,35 @@ void write(std::ostream &os, const T &v)
     os.write(reinterpret_cast<const char*>(&v), sizeof(T));
 }
 
-inline void read(std::istream &os, char *v, size_t count) {
-    os.read(v, count);
+template <typename T>
+inline void write(std::ostream &os, const std::vector<T> &v) {
+    write(os, v.data(), v.size());
+}
+
+inline void read(std::istream &is, char *v, size_t count) {
+    is.read(v, count);
 }
 
 template <typename T>
-void read(std::istream &os, T *v, size_t count)
+void read(std::istream &is, T *v, size_t count)
 {
-    os.read(reinterpret_cast<char*>(v), count * sizeof(T));
+    is.read(reinterpret_cast<char*>(v), count * sizeof(T));
 }
 
 template<typename T, int size>
-void read(std::istream &os, T(&v)[size]) {
-    os.read(reinterpret_cast<char*>(v), size * sizeof(T));
+void read(std::istream &is, T(&v)[size]) {
+    is.read(reinterpret_cast<char*>(v), size * sizeof(T));
 }
 
 template <typename T>
-void read(std::istream &os, T &v)
+void read(std::istream &is, T &v)
 {
-    os.read(reinterpret_cast<char*>(&v), sizeof(T));
+    is.read(reinterpret_cast<char*>(&v), sizeof(T));
+}
+
+template <typename T>
+inline void read(std::istream &is, std::vector<T> &v) {
+    read(is, v.data(), v.size());
 }
 
 } } // namespace utility::binaryio

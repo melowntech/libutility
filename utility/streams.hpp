@@ -153,6 +153,25 @@ scopedStreamExceptions(std::basic_ios<CharT, Traits> &ios)
     return { ios };
 }
 
+struct StreamState {
+    template<class CharT, class Traits>
+    StreamState(std::basic_ios<CharT, Traits> &ios)
+        : state(ios.rdstate()) {}
+
+    std::ios_base::iostate state;
+};
+
+template <typename E, typename T>
+std::basic_ostream<E, T>&
+operator<<(std::basic_ostream<E, T> &os, const StreamState &ss)
+{
+    if (ss.state & std::ios_base::goodbit) { os << "G"; }
+    if (ss.state & std::ios_base::badbit) { os << "B"; }
+    if (ss.state & std::ios_base::failbit) { os << "F"; }
+    if (ss.state & std::ios_base::eofbit) { os << "E"; }
+    return os;
+}
+
 // helper classes for stream I/O with increased buffer size
 
 namespace detail {
