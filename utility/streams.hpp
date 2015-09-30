@@ -165,11 +165,12 @@ template <typename E, typename T>
 std::basic_ostream<E, T>&
 operator<<(std::basic_ostream<E, T> &os, const StreamState &ss)
 {
-    if (ss.state & std::ios_base::goodbit) { os << "G"; }
-    if (ss.state & std::ios_base::badbit) { os << "B"; }
-    if (ss.state & std::ios_base::failbit) { os << "F"; }
-    if (ss.state & std::ios_base::eofbit) { os << "E"; }
-    return os;
+    return
+        os << ((ss.state & std::ios_base::goodbit) ? 'G' : 'g')
+           << ((ss.state & std::ios_base::badbit) ? 'B' : 'b')
+           << ((ss.state & std::ios_base::failbit) ? 'F' : 'f')
+           << ((ss.state & std::ios_base::eofbit) ? 'E' : 'e')
+        ;
 }
 
 // helper classes for stream I/O with increased buffer size
