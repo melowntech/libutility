@@ -28,10 +28,17 @@
  *      that is seen by compiler
  */
 #ifdef _OPENMP
-#define UTILITY_OMP(...) UTILITY_OMP_(omp __VA_ARGS__)
+#  define UTILITY_OMP(...) UTILITY_OMP_(omp __VA_ARGS__)
 #else
-#define UTILITY_OMP(...)
+#  define UTILITY_OMP(...)
 #endif
 #define UTILITY_OMP_(...) _Pragma(#__VA_ARGS__)
+
+/** Define extra functions if compiling with OpenMP
+ */
+#ifndef _OPENMP
+inline int omp_get_num_threads() { return 1; }
+inline int omp_get_thread_num() { return 0; }
+#endif
 
 #endif // utility_openmp_hpp_included_
