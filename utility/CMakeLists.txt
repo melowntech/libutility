@@ -59,6 +59,7 @@ set(utility_SOURCES
   base64.hpp
   md5.hpp
 
+  format.hpp
   raise.hpp
   expect.hpp
 

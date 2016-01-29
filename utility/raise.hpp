@@ -5,31 +5,19 @@
 
 #include <boost/format.hpp>
 
+#include "./format.hpp"
+
 namespace utility {
 
-namespace detail {
-
-inline void formatException(boost::format&) {}
-
-template <typename T, typename ...Args>
-inline void formatException(boost::format &format, T &&arg, Args &&...rest)
-{
-    format % arg;
-    return detail::formatException(format, std::forward<Args>(rest)...);
-}
-
-} // namespace detail
-
 template <typename ...Args>
-std::string formatError(const std::string &message, Args &&...args)
+inline std::string formatError(const std::string &message, Args &&...args)
 {
-    boost::format format(message);
-    detail::formatException(format, std::forward<Args>(args)...);
-    return str(format);
+    // forward to generic formatting function
+    return format(message, std::forward<Args>(args)...);
 }
 
 template <typename Exception, typename ...Args>
-void raise(const std::string &message, Args &&...args)
+inline void raise(const std::string &message, Args &&...args)
 {
     throw Exception(formatError(message, std::forward<Args>(args)...));
 }
