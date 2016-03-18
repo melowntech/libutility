@@ -19,7 +19,7 @@ void Db::Parameters::configuration(const std::string &section
 {
     config.add_options()
         ((section + "database").c_str()
-         , po::value(&database)
+         , po::value(&database)->required()
          , "Name of database to select upon connection.")
         ((section + "host").c_str()
          , po::value(&host)->default_value(host)
