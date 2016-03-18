@@ -91,6 +91,8 @@ set(utility_SOURCES
 
   filedes.hpp filedes.cpp
   tar.hpp tar.cpp
+
+  premain.hpp
   )
 
 if(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
