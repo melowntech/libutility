@@ -106,7 +106,16 @@ int system(const std::string &program, Args &&...args);
 template <typename ...Args>
 void exec(const std::string &program, Args &&...args);
 
-int spawn(const std::function<int ()> &func);
+namespace SpawnFlag {
+    typedef int value_type;
+    enum {
+        none = 0x00
+        , quickExit = 0x01
+    };
+} // namespace SpawnFlag
+
+int spawn(const std::function<int ()> &func
+          , SpawnFlag::value_type flags = SpawnFlag::none);
 
 /** Simple termination checker.
  */
@@ -139,9 +148,10 @@ inline void exec(const std::string &program, Args &&...args)
 /** Call function in new process.
  *  Convenient wrapper around fork(2)
  */
-inline int spawn(const std::function<int ()> &func)
+inline int spawn(const std::function<int ()> &func
+                 , SpawnFlag::value_type flags)
 {
-    return detail::spawnImpl(func);
+    return detail::spawnImpl(func, flags);
 }
 
 } // namespace utility

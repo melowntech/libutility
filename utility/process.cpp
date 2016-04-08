@@ -616,7 +616,7 @@ void execImpl(const std::string &program, SystemContext ctx)
     detail::execute(argv);
 }
 
-int spawnImpl(const std::function<int ()> &func)
+int spawnImpl(const std::function<int ()> &func, int flags)
 {
     auto pid(::fork());
     if (-1 == pid) {
@@ -626,7 +626,14 @@ int spawnImpl(const std::function<int ()> &func)
                    << ", " << e.what() << ">";
         throw e;
     } else if (0 == pid) {
-        std::exit(func());
+        // run function
+        auto res(func());
+
+        if (flags & SpawnFlag::quickExit) {
+            // quick exit
+            ::quick_exit(res);
+        }
+        std::exit(res);
     }
 
     return pid;

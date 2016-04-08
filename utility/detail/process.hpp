@@ -80,7 +80,7 @@ int systemImpl(const std::string &program, SystemContext ctx);
  */
 void execImpl(const std::string &program, SystemContext ctx);
 
-int spawnImpl(const std::function<int ()> &func);
+int spawnImpl(const std::function<int ()> &func, int flags);
 
 } } // namespace utility::detail
 
