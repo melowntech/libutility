@@ -35,6 +35,8 @@ void copyTree(const boost::filesystem::path &from
 
 std::time_t lastModified(const boost::filesystem::path &path);
 
+std::size_t fileSize(const boost::filesystem::path &path);
+
 } // namespace utility
 
 // impelemtation
