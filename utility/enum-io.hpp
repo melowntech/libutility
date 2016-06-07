@@ -34,6 +34,7 @@
 #include <iostream>
 #include <boost/preprocessor/seq.hpp>
 #include <boost/preprocessor/stringize.hpp>
+#include <boost/algorithm/string/predicate.hpp>
 
 #define UTILITY_DETAIL_fromEnum_element1(r,Type,value)              \
     case Type::BOOST_PP_SEQ_ELEM(0, value):                         \
@@ -63,48 +64,48 @@
     (r,type,value)
 
 #define UTILITY_DETAIL_toEnum_element1(r,Type,value)                \
-    if (s == BOOST_PP_STRINGIZE(BOOST_PP_SEQ_ELEM(0, value))) {     \
+    if (compare(s, BOOST_PP_STRINGIZE(BOOST_PP_SEQ_ELEM(0, value)))) {  \
         out = Type::BOOST_PP_SEQ_ELEM(0, value);                    \
         return is;                                                  \
     }
 
 #define UTILITY_DETAIL_toEnum_element2(r,Type,value)                \
-    if (s == BOOST_PP_SEQ_ELEM(1, value)) {                         \
+    if (compare(s, BOOST_PP_SEQ_ELEM(1, value))) {                  \
         out = Type::BOOST_PP_SEQ_ELEM(0, value);                    \
         return is;                                                  \
     }
 
 #define UTILITY_DETAIL_toEnum_element3(r,Type,value)                \
     UTILITY_DETAIL_toEnum_element2(r,Type,value)                    \
-    if (s == BOOST_PP_SEQ_ELEM(2, value)) {                         \
+    if (compare(s, BOOST_PP_SEQ_ELEM(2, value))) {                  \
         out = Type::BOOST_PP_SEQ_ELEM(0, value);                    \
         return is;                                                  \
     }
 
 #define UTILITY_DETAIL_toEnum_element4(r,Type,value)                \
     UTILITY_DETAIL_toEnum_element3(r,Type,value)                    \
-    if (s == BOOST_PP_SEQ_ELEM(3, value)) {                         \
+    if (compare(s, BOOST_PP_SEQ_ELEM(3, value))) {                  \
         out = Type::BOOST_PP_SEQ_ELEM(0, value);                    \
         return is;                                                  \
     }
 
 #define UTILITY_DETAIL_toEnum_element5(r,Type,value)                \
     UTILITY_DETAIL_toEnum_element4(r,Type,value)                    \
-    if (s == BOOST_PP_SEQ_ELEM(4, value)) {                         \
+    if (compare(s, BOOST_PP_SEQ_ELEM(4, value))) {                  \
         out = Type::BOOST_PP_SEQ_ELEM(0, value);                    \
         return is;                                                  \
     }
 
 #define UTILITY_DETAIL_toEnum_element6(r,Type,value)                \
     UTILITY_DETAIL_toEnum_element5(r,Type,value)                    \
-    if (s == BOOST_PP_SEQ_ELEM(5, value)) {                         \
+    if (compare(s, BOOST_PP_SEQ_ELEM(5, value))) {                  \
         out = Type::BOOST_PP_SEQ_ELEM(0, value);                    \
         return is;                                                  \
     }
 
 #define UTILITY_DETAIL_toEnum_element7(r,Type,value)                \
     UTILITY_DETAIL_toEnum_element6(r,Type,value)                    \
-    if (s == BOOST_PP_SEQ_ELEM(6, value)) {                         \
+    if (compare(s, BOOST_PP_SEQ_ELEM(6, value))) {                  \
         out = Type::BOOST_PP_SEQ_ELEM(0, value);                    \
         return is;                                                  \
     }
@@ -153,9 +154,17 @@
 #define UTILITY_DETAIL_comma_untyped_value(r,Type,value)                \
     , UTILITY_DETAIL_untyped_value(Type,value)
 
-/** Generate I/O code for any enum (stream operator<< and operator>>)
- */
-#define UTILITY_GENERATE_ENUM_IO(Type, seq)                             \
+#define UTILITY_DETAIL_toEnum_compare0                                  \
+    auto compare([](const std::string &l, const std::string &r) {       \
+            return l == r;                                              \
+        });
+
+#define UTILITY_DETAIL_toEnum_compare1                                  \
+    auto compare([](const std::string &l, const std::string &r) {       \
+            return boost::algorithm::iequals(l, r);                    \
+        });
+
+#define UTILITY_GENERATE_ENUM_IO_IMPL(Type, seq, ci)                    \
     template <typename E, typename T>                                   \
     inline std::basic_ostream<E, T>&                                    \
     operator<<(std::basic_ostream<E, T> &os, const Type &value)         \
@@ -173,6 +182,7 @@
     {                                                                   \
         std::string s;                                                  \
         is >> s;                                                        \
+        BOOST_PP_CAT(UTILITY_DETAIL_toEnum_compare,ci)                  \
         BOOST_PP_SEQ_FOR_EACH(UTILITY_DETAIL_toEnum_element, Type, seq) \
         out = {};                                                       \
         is.setstate(std::ios::failbit);                                 \
@@ -194,6 +204,16 @@
             BOOST_PP_SEQ_FOR_EACH(UTILITY_DETAIL_comma_name, Type       \
                                   , BOOST_PP_SEQ_TAIL(seq));            \
     }
+
+/** Generate I/O code for any enum (stream operator<< and operator>>).
+ */
+#define UTILITY_GENERATE_ENUM_IO(Type, seq)                             \
+    UTILITY_GENERATE_ENUM_IO_IMPL(Type, seq, 0)
+
+/** Case-insensitive equivalent of UTILITY_GENERATE_ENUM_IO.
+ */
+#define UTILITY_GENERATE_ENUM_IO_CI(Type, seq)                          \
+    UTILITY_GENERATE_ENUM_IO_IMPL(Type, seq, 1)
 
 /** Generate enum class and I/O stuff at one go
  */
