@@ -18,6 +18,7 @@ if(LIBPROC_FOUND)
   message(STATUS "utility: compiling in libproc support")
 
   list(APPEND utility_DEPENDS LIBPROC)
+  list(APPEND utility_DEFINITIONS UTILITY_HAS_PROC=1)
 
   set(utility_LIBPROC_SOURCES procstat.hpp procstat.cpp)
 else()
@@ -34,7 +35,8 @@ else()
   message(STATUS "utility: compiling without magic support")
 endif()
 
-define_module(LIBRARY utility DEPENDS ${utility_DEPENDS})
+define_module(LIBRARY utility DEPENDS ${utility_DEPENDS}
+  DEFINITIONS ${utility_DEFINITIONS})
 
 set(utility_SOURCES
   duration.hpp

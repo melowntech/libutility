@@ -1,3 +1,4 @@
+#include <unistd.h>
 #include <sys/types.h>
 
 #include <cerrno>
@@ -10,6 +11,11 @@
 #include "dbglog/dbglog.hpp"
 
 namespace utility {
+
+namespace {
+std::size_t pageSize(::sysconf(_SC_PAGESIZE));
+std::size_t pageSizeKb(pageSize >> 10);
+}
 
 ProcStat::list getProcStat(const PidList &pids)
 {
@@ -51,6 +57,8 @@ ProcStat::list getProcStat(const PidList &pids)
         ProcStat ps;
         ps.pid = proc->tid;
         ps.rss = proc->vm_rss;
+        ps.swap = proc->vm_swap;
+        ps.virt = proc->vsize / pageSizeKb;
         stat.push_back(ps);
     }
     return stat;

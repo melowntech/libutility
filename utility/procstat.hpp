@@ -9,7 +9,22 @@ namespace utility {
 struct ProcStat
 {
     long pid;
+
+    /** Resident memory in KiB.
+     */
     std::size_t rss;
+
+    /** Virtual memory in KiB.
+     */
+    std::size_t virt;
+
+    /** Swapped memory in KiB.
+     */
+    std::size_t swap;
+
+    /** Real memory occupied by this process (resident + swapped).
+     */
+    std::size_t occupies() const { return rss + swap; }
 
     typedef std::vector<ProcStat> list;
 };
