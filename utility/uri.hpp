@@ -29,8 +29,22 @@ struct Uri {
     std::string search;
     int port;
 
+    Uri() : port(-1) {}
+    Uri(std::string in);
     std::string join() const;
 };
+
+/** Parses URI, effectively calls Uri(in)
+ */
+Uri parseUri(std::string in);
+
+/** Returns new URI by joinin base with uri.
+*/
+Uri join(const Uri &base, const Uri &uri);
+
+std::string join(const Uri &uri);
+
+std::string urlEncode(const std::string &in, bool plus = true);
 
 namespace detail {
 
@@ -105,31 +119,32 @@ inline std::string extractUserpass(std::string &in) {
 
 } // namespace detail
 
-std::string urlEncode(const std::string &in, bool plus = true);
-
 //--- Public Interface --------------------------------------------------------
-inline Uri parseUri(std::string in) {
-    Uri ret;
-    ret.port = -1;
-
-    ret.schema
+inline Uri::Uri(std::string in)
+    : port(-1)
+{
+    schema
         = boost::algorithm::to_lower_copy(detail::extractSchema(in));
-    ret.search = detail::extractSearch(in);
-    ret.path = detail::extractPath(in);
+    search = detail::extractSearch(in);
+    path = detail::extractPath(in);
     std::string userpass = detail::extractUserpass(in);
-    ret.password = detail::extractPassword(userpass);
-    ret.user = userpass;
-    ret.port = detail::extractPort(in);
-    ret.host = boost::algorithm::to_lower_copy(in);
+    password = detail::extractPassword(userpass);
+    user = userpass;
+    port = detail::extractPort(in);
+    host = boost::algorithm::to_lower_copy(in);
+}
 
-    return ret;
+inline Uri parseUri(const std::string &in) {
+    return Uri(in);
 }
 
 inline std::string Uri::join() const
 {
     std::ostringstream os;
 
-    os << schema << "://";
+    if (!host.empty()) {
+        os << schema << "://";
+    }
     if (!user.empty()) {
         os << user;
         if (!password.empty()) {
@@ -154,6 +169,8 @@ inline std::string Uri::join() const
 
     return os.str();
 }
+
+inline std::string join(const Uri &uri) { return uri.join(); }
 
 } // namespace utility
 
