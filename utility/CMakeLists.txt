@@ -95,6 +95,8 @@ set(utility_SOURCES
   tar.hpp tar.cpp
 
   premain.hpp
+
+  thread.hpp thread.cpp
   )
 
 if(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
