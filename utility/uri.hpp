@@ -126,12 +126,17 @@ inline Uri::Uri(std::string in)
     schema
         = boost::algorithm::to_lower_copy(detail::extractSchema(in));
     search = detail::extractSearch(in);
-    path = detail::extractPath(in);
-    std::string userpass = detail::extractUserpass(in);
-    password = detail::extractPassword(userpass);
-    user = userpass;
-    port = detail::extractPort(in);
-    host = boost::algorithm::to_lower_copy(in);
+    if (schema.empty()) {
+        // no schema -> everything is a path
+        path = in;
+    } else {
+        path = detail::extractPath(in);
+        std::string userpass = detail::extractUserpass(in);
+        password = detail::extractPassword(userpass);
+        user = userpass;
+        port = detail::extractPort(in);
+        host = boost::algorithm::to_lower_copy(in);
+    }
 }
 
 inline Uri parseUri(const std::string &in) {

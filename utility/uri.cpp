@@ -1,6 +1,8 @@
 #include <cctype>
 #include <boost/filesystem/path.hpp>
 
+#include "dbglog/dbglog.hpp"
+
 #include "./uri.hpp"
 
 namespace fs = boost::filesystem;
@@ -44,7 +46,9 @@ Uri join(const Uri &base, const Uri &uri)
     }
 
     // no host, either full path or relative path
-    if (!uri.path.empty() && (uri.path[0] != '/')) {
+
+    // check for absolute path
+    if (!uri.path.empty() && (uri.path[0] == '/')) {
         // absolute path, replace
         auto tmp(base);
         tmp.path = uri.path;
@@ -81,7 +85,7 @@ Uri join(const Uri &base, const Uri &uri)
     append(uri.path);
 
     // join path
-    fs::path outPath("/");
+    fs::path outPath;
     for (const auto &element : out) {
         outPath /= element;
     }
