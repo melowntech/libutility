@@ -36,7 +36,7 @@ struct Uri {
 
 /** Parses URI, effectively calls Uri(in)
  */
-Uri parseUri(std::string in);
+Uri parseUri(const std::string &in);
 
 /** Returns new URI by joinin base with uri.
 */
