@@ -34,6 +34,7 @@ public:
         Query(const std::string &location, bool followRedirects = true)
             : empty_(false), location_(location), exc_()
             , followRedirects_(followRedirects)
+            , reuse_(true)
         {}
 
         void assign(const std::string &location, bool followRedirects = true) {
@@ -41,7 +42,11 @@ public:
             location_ = location;
             exc_ = {};
             followRedirects_ = followRedirects;
+            reuse_ = true;
         }
+
+        bool reuse() const { return reuse_; }
+        void reuse(bool reuse) { reuse_ = reuse; }
 
         void set(std::time_t lastModified, std::time_t expires
                  , const void *data, std::size_t size
@@ -84,6 +89,7 @@ public:
         Body body_;
         std::exception_ptr exc_;
         bool followRedirects_;
+        bool reuse_;
     };
 
     class MultiQuery : public utility::Supplement {
