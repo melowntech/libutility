@@ -3,9 +3,10 @@
  * @author Vaclav Blazek <vaclav.blazek@citationtech.net>
  */
 
-#ifndef utility_value_hpp_included_
-#define utility_value_hpp_included_
+#ifndef utility_expected_hpp_included_
+#define utility_expected_hpp_included_
 
+#include <utility>
 #include <exception>
 #include <stdexcept>
 
@@ -17,7 +18,7 @@ namespace utility {
  ** and signal error in one variable.
  */
 template <typename T>
-class Value {
+class Expected {
 public:
     typedef T value_type;
     typedef T& reference;
@@ -25,10 +26,23 @@ public:
     typedef T* pointer;
     typedef const T* const_pointer;
 
-    Value() : value_() {}
-    Value(const value_type &value) : value_(value) {}
-    Value(const std::exception &exc): exc_(std::make_exception_ptr(exc)) {}
-    Value(const std::exception_ptr &exc) : exc_(exc) {}
+    Expected() : value_() {}
+    Expected(const value_type &value) : value_(value) {}
+    Expected(const std::exception &exc): exc_(std::make_exception_ptr(exc)) {}
+    Expected(const std::exception_ptr &exc) : exc_(exc) {}
+
+    /** Build value in place.
+     */
+    template <typename ...Args>
+    reference emplace(Args &&...args);
+
+    /** Set value, unset exception.
+     */
+    reference set(const_reference &value);
+
+    /** Set exception, unset value.
+     */
+    reference set(const std::exception_ptr &exc);
 
     /** Returns value or thows exception if set.
      */
@@ -73,8 +87,33 @@ private:
     boost::optional<value_type> value_;
 };
 
+template <typename T>
+template <typename ...Args>
+typename Expected<T>::reference Expected<T>::emplace(Args &&...args)
+{
+    value_ = boost::in_place(std::forward<Args>(args)...);
+    exc_ = {};
+    return *this;
+}
+
+template <typename T>
+typename Expected<T>::reference Expected<T>::set(const std::exception_ptr &exc)
+{
+    value_.reset();
+    exc_ = exc;
+    return *this;
+}
+
+template <typename T>
+typename Expected<T>::reference Expected<T>::set(const_reference value)
+{
+    value_ = value;
+    exc_ = {};
+    return *this;
+}
+
 template <typename T, typename ErrorSink>
-std::shared_ptr<T> get(const Value<std::shared_ptr<T>> &value, ErrorSink &sink)
+std::shared_ptr<T> get(const Expected<std::shared_ptr<T>> &value, ErrorSink &sink)
 {
     std::shared_ptr<T> out;
     value.get(out, sink);
@@ -82,7 +121,7 @@ std::shared_ptr<T> get(const Value<std::shared_ptr<T>> &value, ErrorSink &sink)
 }
 
 template <typename T, typename ErrorSink>
-std::shared_ptr<T> get(Value<std::shared_ptr<T>> &value, ErrorSink &sink)
+std::shared_ptr<T> get(Expected<std::shared_ptr<T>> &value, ErrorSink &sink)
 {
     std::shared_ptr<T> out;
     value.get(out, sink);
@@ -92,22 +131,22 @@ std::shared_ptr<T> get(Value<std::shared_ptr<T>> &value, ErrorSink &sink)
 // inlines
 
 template <typename T>
-typename Value<T>::const_reference Value<T>::get() const {
+typename Expected<T>::const_reference Expected<T>::get() const {
     if (exc_) { std::rethrow_exception(exc_); }
     if (value_) { return *value_; }
-    throw std::logic_error("Value unset");
+    throw std::logic_error("Expected unset");
 }
 
 template <typename T>
-typename Value<T>::reference Value<T>::get() {
+typename Expected<T>::reference Expected<T>::get() {
     if (exc_) { std::rethrow_exception(exc_); }
     if (value_) { return *value_; }
-    throw std::logic_error("Value unset");
+    throw std::logic_error("Expected value unset");
 }
 
 template <typename T>
 template <typename ErrorSink>
-typename Value<T>::const_pointer Value<T>::get(ErrorSink &sink) const
+typename Expected<T>::const_pointer Expected<T>::get(ErrorSink &sink) const
 {
     if (exc_) {
         sink(exc_);
@@ -115,7 +154,8 @@ typename Value<T>::const_pointer Value<T>::get(ErrorSink &sink) const
     }
 
     if (!value_) {
-        sink(std::make_exception_ptr(std::logic_error("Value unset")));
+        sink(std::make_exception_ptr
+             (std::logic_error("Expected value unset")));
         return nullptr;
     }
 
@@ -124,7 +164,7 @@ typename Value<T>::const_pointer Value<T>::get(ErrorSink &sink) const
 
 template <typename T>
 template <typename ErrorSink>
-typename Value<T>::pointer Value<T>::get(ErrorSink &sink)
+typename Expected<T>::pointer Expected<T>::get(ErrorSink &sink)
 {
     if (exc_) {
         sink(exc_);
@@ -132,7 +172,8 @@ typename Value<T>::pointer Value<T>::get(ErrorSink &sink)
     }
 
     if (!value_) {
-        sink(std::make_exception_ptr(std::logic_error("Value unset")));
+        sink(std::make_exception_ptr
+             (std::logic_error("Expected value unset")));
         return nullptr;
     }
 
@@ -141,7 +182,7 @@ typename Value<T>::pointer Value<T>::get(ErrorSink &sink)
 
 template <typename T>
 template <typename ErrorSink>
-bool Value<T>::get(reference &out, ErrorSink &sink) const
+bool Expected<T>::get(reference &out, ErrorSink &sink) const
 {
     if (exc_) {
         sink(exc_);
@@ -149,7 +190,8 @@ bool Value<T>::get(reference &out, ErrorSink &sink) const
     }
 
     if (!value_) {
-        sink(std::make_exception_ptr(std::logic_error("Value unset")));
+        sink(std::make_exception_ptr
+             (std::logic_error("Expected value unset")));
         return false;
     }
 
@@ -159,7 +201,7 @@ bool Value<T>::get(reference &out, ErrorSink &sink) const
 
 template <typename T>
 template <typename ErrorSink>
-bool Value<T>::get(reference &out, ErrorSink &sink)
+bool Expected<T>::get(reference &out, ErrorSink &sink)
 {
     if (exc_) {
         sink(exc_);
@@ -167,7 +209,8 @@ bool Value<T>::get(reference &out, ErrorSink &sink)
     }
 
     if (!value_) {
-        sink(std::make_exception_ptr(std::logic_error("Value unset")));
+        sink(std::make_exception_ptr
+             (std::logic_error("Expected value unset")));
         return false;
     }
 
@@ -177,7 +220,7 @@ bool Value<T>::get(reference &out, ErrorSink &sink)
 
 template <typename T>
 template <typename ErrorSink>
-bool Value<T>::forwardException(ErrorSink &sink) const
+bool Expected<T>::forwardException(ErrorSink &sink) const
 {
     if (exc_) {
         sink(exc_);
@@ -185,7 +228,8 @@ bool Value<T>::forwardException(ErrorSink &sink) const
     }
 
     if (!value_) {
-        sink(std::make_exception_ptr(std::logic_error("Value unset")));
+        sink(std::make_exception_ptr
+             (std::logic_error("Expected value unset")));
         return true;
     }
 
