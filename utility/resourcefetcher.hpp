@@ -17,7 +17,7 @@ class ResourceFetcher
 public:
     /** Query with a reply.
      */
-    class Query : public utility::Supplement {
+    class Query : public utility::Supplement<Query> {
     public:
         struct Body {
             std::time_t lastModified;
@@ -36,6 +36,9 @@ public:
             , followRedirects_(followRedirects)
             , reuse_(true)
         {}
+
+        Query(Query&&) = default;
+        Query(const Query&) = default;
 
         void assign(const std::string &location, bool followRedirects = true) {
             empty_ = false;
@@ -100,16 +103,21 @@ public:
         bool reuse_;
     };
 
-    class MultiQuery : public utility::Supplement {
+    class MultiQuery : public utility::Supplement<MultiQuery> {
     public:
         MultiQuery() {}
-        MultiQuery(std::size_t expectedSize) { queries_.reserve(expectedSize); }
-        MultiQuery(const Query &query) : queries_{query} {}
-        MultiQuery(const Query::list &query) : queries_(query) {}
+        MultiQuery(std::size_t expected) { queries_.reserve(expected); }
+        MultiQuery(Query query) { queries_.push_back(std::move(query)); }
+        MultiQuery(Query::list query) : queries_(std::move(query)) {}
+        MultiQuery(MultiQuery&&) = default;
 
-        Query& add(const Query &query) {
-            queries_.push_back(query);
+        Query& add(Query query) {
+            queries_.push_back(std::move(query));
             return queries_.back();
+        }
+
+        void addIfValid(Query query) {
+            if (query) { queries_.push_back(std::move(query)); }
         }
 
         template <typename ...Args>
@@ -135,40 +143,41 @@ public:
         const Query& front() const { return queries_.front(); }
         Query& front() { return queries_.front(); }
 
+        operator bool() const { return !empty(); }
+
     private:
         Query::list queries_;
     };
 
-    typedef std::function<void(const MultiQuery &query)> Done;
+    typedef std::function<void(MultiQuery &&query)> Done;
 
     virtual ~ResourceFetcher() {}
 
     /** Perform single-query and fill in respons.
      */
-    void perform(const Query &query, const Done &done) const;
+    void perform(Query query, const Done &done) const;
 
     /** Perform multi-query and fill in responses.
      */
-    void perform(const MultiQuery &query, const Done &done) const;
+    void perform(MultiQuery query, const Done &done) const;
 
 private:
-    virtual void perform_impl(const MultiQuery &query, const Done &done)
+    virtual void perform_impl(MultiQuery query, const Done &done)
         const = 0;
 };
 
 // inlines
 
-inline void ResourceFetcher::perform(const Query &query, const Done &done)
+inline void ResourceFetcher::perform(Query query, const Done &done)
     const
 {
-    perform_impl({query}, done);
+    perform_impl({std::move(query)}, done);
 }
 
-inline void ResourceFetcher::perform(const MultiQuery &query
-                                     , const Done &done)
+inline void ResourceFetcher::perform(MultiQuery query, const Done &done)
     const
 {
-    perform_impl(query, done);
+    perform_impl(std::move(query), done);
 }
 
 } // namespace utility
