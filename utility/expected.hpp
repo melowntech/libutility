@@ -14,6 +14,8 @@
 
 namespace utility {
 
+struct ExpectedInPlace {};
+
 /** Wrapper arround value or exception. Can be used in callbacks to pass value
  ** and signal error in one variable.
  */
@@ -30,11 +32,12 @@ public:
     Expected(const value_type &value) : value_(value) {}
     Expected(const std::exception &exc): exc_(std::make_exception_ptr(exc)) {}
     Expected(const std::exception_ptr &exc) : exc_(exc) {}
+    template <typename ...Args> Expected(ExpectedInPlace, Args &&...args)
+        : value_(boost::in_place(std::forward<Args>(args)...)) {}
 
     /** Build value in place.
      */
-    template <typename ...Args>
-    reference emplace(Args &&...args);
+    template <typename ...Args> reference emplace(Args &&...args);
 
     /** Set value, unset exception.
      */

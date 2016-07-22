@@ -6,7 +6,13 @@
 #ifndef utility_supplement_hpp_included_
 #define utility_supplement_hpp_included_
 
+#include <stdexcept>
+
 #include <boost/any.hpp>
+
+#include "dbglog/dbglog.hpp"
+
+#include "./typeinfo.hpp"
 
 namespace utility {
 
@@ -28,13 +34,26 @@ public:
 
     bool hasSupplement() const { return !supplement_.empty(); }
 
-    template <typename T> const T& supplement() const {
-        return boost::any_cast<const T&>(supplement_);
-    }
+    template <typename T> const T& supplement() const;
 
 private:
     boost::any supplement_;
 };
+
+// inlines
+
+template <typename T> const T& Supplement::supplement() const
+{
+    if (const auto *value = boost::any_cast<T>(&supplement_)) {
+        return *value;
+    }
+
+    LOGTHROW(err1, std::logic_error)
+        << "Cannot get value of type <" << typeName<T>()
+        << "> from suplement holding instance of type <"
+        << typeName(supplement_.type()) << ">.";
+    throw;
+}
 
 } // namespace utility
 

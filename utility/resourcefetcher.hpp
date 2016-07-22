@@ -77,6 +77,14 @@ public:
             return body_;
         }
 
+        /** Nonthrowing version.
+         */
+        template <typename Sink>
+        const Body* get() const {
+            if (exc_) { Sink(exc_); return nullptr; }
+            return &body_;
+        }
+
         const std::string& location() const { return location_; }
 
         operator bool() const { return !empty_; }

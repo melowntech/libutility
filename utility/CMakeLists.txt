@@ -99,6 +99,8 @@ set(utility_SOURCES
   thread.hpp thread.cpp
 
   resourcefetcher.hpp
+
+  typeinfo.hpp typeinfo.cpp
   )
 
 if(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
