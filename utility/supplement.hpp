@@ -24,17 +24,58 @@ namespace utility {
  * Supplements are useful when you are building generic interface and you want
  * to allow to pass anything with passed data without forcing user to inherit
  * from your datatype.
+ *
+ * Use CRTP to allow cast from supplement to derived class:
+ *
+ * class Class : public Supplement<Class> { ... };
+ *
  */
+template <typename Owner>
 class Supplement {
 public:
-    template <typename T> Supplement& supplement(const T &supplement) {
-        supplement_ = supplement;
-        return *this;
+    Supplement() = default;
+    Supplement(Supplement &&other) {
+        boost::swap(supplement_, other.supplement_);
+    }
+    Supplement(const Supplement&) = default;
+
+    Supplement& operator=(Supplement &&other) {
+        boost::swap(supplement_, other.supplement_); return *this;
+    }
+    Supplement& operator=(const Supplement&) = default;
+
+    template <typename T>
+    Supplement& supplement(const T &supplement) {
+        supplement_ = supplement; return *this;
+    }
+
+    template <typename T>
+    Supplement& supplement(T &supplement) {
+        supplement_ = std::move(supplement); return *this;
+    }
+
+    /** Copies supplement from another supplement.
+     */
+    template <typename T>
+    Supplement& supplementFrom(const Supplement<T> &other) {
+        supplement_ = other.supplement_; return *this;
+    }
+
+    /** Steals supplement from other supplement.
+     */
+    template <typename T>
+    Supplement& supplementFrom(Supplement<T> &&other) {
+        supplement_ = std::move(other.supplement_); return *this;
     }
 
     bool hasSupplement() const { return !supplement_.empty(); }
 
     template <typename T> const T& supplement() const;
+
+    Owner& owner() { return static_cast<Owner&>(*this); }
+    const Owner& owner() const { return static_cast<const Owner&>(*this); }
+
+    // TODO: add rvalue-this version when moved to gcc-4.8
 
 private:
     boost::any supplement_;
@@ -42,7 +83,9 @@ private:
 
 // inlines
 
-template <typename T> const T& Supplement::supplement() const
+template <typename Owner>
+template <typename T>
+const T& Supplement<Owner>::supplement() const
 {
     if (const auto *value = boost::any_cast<T>(&supplement_)) {
         return *value;
