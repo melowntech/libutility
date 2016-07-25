@@ -4,9 +4,11 @@
 #include <ctime>
 #include <string>
 #include <exception>
+#include <system_error>
 
 #include "./uri.hpp"
 #include "./supplement.hpp"
+#include "./errorcode.hpp"
 
 namespace utility {
 
@@ -32,7 +34,7 @@ public:
         Query() : empty_(true), followRedirects_(true) {}
 
         Query(const std::string &location, bool followRedirects = true)
-            : empty_(false), location_(location), exc_()
+            : empty_(false), location_(location), exc_(), ec_()
             , followRedirects_(followRedirects)
             , reuse_(true)
         {}
@@ -44,6 +46,7 @@ public:
             empty_ = false;
             location_ = location;
             exc_ = {};
+            ec_ = {};
             followRedirects_ = followRedirects;
             reuse_ = true;
         }
@@ -61,6 +64,7 @@ public:
             body_.data.assign(static_cast<const char*>(data), size);
             body_.redirect = false;
             exc_ = {};
+            ec_ = {};
         }
 
         void redirect(const std::string &url) {
@@ -69,22 +73,33 @@ public:
             body_.contentType.clear();
             body_.redirect = true;
             exc_ = {};
+            ec_ = {};
         }
 
         void error(std::exception_ptr exc) {
-            exc_ = exc;
+            exc_ = std::move(exc);
+        }
+
+        void error(std::error_code ec) {
+            ec_ = std::move(ec);
         }
 
         const Body& get() const {
             if (exc_) { std::rethrow_exception(exc_); }
+            if (ec_) { throwErrorCode(ec_); }
             return body_;
+        }
+
+        bool check(const std::error_code &ec) const {
+            return (ec_ == ec);
         }
 
         /** Nonthrowing version.
          */
         template <typename Sink>
-        const Body* get() const {
-            if (exc_) { Sink(exc_); return nullptr; }
+        const Body* get(Sink &sink) const {
+            if (exc_) { sink(exc_); return nullptr; }
+            if (ec_) { sink(ec_); }
             return &body_;
         }
 
@@ -99,6 +114,7 @@ public:
         std::string location_;
         Body body_;
         std::exception_ptr exc_;
+        std::error_code ec_;
         bool followRedirects_;
         bool reuse_;
     };

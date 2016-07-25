@@ -99,6 +99,7 @@ set(utility_SOURCES
   thread.hpp thread.cpp
 
   resourcefetcher.hpp
+  httpcode.hpp httpcode.cpp
 
   typeinfo.hpp typeinfo.cpp
   )
