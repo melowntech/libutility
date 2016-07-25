@@ -10,14 +10,18 @@
 #include <exception>
 #include <stdexcept>
 
+#include <system_error>
+
 #include <boost/optional.hpp>
+
+#include "./errorcode.hpp"
 
 namespace utility {
 
 struct ExpectedInPlace {};
 
-/** Wrapper arround value or exception. Can be used in callbacks to pass value
- ** and signal error in one variable.
+/** Wrapper arround expected value or exception or error_code. Can be used in
+ ** callbacks to pass value and signal error in one variable.
  */
 template <typename T>
 class Expected {
@@ -32,6 +36,8 @@ public:
     Expected(const value_type &value) : value_(value) {}
     Expected(const std::exception &exc): exc_(std::make_exception_ptr(exc)) {}
     Expected(const std::exception_ptr &exc) : exc_(exc) {}
+    Expected(const std::error_code &ec) : ec_(ec) {}
+
     template <typename ...Args> Expected(ExpectedInPlace, Args &&...args)
         : value_(boost::in_place(std::forward<Args>(args)...)) {}
 
@@ -39,13 +45,17 @@ public:
      */
     template <typename ...Args> reference emplace(Args &&...args);
 
-    /** Set value, unset exception.
+    /** Set value, unset exception and error code.
      */
     reference set(const_reference &value);
 
-    /** Set exception, unset value.
+    /** Set exception, unset value and errorcode.
      */
     reference set(const std::exception_ptr &exc);
+
+    /** Set error code, unset value and exception.
+     */
+    reference set(const std::error_code &ec);
 
     /** Returns value or thows exception if set.
      */
@@ -56,18 +66,19 @@ public:
     reference get();
 
     /** If exception is set then sink(exc) is called and true is returned.
+     * If error_code is set then sink(ec) is called and true is returned.
      *  Otherwise returns false.
      */
     template <typename ErrorSink>
-    bool forwardException(ErrorSink &sink) const;
+    bool forwardError(ErrorSink &sink) const;
 
-    /** Combines forwardException(sink) and get().
+    /** Combines forwardError(sink) and get().
      *  Returns nullptr if exception is set.
      */
     template <typename ErrorSink>
     const_pointer get(ErrorSink &sink) const;
 
-    /** Combines forwardException(sink) and get().
+    /** Combines forwardError(sink) and get().
      *  Returns nullptr if exception is set.
      */
     template <typename ErrorSink>
@@ -87,6 +98,7 @@ public:
 
 private:
     std::exception_ptr exc_;
+    std::error_code ec_;
     boost::optional<value_type> value_;
 };
 
@@ -96,6 +108,7 @@ typename Expected<T>::reference Expected<T>::emplace(Args &&...args)
 {
     value_ = boost::in_place(std::forward<Args>(args)...);
     exc_ = {};
+    ec_ = {};
     return *this;
 }
 
@@ -104,6 +117,16 @@ typename Expected<T>::reference Expected<T>::set(const std::exception_ptr &exc)
 {
     value_.reset();
     exc_ = exc;
+    ec_ = {};
+    return *this;
+}
+
+template <typename T>
+typename Expected<T>::reference Expected<T>::set(const std::error_code &ec)
+{
+    value_.reset();
+    exc_ = {};
+    ec_ = ec;
     return *this;
 }
 
@@ -112,11 +135,13 @@ typename Expected<T>::reference Expected<T>::set(const_reference value)
 {
     value_ = value;
     exc_ = {};
+    ec_ = {};
     return *this;
 }
 
 template <typename T, typename ErrorSink>
-std::shared_ptr<T> get(const Expected<std::shared_ptr<T>> &value, ErrorSink &sink)
+std::shared_ptr<T> get(const Expected<std::shared_ptr<T>> &value
+                       , ErrorSink &sink)
 {
     std::shared_ptr<T> out;
     value.get(out, sink);
@@ -136,6 +161,7 @@ std::shared_ptr<T> get(Expected<std::shared_ptr<T>> &value, ErrorSink &sink)
 template <typename T>
 typename Expected<T>::const_reference Expected<T>::get() const {
     if (exc_) { std::rethrow_exception(exc_); }
+    if (ec_) { throwErrorCode(ec_); }
     if (value_) { return *value_; }
     throw std::logic_error("Expected unset");
 }
@@ -143,6 +169,7 @@ typename Expected<T>::const_reference Expected<T>::get() const {
 template <typename T>
 typename Expected<T>::reference Expected<T>::get() {
     if (exc_) { std::rethrow_exception(exc_); }
+    if (ec_) { throwErrorCode(ec_); }
     if (value_) { return *value_; }
     throw std::logic_error("Expected value unset");
 }
@@ -151,10 +178,8 @@ template <typename T>
 template <typename ErrorSink>
 typename Expected<T>::const_pointer Expected<T>::get(ErrorSink &sink) const
 {
-    if (exc_) {
-        sink(exc_);
-        return nullptr;
-    }
+    if (exc_) { sink(exc_); return nullptr; }
+    if (ec_) { sink(ec_); return nullptr; }
 
     if (!value_) {
         sink(std::make_exception_ptr
@@ -169,10 +194,8 @@ template <typename T>
 template <typename ErrorSink>
 typename Expected<T>::pointer Expected<T>::get(ErrorSink &sink)
 {
-    if (exc_) {
-        sink(exc_);
-        return nullptr;
-    }
+    if (exc_) { sink(exc_); return nullptr; }
+    if (ec_) { sink(ec_); return nullptr; }
 
     if (!value_) {
         sink(std::make_exception_ptr
@@ -187,10 +210,8 @@ template <typename T>
 template <typename ErrorSink>
 bool Expected<T>::get(reference &out, ErrorSink &sink) const
 {
-    if (exc_) {
-        sink(exc_);
-        return false;
-    }
+    if (exc_) { sink(exc_); return false; }
+    if (ec_) { sink(ec_); return false; }
 
     if (!value_) {
         sink(std::make_exception_ptr
@@ -206,10 +227,8 @@ template <typename T>
 template <typename ErrorSink>
 bool Expected<T>::get(reference &out, ErrorSink &sink)
 {
-    if (exc_) {
-        sink(exc_);
-        return false;
-    }
+    if (exc_) { sink(exc_); return false; }
+    if (ec_) { sink(ec_); return false; }
 
     if (!value_) {
         sink(std::make_exception_ptr
@@ -223,12 +242,10 @@ bool Expected<T>::get(reference &out, ErrorSink &sink)
 
 template <typename T>
 template <typename ErrorSink>
-bool Expected<T>::forwardException(ErrorSink &sink) const
+bool Expected<T>::forwardError(ErrorSink &sink) const
 {
-    if (exc_) {
-        sink(exc_);
-        return true;
-    }
+    if (exc_) { sink(exc_); return true; }
+    if (ec_) { sink(ec_); return true; }
 
     if (!value_) {
         sink(std::make_exception_ptr
