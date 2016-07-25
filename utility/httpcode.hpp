@@ -25,6 +25,9 @@ enum class HttpCode {
 
     , InternalServerError = 500
     , ServiceUnavailable = 503
+
+    // synthetic codes, not to be sent to the client
+    , RequestAborted = 499
 };
 
 /** Statically-allocated error-category
