@@ -1,98 +1,119 @@
-#include <cctype>
-#include <boost/filesystem/path.hpp>
+#include <cstdlib>
+
+#include <uriparser/Uri.h>
 
 #include "dbglog/dbglog.hpp"
 
 #include "./uri.hpp"
 
-namespace fs = boost::filesystem;
-
 namespace utility {
 
 namespace {
-    const char *alphabet("0123456789abcdef");
+
+std::shared_ptr<void> allocateUri()
+{
+    std::unique_ptr< ::UriUriA> tmp(new ::UriUriA());
+    std::memset(tmp.get(), 0x0, sizeof(::UriUriA));
+
+    return std::shared_ptr<void>(tmp.release(), [](::UriUriA *uri)
+    {
+        if (uri) { ::uriFreeUriMembersA(uri); }
+        delete uri;
+    });
+}
+
+::UriUriA* getUri(std::shared_ptr<void> &uri)
+{
+    return static_cast< ::UriUriA*>(uri.get());
+}
+
+const ::UriUriA* getUri(const std::shared_ptr<void> &uri)
+{
+    return static_cast< ::UriUriA*>(uri.get());
+}
+
 } // namespace
 
-std::string urlEncode(const std::string &in, bool plus)
+Uri::Uri(const std::string &uriString)
+    : uri_(allocateUri()), port_()
 {
-    std::string out;
-    for (char c : in) {
-        if (std::isalnum(c)) {
-            out.push_back(c);
-        } else if (plus && (c == ' ')) {
-            out.push_back('+');
-        } else {
-            out.push_back('%');
-            out.push_back(alphabet[(c >> 4) & 0x0f]);
-            out.push_back(alphabet[c & 0x0f]);
-        }
+    ::UriParserStateA state;
+    state.uri = getUri(uri_);
+    if (::uriParseUriA(&state, uriString.c_str()) != URI_SUCCESS) {
+        LOGTHROW(err1, std::runtime_error)
+            << "Cannot parse uri <" << uriString << ">";
     }
+
+    host_.assign(state.uri->hostText.first, state.uri->hostText.afterLast);
+    if (state.uri->portText.first != state.uri->portText.afterLast) {
+        port_ = std::stoi(std::string(state.uri->portText.first
+                                      , state.uri->portText.afterLast));
+    }
+}
+
+bool Uri::absolutePath() const
+{
+    if (auto uri = getUri(uri_)) { return uri->absolutePath; }
+    return false;
+}
+
+boost::filesystem::path Uri::path() const
+{
+    auto uri(getUri(uri_));
+    if (!uri) { return {}; }
+
+    boost::filesystem::path out;
+    if (uri->absolutePath) { out /= "/"; }
+
+    for (auto segment(uri->pathHead); segment; segment = segment->next) {
+        out.append(segment->text.first, segment->text.afterLast);
+    }
+
     return out;
 }
 
-Uri join(const Uri &base, const Uri &uri)
+boost::filesystem::path Uri::path(std::size_t index, bool absolutize) const
 {
-    if (!uri.host.empty()) {
-        // we have some host
-        if (uri.schema.empty()) {
-            // no schema, copy from base
-            auto tmp(uri);
-            tmp.schema = base.schema;
-            return tmp;
-        }
+    auto uri(getUri(uri_));
+    if (!uri) { return {}; }
 
-        // as-is
-        return uri;
+    boost::filesystem::path out;
+
+    for (auto segment(uri->pathHead); segment; segment = segment->next) {
+        if (index > 0) { --index; continue; }
+        if (absolutize) { out /= "/"; absolutize = false; }
+        out.append(segment->text.first, segment->text.afterLast);
     }
 
-    // no host, either full path or relative path
+    return out;
+}
 
-    // check for absolute path
-    if (!uri.path.empty() && (uri.path[0] == '/')) {
-        // absolute path, replace
-        auto tmp(base);
-        tmp.path = uri.path;
-        return tmp;
-    }
+std::string Uri::pathComponent(std::size_t index) const
+{
+    auto uri(getUri(uri_));
+    if (!uri) { return {}; }
 
-    // some magic
-    std::vector<fs::path> out;
-    auto append([&](const fs::path path) -> bool
+    for (auto segment(uri->pathHead); segment;
+         segment = segment->next, --index)
     {
-        bool lastEmpty(false);
-        for (const auto &element : path) {
-            if (element.empty() || (element == ".")) {
-                // nothing to do
-                lastEmpty = true;
-            } else if (element == "..") {
-                out.pop_back();
-                lastEmpty = true;
-            } else {
-                out.push_back(element);
-                lastEmpty = false;
-            }
+        if (!index) {
+            return { segment->text.first, segment->text.afterLast };
         }
-        return lastEmpty;
-    });
-
-    // append base path, handle dangling filename
-    if (!append(base.path)) {
-        // remove last element since it is not a directory
-        out.pop_back();
     }
 
-    // append uri path
-    append(uri.path);
+    return {};
+}
 
-    // join path
-    fs::path outPath;
-    for (const auto &element : out) {
-        outPath /= element;
+std::size_t Uri::pathComponentCount() const
+{
+    auto uri(getUri(uri_));
+    if (!uri) { return {}; }
+
+    std::size_t count;
+    for (auto segment(uri->pathHead); segment; segment = segment->next) {
+        ++count;
     }
-
-    auto tmp(base);
-    tmp.path = outPath.string();
-    return tmp;
+    return count;
 }
 
 } // utility

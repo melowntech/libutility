@@ -1,5 +1,9 @@
-set(utility_DEPENDS dbglog Boost_THREAD Boost_PROGRAM_OPTIONS
+set(utility_DEPENDS
+  dbglog
+  Boost_THREAD
+  Boost_PROGRAM_OPTIONS
   Boost_FILESYSTEM
+
   # we need pthread_* stuff
   THREADS
 )
@@ -33,6 +37,17 @@ if(MAGIC_FOUND)
   set(utility_MAGIC_SOURCES magic.hpp magic.cpp)
 else()
   message(STATUS "utility: compiling without magic support")
+endif()
+
+if(URIPARSER_FOUND)
+  message(STATUS "utility: compiling in liburlparser support")
+
+  list(APPEND utility_DEPENDS URIPARSER)
+  list(APPEND utility_DEFINITIONS UTILITY_HAS_URI=1)
+
+  set(utility_MAGIC_SOURCES uri.hpp uri.cpp)
+else()
+  message(STATUS "utility: compiling without liburlparser support")
 endif()
 
 define_module(LIBRARY utility DEPENDS ${utility_DEPENDS}

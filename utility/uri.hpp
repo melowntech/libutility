@@ -1,181 +1,57 @@
 #ifndef utility_uri_hpp_included_
 #define utility_uri_hpp_included_
 
-/*
- * Uri parsing
- *
- * Based on code from https://github.com/CovenantEyes/uri-parser (BSD-licenced)
- *
- * Modified by Vaclav Blazek <vaclav.blazek@citationtech.net>
- *
- * TODO: decode/encode url-encoded characters in path etc
- */
+#include <memory>
 
-#include <string>
-#include <sstream>
-#include <cstdlib>
+#include <boost/filesystem/path.hpp>
 
-#include <boost/lexical_cast.hpp>
-#include <boost/algorithm/string/case_conv.hpp>
+#ifndef UTILITY_HAS_URI
+#error uri.hpp cannot be included without compiling with liburiparser
+#endif
 
 namespace utility {
 
-struct Uri {
-    std::string schema;
-    std::string user;
-    std::string password;
-    std::string host;
-    std::string path;
-    std::string search;
-    int port;
+class Uri {
+public:
+    Uri() : port_() {}
+    Uri(const std::string &uriString);
 
-    Uri() : port(-1) {}
-    Uri(std::string in);
-    std::string join() const;
+    const std::string& scheme() const;
+    const std::string& host() const;
+    int port() const;
+
+    boost::filesystem::path path() const;
+
+    /** Returns slice of path starting at given index.
+     *
+     * \param index start index
+     * \param absolutize make path absolute (starting with /) if true
+     */
+    boost::filesystem::path path(std::size_t index
+                                 , bool absolutize = false) const;
+
+    /** Returns path component at given index.
+     *  Returns empty string if index is out of bounds.
+     */
+    std::string pathComponent(std::size_t index) const;
+
+    /** Returns count of path components.
+     */
+    std::size_t pathComponentCount() const;
+
+    bool absolutePath() const;
+
+private:
+    std::shared_ptr<void> uri_;
+
+    std::string scheme_;
+    std::string host_;
+    int port_;
 };
 
-/** Parses URI, effectively calls Uri(in)
- */
-Uri parseUri(const std::string &in);
-
-/** Returns new URI by joinin base with uri.
-*/
-Uri join(const Uri &base, const Uri &uri);
-
-std::string join(const Uri &uri);
-
-std::string urlEncode(const std::string &in, bool plus = true);
-
-namespace detail {
-
-//--- Helper Functions --------------------------------------------------------
-inline std::string tailSlice(std::string &subject, const std::string &delimiter
-                             , bool keep_delim = false)
-{
-    // Chops off the delimiter and everything that follows
-    // (destructively) returns everything after the delimiter
-    auto delimiterLocation = subject.find(delimiter);
-
-    if (delimiterLocation == std::string::npos) {
-        return {};
-    }
-
-    auto start(keep_delim ? delimiterLocation
-               : delimiterLocation + delimiter.length());
-    auto end(subject.length() - start);
-    auto output(subject.substr(start, end));
-    subject = subject.substr(0, delimiterLocation);
-
-    return output;
-}
-
-inline std::string headSlice(std::string &subject
-                             , const std::string &delimiter)
-{
-    // Chops off the delimiter and everything that precedes (destructively)
-    // returns everthing before the delimeter
-    auto delimiterLocation(subject.find(delimiter));
-
-    if (delimiterLocation == std::string::npos) {
-        return {};
-    }
-
-    auto output(subject.substr(0, delimiterLocation));
-    subject = subject.substr
-        (delimiterLocation + delimiter.length()
-         , subject.length() - (delimiterLocation + delimiter.length()));
-    return output;
-}
-
-
-//--- Extractors -----------------------
-inline int extractPort(std::string &hostport) {
-    try {
-        return boost::lexical_cast<int>(tailSlice(hostport, ":"));
-    } catch (const boost::bad_lexical_cast&) {
-        return -1;
-    }
-}
-
-inline std::string extractPath(std::string &in) {
-    return tailSlice(in, "/", true);
-}
-
-inline std::string extractSchema(std::string &in) {
-    return headSlice(in, "://");
-}
-
-inline std::string extractSearch(std::string &in) {
-    return tailSlice(in, "?");
-}
-
-inline std::string extractPassword(std::string &userpass) {
-    return tailSlice(userpass, ":");
-}
-
-inline std::string extractUserpass(std::string &in) {
-    return headSlice(in, "@");
-}
-
-} // namespace detail
-
-//--- Public Interface --------------------------------------------------------
-inline Uri::Uri(std::string in)
-    : port(-1)
-{
-    schema
-        = boost::algorithm::to_lower_copy(detail::extractSchema(in));
-    search = detail::extractSearch(in);
-    if (schema.empty()) {
-        // no schema -> everything is a path
-        path = in;
-    } else {
-        path = detail::extractPath(in);
-        std::string userpass = detail::extractUserpass(in);
-        password = detail::extractPassword(userpass);
-        user = userpass;
-        port = detail::extractPort(in);
-        host = boost::algorithm::to_lower_copy(in);
-    }
-}
-
-inline Uri parseUri(const std::string &in) {
-    return Uri(in);
-}
-
-inline std::string Uri::join() const
-{
-    std::ostringstream os;
-
-    if (!host.empty()) {
-        os << schema << "://";
-    }
-    if (!user.empty()) {
-        os << user;
-        if (!password.empty()) {
-            os << ':' << password;
-        }
-        os << '@';
-    }
-    if (!host.empty()) {
-        os << host;
-        if (port > 0) {
-            os << ':' << port;
-        }
-    }
-    if (!path.empty()) {
-        if (path[0] != '/') { os << '/'; };
-        os << path;
-    }
-
-    if (!search.empty()) {
-        os << '?' << search;
-    }
-
-    return os.str();
-}
-
-inline std::string join(const Uri &uri) { return uri.join(); }
+inline const std::string& Uri::scheme() const { return scheme_; }
+inline const std::string& Uri::host() const { return host_; }
+inline int Uri::port() const { return port_; }
 
 } // namespace utility
 
