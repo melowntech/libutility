@@ -14,7 +14,7 @@ namespace utility {
 class Uri {
 public:
     Uri() : port_() {}
-    Uri(const std::string &uriString);
+    Uri(std::string uriString);
 
     const std::string& scheme() const;
     const std::string& host() const;
@@ -41,13 +41,29 @@ public:
 
     bool absolutePath() const;
 
+    /** Reconstructs URI in string representation.
+     */
+    std::string str() const;
+
+    /** Resolves URI reference.
+     *  returns this + relative
+     */
+    Uri resolve(const Uri &relative) const;
+
+    struct Storage;
+
 private:
-    std::shared_ptr<void> uri_;
+    Uri(const std::shared_ptr<Storage> &uri);
+    std::shared_ptr<Storage> storage_;
 
     std::string scheme_;
     std::string host_;
     int port_;
 };
+
+/** Reconstructs URI in string representation.
+ */
+inline std::string str(const Uri &uri) { return uri.str(); }
 
 inline const std::string& Uri::scheme() const { return scheme_; }
 inline const std::string& Uri::host() const { return host_; }

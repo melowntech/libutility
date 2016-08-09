@@ -8,64 +8,93 @@
 
 namespace utility {
 
+struct Uri::Storage {
+    ::UriUriA uri;
+    std::string raw;
+
+    Storage(std::string &&raw) : raw(std::move(raw)) {
+        std::memset(&uri, 0x0, sizeof(::UriUriA));
+    }
+
+    Storage() {
+        std::memset(&uri, 0x0, sizeof(::UriUriA));
+    }
+};
+
 namespace {
 
-std::shared_ptr<void> allocateUri()
+std::shared_ptr<Uri::Storage> allocateUri()
 {
-    std::unique_ptr< ::UriUriA> tmp(new ::UriUriA());
-    std::memset(tmp.get(), 0x0, sizeof(::UriUriA));
+    std::unique_ptr<Uri::Storage> tmp(new Uri::Storage());
 
-    return std::shared_ptr<void>(tmp.release(), [](::UriUriA *uri)
+    return std::shared_ptr<Uri::Storage>
+        (tmp.release(), [](Uri::Storage *storage)
     {
-        if (uri) { ::uriFreeUriMembersA(uri); }
-        delete uri;
+        if (storage) { ::uriFreeUriMembersA(&storage->uri); }
+        delete storage;
     });
 }
 
-::UriUriA* getUri(std::shared_ptr<void> &uri)
+std::shared_ptr<Uri::Storage> allocateUri(std::string &&raw)
 {
-    return static_cast< ::UriUriA*>(uri.get());
-}
+    std::unique_ptr<Uri::Storage> tmp(new Uri::Storage(std::move(raw)));
 
-const ::UriUriA* getUri(const std::shared_ptr<void> &uri)
-{
-    return static_cast< ::UriUriA*>(uri.get());
+    return std::shared_ptr<Uri::Storage>
+        (tmp.release(), [](Uri::Storage *storage)
+    {
+        if (storage) { ::uriFreeUriMembersA(&storage->uri); }
+        delete storage;
+    });
 }
 
 } // namespace
 
-Uri::Uri(const std::string &uriString)
-    : uri_(allocateUri()), port_()
+Uri::Uri(std::string uriString)
+    : storage_(allocateUri(std::move(uriString))), port_()
 {
     ::UriParserStateA state;
-    state.uri = getUri(uri_);
-    if (::uriParseUriA(&state, uriString.c_str()) != URI_SUCCESS) {
+    state.uri = &storage_->uri;
+    if (::uriParseUriA(&state, storage_->raw.c_str()) != URI_SUCCESS) {
         LOGTHROW(err1, std::runtime_error)
-            << "Cannot parse uri <" << uriString << ">";
+            << "Cannot parse uri <" << storage_->raw << ">";
     }
 
     host_.assign(state.uri->hostText.first, state.uri->hostText.afterLast);
     if (state.uri->portText.first != state.uri->portText.afterLast) {
-        port_ = std::stoi(std::string(state.uri->portText.first
-                                      , state.uri->portText.afterLast));
+        port_ = std::atoi
+            (std::string(state.uri->portText.first
+                         , state.uri->portText.afterLast).c_str());
+    }
+}
+
+Uri::Uri(const std::shared_ptr<Storage> &storage)
+    : storage_(storage)
+{
+    if (!storage_) { return; }
+    auto &u(storage->uri);
+
+    host_.assign(u.hostText.first, u.hostText.afterLast);
+    if (u.portText.first != u.portText.afterLast) {
+        port_ = std::atoi
+            (std::string(u.portText.first
+                         , u.portText.afterLast).c_str());
     }
 }
 
 bool Uri::absolutePath() const
 {
-    if (auto uri = getUri(uri_)) { return uri->absolutePath; }
-    return false;
+    return (storage_ ? storage_->uri.absolutePath : false);
 }
 
 boost::filesystem::path Uri::path() const
 {
-    auto uri(getUri(uri_));
-    if (!uri) { return {}; }
+    if (!storage_) { return {}; }
+    const auto &uri(storage_->uri);
 
     boost::filesystem::path out;
-    if (uri->absolutePath) { out /= "/"; }
+    if (uri.absolutePath) { out /= "/"; }
 
-    for (auto segment(uri->pathHead); segment; segment = segment->next) {
+    for (auto segment(uri.pathHead); segment; segment = segment->next) {
         out.append(segment->text.first, segment->text.afterLast);
     }
 
@@ -74,12 +103,12 @@ boost::filesystem::path Uri::path() const
 
 boost::filesystem::path Uri::path(std::size_t index, bool absolutize) const
 {
-    auto uri(getUri(uri_));
-    if (!uri) { return {}; }
+    if (!storage_) { return {}; }
+    const auto &uri(storage_->uri);
 
     boost::filesystem::path out;
 
-    for (auto segment(uri->pathHead); segment; segment = segment->next) {
+    for (auto segment(uri.pathHead); segment; segment = segment->next) {
         if (index > 0) { --index; continue; }
         if (absolutize) { out /= "/"; absolutize = false; }
         out.append(segment->text.first, segment->text.afterLast);
@@ -90,10 +119,10 @@ boost::filesystem::path Uri::path(std::size_t index, bool absolutize) const
 
 std::string Uri::pathComponent(std::size_t index) const
 {
-    auto uri(getUri(uri_));
-    if (!uri) { return {}; }
+    if (!storage_) { return {}; }
+    const auto &uri(storage_->uri);
 
-    for (auto segment(uri->pathHead); segment;
+    for (auto segment(uri.pathHead); segment;
          segment = segment->next, --index)
     {
         if (!index) {
@@ -106,14 +135,56 @@ std::string Uri::pathComponent(std::size_t index) const
 
 std::size_t Uri::pathComponentCount() const
 {
-    auto uri(getUri(uri_));
-    if (!uri) { return {}; }
+    if (!storage_) { return {}; }
+    const auto &uri(storage_->uri);
 
     std::size_t count;
-    for (auto segment(uri->pathHead); segment; segment = segment->next) {
+    for (auto segment(uri.pathHead); segment; segment = segment->next) {
         ++count;
     }
     return count;
+}
+
+std::string Uri::str() const
+{
+    if (!storage_) { return {}; }
+    const auto &uri(storage_->uri);
+
+    int length;
+    if (::uriToStringCharsRequiredA(&uri, &length) != URI_SUCCESS) {
+        LOGTHROW(err1, std::runtime_error)
+            << "Cannot recompose uri.";
+    }
+
+    std::vector<char> tmp(length + 1, 0);
+    if (::uriToStringA(tmp.data(), &uri, length + 1, nullptr) != URI_SUCCESS) {
+        LOGTHROW(err1, std::runtime_error)
+            << "Cannot recompose uri.";
+    }
+
+    return { tmp.data(), length };
+}
+
+Uri Uri::resolve(const Uri &relative) const
+{
+    // get source
+    if (!relative.storage_) { return *this; }
+    auto &src(relative.storage_->uri);
+
+    if (!storage_) { return relative; }
+    auto &uri(storage_->uri);
+
+    // get output
+    auto dstStorage(allocateUri());
+    auto &dst(dstStorage->uri);
+
+    if (::uriAddBaseUriA(&dst, &src, &uri) != URI_SUCCESS) {
+        LOGTHROW(err1, std::runtime_error)
+            << "Cannot resolve uri.";
+    }
+
+    // done
+    return Uri(dstStorage);
 }
 
 } // utility
