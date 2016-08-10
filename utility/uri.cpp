@@ -83,7 +83,9 @@ Uri::Uri(const std::shared_ptr<Storage> &storage)
 
 bool Uri::absolutePath() const
 {
-    return (storage_ ? storage_->uri.absolutePath : false);
+    return (storage_
+            ? (storage_->uri.absolutePath || !host_.empty())
+            : false);
 }
 
 boost::filesystem::path Uri::path() const
@@ -92,7 +94,7 @@ boost::filesystem::path Uri::path() const
     const auto &uri(storage_->uri);
 
     boost::filesystem::path out;
-    if (uri.absolutePath) { out /= "/"; }
+    if (absolutePath()) { out /= "/"; }
 
     for (auto segment(uri.pathHead); segment; segment = segment->next) {
         out.append(segment->text.first, segment->text.afterLast);
@@ -178,9 +180,10 @@ Uri Uri::resolve(const Uri &relative) const
     auto dstStorage(allocateUri());
     auto &dst(dstStorage->uri);
 
-    if (::uriAddBaseUriA(&dst, &src, &uri) != URI_SUCCESS) {
+    auto res(::uriAddBaseUriA(&dst, &src, &uri));
+    if (res != URI_SUCCESS) {
         LOGTHROW(err1, std::runtime_error)
-            << "Cannot resolve uri.";
+            << "Cannot resolve uri (err=" << res << ").";
     }
 
     // done

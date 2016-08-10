@@ -41,6 +41,8 @@ public:
 
     bool absolutePath() const;
 
+    bool absolute() const;
+
     /** Reconstructs URI in string representation.
      */
     std::string str() const;
@@ -61,6 +63,8 @@ private:
     int port_;
 };
 
+Uri operator+(const Uri &base, const Uri &relative);
+
 /** Reconstructs URI in string representation.
  */
 inline std::string str(const Uri &uri) { return uri.str(); }
@@ -68,6 +72,14 @@ inline std::string str(const Uri &uri) { return uri.str(); }
 inline const std::string& Uri::scheme() const { return scheme_; }
 inline const std::string& Uri::host() const { return host_; }
 inline int Uri::port() const { return port_; }
+
+// inlines
+
+inline Uri operator+(const Uri &base, const Uri &relative) {
+    return base.resolve(relative);
+}
+
+inline bool Uri::absolute() const { return !host().empty(); }
 
 } // namespace utility
 
