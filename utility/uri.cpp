@@ -140,7 +140,7 @@ std::size_t Uri::pathComponentCount() const
     if (!storage_) { return {}; }
     const auto &uri(storage_->uri);
 
-    std::size_t count;
+    std::size_t count(0);
     for (auto segment(uri.pathHead); segment; segment = segment->next) {
         ++count;
     }

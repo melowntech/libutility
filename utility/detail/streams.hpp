@@ -181,13 +181,18 @@ template <typename Container>
 struct Join {
     const Container &c;
     const std::string &sep;
+    const std::string &dflt;
 };
-
 
 template <typename E, typename T, typename Container>
 inline std::basic_ostream<E, T>&
 operator<<(std::basic_ostream<E, T> &os, const Join<Container> &j)
 {
+    if (std::begin(j.c) == std::end(j.c)) {
+        // empty -> use default
+        if (!j.dflt.empty()) { return os << j.dflt; }
+        return os;
+    }
     bool first = true;
     for (const auto &e : j.c) {
         if (!first) {

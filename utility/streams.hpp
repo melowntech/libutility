@@ -69,10 +69,31 @@ inline std::ostream& operator<<(std::ostream &os, const LManip &l)
     return os;
 }
 
+/** Join container (range) content using provided separator. Container is any
+ * range (i.e. whatever object that provides std::begin() and std::end(). Value
+ * must have stream output operator.
+ *
+ * NB: since all values are held by reference output object is usable only for
+ * immediate write to output stream.
+ *
+ * Usage example:
+ *     std::vector<int> numbers{ 1, 2, 3 };
+ *     LOG(info4) << utility::join(numbers, " -> );
+ * Outpur:
+ *     1 -> 2 -> 3
+ *
+ * String representation can be obtained using boost::lexical_cast:
+ *     auto string(boost::lexical_cast<std:string>(numbers));
+` *
+ * \param c container
+ * \param sep separator
+ * \param dflt default value written when range (container) is empty
+ */
 template <typename Container>
-detail::Join<Container> join(const Container &c, const std::string &sep)
+detail::Join<Container> join(const Container &c, const std::string &sep
+                             , const std::string dflt = std::string())
 {
-    return {c, sep};
+    return { c, sep, dflt };
 }
 
 template<typename T, int size>
