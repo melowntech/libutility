@@ -11,6 +11,8 @@
 
 namespace utility {
 
+std::string urlEncode(const std::string &in, bool plus = true);
+
 class Uri {
 public:
     Uri() : port_() {}
