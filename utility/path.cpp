@@ -46,11 +46,11 @@ boost::filesystem::path homeDir()
 
     // no ${HOME} -> consult user database
 
-    struct ::passwd pwd;
+    struct ::passwd pwd, *dummy;
     auto buflen(::sysconf(_SC_GETPW_R_SIZE_MAX));
     std::unique_ptr<char[]> buf(new char[buflen]);
 
-    if (-1 == ::getpwuid_r(::getuid(), &pwd, buf.get(), buflen, nullptr)) {
+    if (-1 == ::getpwuid_r(::getuid(), &pwd, buf.get(), buflen, &dummy)) {
         std::system_error e(errno, std::system_category());
         LOG(err3) << "Cannot determine home directory (getpwuid_r failed): <"
                   << e.code() << ", " << e.what() << ">.";
