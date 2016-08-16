@@ -45,7 +45,7 @@ if(URIPARSER_FOUND)
   list(APPEND utility_DEPENDS URIPARSER)
   list(APPEND utility_DEFINITIONS UTILITY_HAS_URI=1)
 
-  set(utility_MAGIC_SOURCES uri.hpp uri.cpp)
+  set(utility_URI_SOURCES uri.hpp uri.cpp)
 else()
   message(STATUS "utility: compiling without liburlparser support")
 endif()
@@ -139,6 +139,7 @@ add_library(utility STATIC
   ${utility_MYSQL++_SOURCES}
   ${utility_LIBPROC_SOURCES}
   ${utility_MAGIC_SOURCES}
+  ${utility_URI_SOURCES}
   )
 buildsys_library(utility)
 target_link_libraries(utility ${MODULE_LIBRARIES})
