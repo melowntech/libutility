@@ -185,7 +185,7 @@ std::string Uri::str() const
             << "Cannot recompose uri.";
     }
 
-    return { tmp.data(), length };
+    return { tmp.data(), std::string::size_type(length) };
 }
 
 Uri Uri::resolve(const Uri &relative) const
