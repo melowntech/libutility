@@ -211,4 +211,16 @@ Uri Uri::resolve(const Uri &relative) const
     return Uri(dstStorage);
 }
 
+void Uri::scheme(const std::string &value)
+{
+    if (!storage_) {
+        storage_ = allocateUri();
+    }
+
+    auto &uri(storage_->uri);
+    scheme_ = value;
+    uri.scheme.first = scheme_.data();
+    uri.scheme.afterLast = scheme_.data() + scheme_.size();
+}
+
 } // utility

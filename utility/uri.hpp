@@ -19,6 +19,7 @@ public:
     Uri(std::string uriString);
 
     const std::string& scheme() const;
+    void scheme(const std::string &value);
     const std::string& host() const;
     int port() const;
 
