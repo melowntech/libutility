@@ -61,6 +61,14 @@ Range range(const std::string &str, std::string::size_type start = 0
     return std::pair<const char*, const char*>(data + start, data + end);
 }
 
+inline bool empty(const Range &range) {
+    return range.first == range.second;
+}
+
+inline std::string::size_type size(const Range &range) {
+    return range.second - range.first;
+}
+
 std::ostream& operator<<(std::ostream &os, Range range)
 {
     while (range.first < range.second) {
@@ -147,7 +155,7 @@ void parseFromSearch(UriComponents &uri, const std::string &in
     auto delim(in.find('#', pos));
     if (delim == std::string::npos) {
         // just search
-        uri.path.assign(in, pos, in.size() - pos);
+        uri.search.assign(in, pos, in.size() - pos);
         return;
     }
 
@@ -183,9 +191,9 @@ void parseAfterScheme(UriComponents &uri, const std::string &in
     if (ba::starts_with(range(in, pos), "//")) {
         // netloc
         pos = parseNetloc(uri, in, pos + 2);
-    }
 
-    if (pos == std::string::npos) { return; }
+        if (pos == std::string::npos) { return; }
+    }
 
     switch (in[pos]) {
     case '/':
@@ -212,7 +220,7 @@ void parseAfterScheme(UriComponents &uri, const std::string &in
 //--- Public Interface --------------------------------------------------------
 Uri::Uri(const std::string &in)
 {
-    auto colon(in.find(':'));
+   auto colon(in.find(':'));
     if (!colon) {
         LOGTHROW(err1, InvalidUri)
             << "<" << in << ">: empty schema.";
@@ -283,11 +291,101 @@ std::string Uri::str() const
     return os.str();
 }
 
-namespace {
+namespace detail {
+
+typedef std::vector<boost::iterator_range<std::string::const_iterator>> Tokens;
+
+std::string removeDotSegments(const std::string &str)
+{
+    typedef std::vector<Range> Ranges;
+    auto in(range(str));
+    Ranges out;
+    const std::string slash("/");
+
+    /** RFC 3986, 5.2.4
+        2. While the input buffer is not empty, loop as follows:
+     */
+    while (!empty(in)) {
+        auto is(size(in));
+
+        /** A.  If the input buffer begins with a prefix of "../" or "./",
+            then remove that prefix from the input buffer; otherwise,
+         */
+        if (ba::starts_with(in, "../")) {
+            in.first += 3;
+            continue;
+        }
+        if (ba::starts_with(in, "./")) {
+            in.first += 2;
+            continue;
+        }
+
+        /** B.  if the input buffer begins with a prefix of "/./" or "/.",
+            where "." is a complete path segment, then replace that
+           prefix with "/" in the input buffer; otherwise,
+        */
+        if (ba::starts_with(in, "/.")
+            && ((is == 2) || (*(in.first + 2) == '/')))
+        {
+            // remove /.
+            in.first += 2;
+            if (empty(in)) { out.push_back(range(slash)); }
+            continue;
+        }
+
+        /** C.  if the input buffer begins with a prefix of "/../" or "/..",
+            where ".." is a complete path segment, then replace that
+            prefix with "/" in the input buffer and remove the last
+            segment and its preceding "/" (if any) from the output
+            buffer; otherwise,
+        */
+        if (ba::starts_with(in, "/..")
+            && ((is == 3) || (*(in.first + 3) == '/')))
+        {
+            // remove /..
+            in.first += 3;
+            // remove last element from output
+            out.pop_back();
+
+            if (empty(in)) { out.push_back(range(slash)); }
+            continue;
+        }
+
+        /** D.  if the input buffer consists only of "." or "..", then remove
+            that from the input buffer; otherwise,
+         */
+        if (ba::equals(in, "..") || ba::equals(in, ".")) {
+            break;
+        }
+
+        /** E.  move the first path segment in the input buffer to the end of
+            the output buffer, including the initial "/" character (if
+            any) and any subsequent characters up to, but not including,
+           the next "/" character or the end of the input buffer.
+        */
+        // move end after initial slash (if present)
+        const char *end((*in.first == '/') ? in.first + 1 : in.first);
+        // find second slash
+        for (; end < in.second; ++end) {
+            if ('/' == *end) { break; }
+        }
+
+        out.push_back(Range(in.first, end));
+        in.first = end;
+    }
+
+    /** RFC 3986, 5.2.4:
+        3.  Finally, the output buffer is returned as the result of
+        remove_dot_segments.
+    */
+    std::string ostr;
+    for (const auto &r : out) {
+        ostr.insert(ostr.end(), r.first, r.second);
+    }
+    return ostr;
+}
 
 void join(std::string &out, const std::string &relative) {
-    LOG(info4) << "out: <" << out << ">";
-    LOG(info4) << "relative: <" << relative << ">";
     if (out.empty() || ba::starts_with(relative, "/")) {
         // relative is absolute path or out is empty: use relative as is
         out = relative;
@@ -295,10 +393,9 @@ void join(std::string &out, const std::string &relative) {
     }
 
     // NB: out is not empty here
-
     if (out.back() == '/') {
         // out ends with slash -> directory
-        out += relative;
+        removeDotSegments(out + relative);
         return;
     }
 
@@ -306,12 +403,12 @@ void join(std::string &out, const std::string &relative) {
     auto prev(out.rfind('/'));
     if (prev == std::string::npos) {
         // no slash at all, replace
-        out = relative;
+        removeDotSegments(relative);
         return;
     }
 
     out.resize(prev + 1);
-    out += relative;
+    out = removeDotSegments(out + relative);
 }
 
 UriComponents resolveUri(const UriComponents &base, const UriComponents &uri)
@@ -360,11 +457,11 @@ UriComponents resolveUri(const UriComponents &base, const UriComponents &uri)
     return out;
 }
 
-} // namespace
+} // namespace detail
 
 Uri Uri::resolve(const Uri &relative) const
 {
-    return { resolveUri(components_, relative.components_) };
+    return { detail::resolveUri(components_, relative.components_) };
 }
 
 bool Uri::absolutePath() const
@@ -372,13 +469,9 @@ bool Uri::absolutePath() const
     return ba::starts_with(components_.path, "/");
 }
 
-namespace {
-typedef std::vector<boost::iterator_range<std::string::const_iterator>> Tokens;
-} // namespace
-
 fs::path Uri::path(std::size_t index, bool absolutize) const
 {
-    Tokens tokens;
+    detail::Tokens tokens;
     ba::split(tokens, components_.path, ba::is_any_of("/")
               , ba::token_compress_on);
     if (absolutePath()) { ++index; }
@@ -397,7 +490,7 @@ fs::path Uri::path(std::size_t index, bool absolutize) const
 
 std::string Uri::pathComponent(std::size_t index) const
 {
-    Tokens tokens;
+    detail::Tokens tokens;
     ba::split(tokens, components_.path, ba::is_any_of("/")
               , ba::token_compress_on);
     if (absolutePath()) { ++index; }
