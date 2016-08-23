@@ -39,17 +39,6 @@ else()
   message(STATUS "utility: compiling without magic support")
 endif()
 
-if(URIPARSER_FOUND)
-  message(STATUS "utility: compiling in liburlparser support")
-
-  list(APPEND utility_DEPENDS URIPARSER)
-  list(APPEND utility_DEFINITIONS UTILITY_HAS_URI=1)
-
-  set(utility_URI_SOURCES uri.hpp uri.cpp)
-else()
-  message(STATUS "utility: compiling without liburlparser support")
-endif()
-
 define_module(LIBRARY utility DEPENDS ${utility_DEPENDS}
   DEFINITIONS ${utility_DEFINITIONS})
 
@@ -139,7 +128,6 @@ add_library(utility STATIC
   ${utility_MYSQL++_SOURCES}
   ${utility_LIBPROC_SOURCES}
   ${utility_MAGIC_SOURCES}
-  ${utility_URI_SOURCES}
   )
 buildsys_library(utility)
 target_link_libraries(utility ${MODULE_LIBRARIES})
