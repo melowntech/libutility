@@ -21,6 +21,8 @@
 
 namespace utility {
 
+std::string urlEncode(const std::string &in, bool plus = true);
+
 struct InvalidUri : public std::runtime_error {
     InvalidUri(const std::string &message) : std::runtime_error(message) {}
 };
