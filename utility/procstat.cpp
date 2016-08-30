@@ -59,6 +59,7 @@ ProcStat::list getProcStat(const PidList &pids)
         ps.rss = proc->vm_rss;
         ps.swap = proc->vm_swap;
         ps.virt = proc->vsize / pageSizeKb;
+        ps.shared = proc->share / pageSizeKb;
         stat.push_back(ps);
     }
     return stat;
