@@ -24,7 +24,7 @@ ProcStat::list getProcStat(const PidList &pids)
 
     struct Table {
         Table(const ::pid_t *pids)
-            : p(::openproc(PROC_FILLSTATUS | PROC_PID, pids))
+            : p(::openproc(PROC_FILLSTATUS | PROC_FILLMEM | PROC_PID, pids))
         {
             if (!p) {
                 std::system_error e(errno, std::system_category());
@@ -59,6 +59,7 @@ ProcStat::list getProcStat(const PidList &pids)
         ps.rss = proc->vm_rss;
         ps.swap = proc->vm_swap;
         ps.virt = proc->vsize / pageSizeKb;
+        ps.shared = proc->share / pageSizeKb;
         stat.push_back(ps);
     }
     return stat;

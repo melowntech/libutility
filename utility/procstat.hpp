@@ -22,6 +22,10 @@ struct ProcStat
      */
     std::size_t swap;
 
+    /** Shared memory in KiB.
+     */
+    std::size_t shared;
+
     /** Real memory occupied by this process (resident + swapped).
      */
     std::size_t occupies() const { return rss + swap; }
