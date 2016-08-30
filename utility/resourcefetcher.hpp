@@ -57,6 +57,8 @@ public:
 
         bool check(const std::error_code &ec) const { return (ec_ == ec); }
 
+        const std::error_code& errorCode() const { return ec_; }
+
         /** Nonthrowing body getter.
          */
         template <typename Sink> const Body* get(Sink &sink) const;
@@ -116,6 +118,10 @@ public:
         Query::list::size_type size() const { return queries_.size(); }
         const Query& front() const { return queries_.front(); }
         Query& front() { return queries_.front(); }
+        const Query& back() const { return queries_.back(); }
+        Query& back() { return queries_.back(); }
+        const Query& operator[](int i) const { return queries_[i]; }
+        Query& operator[](int i) { return queries_[i]; }
 
         operator bool() const { return !empty(); }
 
