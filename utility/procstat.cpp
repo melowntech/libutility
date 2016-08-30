@@ -24,7 +24,7 @@ ProcStat::list getProcStat(const PidList &pids)
 
     struct Table {
         Table(const ::pid_t *pids)
-            : p(::openproc(PROC_FILLSTATUS | PROC_PID, pids))
+            : p(::openproc(PROC_FILLSTATUS | PROC_FILLMEM | PROC_PID, pids))
         {
             if (!p) {
                 std::system_error e(errno, std::system_category());
