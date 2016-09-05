@@ -57,6 +57,10 @@ public:
 
         bool check(const std::error_code &ec) const { return (ec_ == ec); }
 
+        const std::error_code& ec() const { return ec_; }
+
+        const std::exception_ptr& exc() const { return exc_; }
+
         /** Nonthrowing body getter.
          */
         template <typename Sink> const Body* get(Sink &sink) const;
@@ -64,6 +68,8 @@ public:
         const std::string& location() const { return location_; }
 
         operator bool() const { return !empty_; }
+
+        bool valid() const;
 
         typedef std::vector<Query> list;
 
@@ -116,6 +122,10 @@ public:
         Query::list::size_type size() const { return queries_.size(); }
         const Query& front() const { return queries_.front(); }
         Query& front() { return queries_.front(); }
+        const Query& back() const { return queries_.back(); }
+        Query& back() { return queries_.back(); }
+        const Query& operator[](int i) const { return queries_[i]; }
+        Query& operator[](int i) { return queries_[i]; }
 
         operator bool() const { return !empty(); }
 
@@ -210,6 +220,11 @@ ResourceFetcher::Query::get(Sink &sink) const
     if (exc_) { sink(exc_); return nullptr; }
     if (ec_) { sink(ec_); }
     return &body_;
+}
+
+inline bool ResourceFetcher::Query::valid() const
+{
+    return (!exc_ && !ec_);
 }
 
 } // namespace utility
