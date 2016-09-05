@@ -17,7 +17,28 @@ namespace ba = boost::algorithm;
 namespace utility {
 
 namespace {
-    const char *alphabet("0123456789abcdef");
+
+const char *alphabet("0123456789abcdef");
+
+char hexAsNumber(char value)
+{
+    if ((value >= '0') && (value <= '9')) {
+        return value - '0';
+    }
+
+    if ((value >= 'a') && (value <= 'f')) {
+        return value - 'a';
+    }
+
+    if ((value >= 'A') && (value <= 'F')) {
+        return value - 'A';
+    }
+
+    LOGTHROW(err1, InvalidEncoding)
+        << "Invalid URL encoding (" << value << " is not a hex character).";
+    throw;
+}
+
 } // namespace
 
 std::string urlEncode(const std::string &in, bool plus)
@@ -34,6 +55,45 @@ std::string urlEncode(const std::string &in, bool plus)
             out.push_back(alphabet[c & 0x0f]);
         }
     }
+    return out;
+}
+
+std::string urlDecode(const std::string &in)
+{
+    std::string out;
+    out.reserve(in.size());
+
+    const char* i(in.data());
+    const char* e(i + in.size());
+    while (i != e) {
+        auto c(*i++);
+        if (c != '%') {
+            // raw character
+            out.push_back(c);
+            continue;
+        }
+
+        // encoded character
+        if (i == e) {
+            LOGTHROW(err1, InvalidEncoding)
+                << "Invalid URL encoding (no character after % sign).";
+        }
+
+        char out(0);
+
+        // first byte
+        c = *i++;
+        if (i == e) {
+            LOGTHROW(err1, InvalidEncoding)
+                << "Invalid URL encoding (only one character after % sign).";
+        }
+        out += hexAsNumber(c) << 4;
+
+        // second byte
+        c = *i++;
+        out += hexAsNumber(c);
+    }
+
     return out;
 }
 
