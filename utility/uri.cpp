@@ -27,11 +27,11 @@ char hexAsNumber(char value)
     }
 
     if ((value >= 'a') && (value <= 'f')) {
-        return value - 'a';
+        return 10 + value - 'a';
     }
 
     if ((value >= 'A') && (value <= 'F')) {
-        return value - 'A';
+        return 10 + value - 'A';
     }
 
     LOGTHROW(err1, InvalidEncoding)
@@ -79,19 +79,18 @@ std::string urlDecode(const std::string &in)
                 << "Invalid URL encoding (no character after % sign).";
         }
 
-        char out(0);
-
         // first byte
         c = *i++;
         if (i == e) {
             LOGTHROW(err1, InvalidEncoding)
                 << "Invalid URL encoding (only one character after % sign).";
         }
-        out += hexAsNumber(c) << 4;
+        char tmp(hexAsNumber(c) << 4);
 
         // second byte
         c = *i++;
-        out += hexAsNumber(c);
+        tmp += hexAsNumber(c);
+        out.push_back(tmp);
     }
 
     return out;
