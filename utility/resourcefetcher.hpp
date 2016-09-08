@@ -41,7 +41,16 @@ public:
         void assign(const std::string &location, bool followRedirects = true);
 
         bool reuse() const { return reuse_; }
-        void reuse(bool reuse) { reuse_ = reuse; }
+        Query& reuse(bool reuse) { reuse_ = reuse; return *this; }
+
+        /** Total timeout for this query in ms. Zero or negative means no
+         *  timeout.
+         */
+        long timeout() const { return timeout_; }
+        /** Total timeout for this query in ms. Zero or negative means no
+         *  timeout.
+         */
+        Query& timeout(long timeout) { timeout_ = timeout; return *this; }
 
         void set(std::time_t lastModified, std::time_t expires
                  , const void *data, std::size_t size
@@ -81,6 +90,8 @@ public:
         std::error_code ec_;
         bool followRedirects_;
         bool reuse_;
+
+        long timeout_;
     };
 
     class MultiQuery : public utility::Supplement<MultiQuery> {
