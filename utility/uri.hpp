@@ -94,6 +94,10 @@ public:
      */
     Uri resolve(const Uri &relative) const;
 
+    /** Removes .. and . segments from str.
+     */
+    static std::string removeDotSegments(const std::string &str);
+
 private:
     UriComponents components_;
 };

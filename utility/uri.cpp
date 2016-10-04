@@ -350,22 +350,19 @@ std::string Uri::str() const
     return os.str();
 }
 
-namespace detail {
-
-typedef std::vector<boost::iterator_range<std::string::const_iterator>> Tokens;
-
-std::string removeDotSegments(const std::string &str)
+std::string Uri::removeDotSegments(const std::string &str)
 {
+    typedef detail::Range Range;
     typedef std::vector<Range> Ranges;
-    auto in(range(str));
+    auto in(detail::range(str));
     Ranges out;
     const std::string slash("/");
 
     /** RFC 3986, 5.2.4
         2. While the input buffer is not empty, loop as follows:
      */
-    while (!empty(in)) {
-        auto is(size(in));
+    while (!detail::empty(in)) {
+        auto is(detail::size(in));
 
         /** A.  If the input buffer begins with a prefix of "../" or "./",
             then remove that prefix from the input buffer; otherwise,
@@ -388,7 +385,7 @@ std::string removeDotSegments(const std::string &str)
         {
             // remove /.
             in.first += 2;
-            if (empty(in)) { out.push_back(range(slash)); }
+            if (detail::empty(in)) { out.push_back(detail::range(slash)); }
             continue;
         }
 
@@ -406,7 +403,7 @@ std::string removeDotSegments(const std::string &str)
             // remove last element from output
             out.pop_back();
 
-            if (empty(in)) { out.push_back(range(slash)); }
+            if (detail::empty(in)) { out.push_back(detail::range(slash)); }
             continue;
         }
 
@@ -444,6 +441,10 @@ std::string removeDotSegments(const std::string &str)
     return ostr;
 }
 
+namespace detail {
+
+typedef std::vector<boost::iterator_range<std::string::const_iterator>> Tokens;
+
 void join(std::string &out, const std::string &relative) {
     if (out.empty() || ba::starts_with(relative, "/")) {
         // relative is absolute path or out is empty: use relative as is
@@ -454,7 +455,7 @@ void join(std::string &out, const std::string &relative) {
     // NB: out is not empty here
     if (out.back() == '/') {
         // out ends with slash -> directory
-        removeDotSegments(out + relative);
+        Uri::removeDotSegments(out + relative);
         return;
     }
 
@@ -462,12 +463,12 @@ void join(std::string &out, const std::string &relative) {
     auto prev(out.rfind('/'));
     if (prev == std::string::npos) {
         // no slash at all, replace
-        removeDotSegments(relative);
+        Uri::removeDotSegments(relative);
         return;
     }
 
     out.resize(prev + 1);
-    out = removeDotSegments(out + relative);
+    out = Uri::removeDotSegments(out + relative);
 }
 
 UriComponents resolveUri(const UriComponents &base, const UriComponents &uri)
