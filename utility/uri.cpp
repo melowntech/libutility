@@ -559,4 +559,12 @@ std::string Uri::pathComponent(std::size_t index) const
     return std::string(std::begin(token), std::end(token));
 }
 
+std::size_t Uri::pathComponentCount() const
+{
+    detail::Tokens tokens;
+    ba::split(tokens, components_.path, ba::is_any_of("/")
+              , ba::token_compress_on);
+    return (absolutePath() ? (tokens.size() + 1) : tokens.size());
+}
+
 } // utility

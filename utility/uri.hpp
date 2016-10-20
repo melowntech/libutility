@@ -81,6 +81,10 @@ public:
      */
     std::string pathComponent(std::size_t index) const;
 
+    /** Returns number of path components.
+     */
+    std::size_t pathComponentCount() const;
+
     bool absolutePath() const;
 
     bool absolute() const;
