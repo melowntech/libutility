@@ -564,7 +564,7 @@ std::size_t Uri::pathComponentCount() const
     detail::Tokens tokens;
     ba::split(tokens, components_.path, ba::is_any_of("/")
               , ba::token_compress_on);
-    return (absolutePath() ? (tokens.size() + 1) : tokens.size());
+    return (absolutePath() ? (tokens.size() - 1) : tokens.size());
 }
 
 } // utility
