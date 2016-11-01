@@ -609,6 +609,7 @@ void execImpl(const std::string &program, SystemContext ctx)
     }
     argv.finish();
 
+    redirect(ctx.redirects);
     apply(ctx.environ);
     // chdir to wd if set
     if (ctx.cwd) { current_path(*ctx.cwd); }
