@@ -21,10 +21,11 @@
 
 namespace fs = boost::filesystem;
 
-namespace utility { namespace detail {
+namespace utility {
 
-void SystemContext::setFdPath(int redirectIdx, const RedirectFile::DstArg &arg
-                              , int fd)
+void ProcessExecContext::setFdPath(int redirectIdx
+                                   , const detail::RedirectFile::DstArg &arg
+                                   , int fd)
 {
     const std::string devPath("/dev/fd/%d");
 
@@ -52,6 +53,7 @@ void SystemContext::setFdPath(int redirectIdx, const RedirectFile::DstArg &arg
     argv[fplaceHolders->second] = str(boost::format(format) % fd);
 }
 
+namespace detail {
 
 struct ExecArgs {
     typedef std::vector<char*> Argv;
@@ -62,7 +64,7 @@ struct ExecArgs {
     }
 
     void arg(const std::string &arg) {
-        argv.push_back(strdup(arg.c_str()));
+        argv.push_back(::strdup(arg.c_str()));
     }
 
     void finish() { argv.push_back(nullptr); }
@@ -155,7 +157,7 @@ void execute(const ExecArgs &argv)
     // never reached
 }
 
-void redirect(const SystemContext::Redirects &redirects)
+void redirect(const ProcessExecContext::Redirects &redirects)
 {
     for (const auto &redirect : redirects) {
         switch (redirect.srcType) {
@@ -501,7 +503,7 @@ void childClose(std::vector<OutPipe> &pipes)
     }
 }
 
-int systemImpl(const std::string &program, SystemContext ctx)
+int systemImpl(const std::string &program, ProcessExecContext ctx)
 {
     std::vector<InPipe> inPipes;
     std::vector<OutPipe> outPipes;
@@ -597,7 +599,7 @@ int systemImpl(const std::string &program, SystemContext ctx)
     return Pump(pid, inPipes, outPipes).run();
 }
 
-void execImpl(const std::string &program, SystemContext ctx)
+void execImpl(const std::string &program, ProcessExecContext ctx)
 {
     // build arguments
     detail::ExecArgs argv;

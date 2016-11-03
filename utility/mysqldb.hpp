@@ -59,7 +59,8 @@ public:
 
         template <typename E, typename T>
         std::basic_ostream<E, T>& dump(std::basic_ostream<E, T> &os
-                                       , const std::string &section = "")
+                                       , const std::string &section = ""
+                                       , bool dumpPassword = false)
             const;
     };
 
@@ -297,18 +298,25 @@ inline Db::StoreQueryResult Db::store(Query &query) {
 
 template <typename E, typename T>
 std::basic_ostream<E, T>&
-Db::Parameters::dump(std::basic_ostream<E, T> &os, const std::string &section)
+Db::Parameters::dump(std::basic_ostream<E, T> &os, const std::string &section
+                     , bool dumpPassword)
     const
 {
-    // NB: do not print password!
-    return os << section << "database = " << database << '\n'
-              << section << "host = " << host << '\n'
-              << section << "user = " << user << '\n'
-              << section << "port = " << port << '\n'
-              << section << "connectTimeout = " << connectTimeout << '\n'
-              << section << "readTimeout = " << readTimeout << '\n'
-              << section << "writeTimeout = " << writeTimeout << '\n'
+    // NB: print password only when asked to!
+    os << section << "database = " << database << '\n'
+       << section << "host = " << host << '\n'
+       << section << "user = " << user << '\n'
+       << section << "port = " << port << '\n'
+       << section << "connectTimeout = " << connectTimeout << '\n'
+       << section << "readTimeout = " << readTimeout << '\n'
+       << section << "writeTimeout = " << writeTimeout << '\n'
         ;
+
+    if (dumpPassword) {
+        os << section << "password = " << password << '\n';
+    }
+
+    return os;
 }
 
 namespace detail {

@@ -11,11 +11,11 @@
 #include "../process.hpp"
 #include "../environment.hpp"
 
-namespace utility { namespace detail {
+namespace utility {
 
-struct SystemContext {
+struct ProcessExecContext {
     typedef std::vector<boost::optional<std::string> > Argv;
-    typedef std::vector<RedirectFile> Redirects;
+    typedef std::vector<detail::RedirectFile> Redirects;
     typedef std::map<int, int> PlaceHolders;
 
     Argv argv;
@@ -26,7 +26,7 @@ struct SystemContext {
 
     boost::optional<boost::filesystem::path> cwd;
 
-    void add(const RedirectFile &arg) {
+    void add(const detail::RedirectFile &arg) {
         // TODO: check for duplicity
 
         placeHolders[redirects.size()] = argv.size();
@@ -45,6 +45,7 @@ struct SystemContext {
     void apply(const UnsetEnv &arg) { environ[arg.name] = boost::none; }
     void apply(const ChangeCwd &arg) { cwd = arg.wd; }
     void apply(const std::string &arg) { argv.push_back(arg); }
+    void apply(const ProcessExecContext &arg) { *this = arg; }
 
     template <typename T>
     void apply(const T &arg) {
@@ -59,29 +60,69 @@ struct SystemContext {
         }
     }
 
-    void setFdPath(int redirectIdx, const RedirectFile::DstArg &arg, int fd);
+    void setFdPath(int redirectIdx, const detail::RedirectFile::DstArg &arg
+                   , int fd);
+
+    /** Abuse dump.
+     */
+    template <typename E, typename T>
+    std::basic_ostream<E, T>& dump(std::basic_ostream<E, T> &os
+                                   , const std::string &exePath) const;
 };
 
-inline void systemBuildArgs(SystemContext&) {}
+namespace detail {
+
+inline void systemBuildArgs(ProcessExecContext&) {}
 
 template <typename T, typename ...Args>
-inline void systemBuildArgs(SystemContext &ctx, T &&arg, Args &&...rest)
+inline void systemBuildArgs(ProcessExecContext &ctx, T &&arg, Args &&...rest)
 {
     // ctx.argv.push_back(boost::lexical_cast<std::string>(arg));
-    ctx.apply(arg);
+    ctx.apply(std::move(arg));
     return detail::systemBuildArgs(ctx, std::forward<Args>(rest)...);
 }
 
 /** Equivalent of system(3); does fork/exec and waits for result.
  */
-int systemImpl(const std::string &program, SystemContext ctx);
+int systemImpl(const std::string &program, ProcessExecContext ctx);
 
 /** Equivalent of execvpe(3); replaces current process
  */
-void execImpl(const std::string &program, SystemContext ctx);
+void execImpl(const std::string &program, ProcessExecContext ctx);
 
 int spawnImpl(const std::function<int ()> &func, int flags);
 
-} } // namespace utility::detail
+} // namespace detail
+
+template <typename E, typename T>
+inline std::basic_ostream<E, T>&
+ProcessExecContext::dump(std::basic_ostream<E, T> &os
+                         , const std::string &exePath) const
+{
+
+    std::string separator("");
+
+    // print environment
+    for (const auto &e : environ) {
+        if (e.second) {
+            os << separator << e.first << '=' << *e.second;
+        } else {
+            os << separator << "unset(" << e.first << ")";
+        }
+    }
+
+    os << separator << exePath;
+
+    // print parameters
+    for (const auto arg : argv) {
+        if (arg) {
+            os << " " << *arg;
+        }
+    }
+
+    return os;
+}
+
+} // namespace utility
 
 #endif // utility_detail_process_hpp_included_

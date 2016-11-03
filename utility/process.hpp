@@ -14,6 +14,10 @@
 
 namespace utility {
 
+/** Execution context
+ */
+class ProcessExecContext;
+
 struct Stdin : detail::RedirectFile {
     explicit Stdin(int fd) : RedirectFile(STDIN_FILENO, fd) {}
     explicit Stdin(const boost::filesystem::path &path)
@@ -27,7 +31,7 @@ struct Stdout : detail::RedirectFile {
         : RedirectFile(STDOUT_FILENO, path, true) {}
     explicit Stdout(std::ostream &os) : RedirectFile(STDOUT_FILENO, os) {}
 
-    friend class SystemContext;
+    friend class ProcessExecContext;
 };
 
 struct Stderr : detail::RedirectFile {
@@ -36,7 +40,7 @@ struct Stderr : detail::RedirectFile {
         : RedirectFile(STDERR_FILENO, path, true) {}
     explicit Stderr(std::ostream &os) : RedirectFile(STDERR_FILENO, os) {}
 
-    friend class SystemContext;
+    friend class ProcessExecContext;
 };
 
 struct Stream : detail::RedirectFile {
@@ -48,7 +52,7 @@ struct Stream : detail::RedirectFile {
     explicit Stream(const std::string &format, std::ostream &os)
         : RedirectFile(format, os) {}
 
-    friend class SystemContext;
+    friend class ProcessExecContext;
 };
 
 struct SetEnv {
@@ -58,7 +62,7 @@ struct SetEnv {
         : name(name), value(value)
     {}
 
-    friend class SystemContext;
+    friend class ProcessExecContext;
 };
 
 struct UnsetEnv {
@@ -132,16 +136,26 @@ namespace utility {
 template <typename ...Args>
 inline int system(const std::string &program, Args &&...args)
 {
-    detail::SystemContext ctx;
+    ProcessExecContext ctx;
     detail::systemBuildArgs(ctx, std::forward<Args>(args)...);
+    return detail::systemImpl(program, ctx);
+}
+
+inline int system(const std::string &program, const ProcessExecContext &ctx)
+{
     return detail::systemImpl(program, ctx);
 }
 
 template <typename ...Args>
 inline void exec(const std::string &program, Args &&...args)
 {
-    detail::SystemContext ctx;
+    ProcessExecContext ctx;
     detail::systemBuildArgs(ctx, std::forward<Args>(args)...);
+    return detail::execImpl(program, ctx);
+}
+
+inline void exec(const std::string &program, const ProcessExecContext &ctx)
+{
     return detail::execImpl(program, ctx);
 }
 
