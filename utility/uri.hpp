@@ -65,6 +65,7 @@ public:
     const std::string& scheme() const;
     void scheme(std::string value) { components_.scheme = std::move(value); }
     const std::string& host() const;
+    void host(std::string value) { components_.host = std::move(value); }
     int port() const;
     boost::filesystem::path path() const;
 
