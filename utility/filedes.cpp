@@ -26,7 +26,7 @@ Filedes::~Filedes() {
 
 void Filedes::close()
 {
-    if (fd_ >= 0) {
+    if (valid()) {
         TEMP_FAILURE_RETRY(::close(fd_));
     }
     fd_ = -1;
@@ -56,6 +56,26 @@ void Filedes::closeOnExec(bool value)
                    << e.code() << ", " << e.what() << ">";
         throw e;
     }
+}
+
+Filedes Filedes::dup() const
+{
+    if (fd_ < 0) { return { fd_, path_ }; }
+    const auto fd(::dup(fd_));
+    if (fd == -1) {
+        std::system_error e(errno, std::system_category());
+        LOG(warn2) << "dup(" << fd_ << ") failed: "
+                   << e.code() << ", " << e.what() << ">";
+    }
+
+    return { fd, path_ };
+}
+
+bool Filedes::valid() const
+{
+    if (fd_ < 0) { return false; }
+    int flags(::fcntl(fd_, F_GETFD, 0));
+    return flags != -1;
 }
 
 } // namespace utility

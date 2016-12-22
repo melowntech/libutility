@@ -50,6 +50,14 @@ public:
 
     void closeOnExec(bool value);
 
+    /** Duplicates file descriptor (via dup).;
+     */
+    Filedes dup() const;
+
+    /** Check fd validity.
+     */
+    bool valid() const;
+
     Filedes(const Filedes&) = delete;
     Filedes& operator=(const Filedes&) = delete;
 
