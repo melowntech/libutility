@@ -12,10 +12,22 @@ inline bool isFutureReady(const std::future_status &status)
 {
     return (status == std::future_status::ready);
 }
+
+inline bool futureTimeou(const std::future_status &status)
+{
+    return (status == std::future_status::timeout);
+}
+
 #else
+
 inline bool isFutureReady(bool res)
 {
     return res;
+}
+
+inline bool futureTimeout(bool res)
+{
+    return !res;
 }
 #endif
 
