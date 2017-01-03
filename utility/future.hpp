@@ -13,7 +13,7 @@ inline bool isFutureReady(const std::future_status &status)
     return (status == std::future_status::ready);
 }
 
-inline bool futureTimeou(const std::future_status &status)
+inline bool futureTimeout(const std::future_status &status)
 {
     return (status == std::future_status::timeout);
 }
