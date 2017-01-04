@@ -106,6 +106,8 @@ set(utility_SOURCES
   httpcode.hpp httpcode.cpp
 
   typeinfo.hpp typeinfo.cpp
+
+  persona.hpp switchpersona.cpp
   )
 
 if(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
