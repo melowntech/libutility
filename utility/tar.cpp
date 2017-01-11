@@ -74,7 +74,7 @@ Reader::Reader(const fs::path &path)
     : fd_(::open(path.string().c_str(), O_RDONLY), path)
     , cursor_(0)
 {
-    if (fd_ == -1) {
+    if (!fd_) {
         std::system_error e(errno, std::system_category());
         LOG(err2) << "Cannot open tar file " << fd_.path() << ": <"
                   << e.code() << ", " << e.what() << ">.";

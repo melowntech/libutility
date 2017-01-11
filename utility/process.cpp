@@ -634,7 +634,7 @@ int spawnImpl(const std::function<int ()> &func, int flags)
 
         if (flags & SpawnFlag::quickExit) {
             // quick exit
-            ::quick_exit(res);
+            ::_Exit(res);
         }
         std::exit(res);
     }
