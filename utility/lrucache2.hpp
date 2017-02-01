@@ -29,7 +29,10 @@ class LruCache2 : boost::noncopyable
 public:
     typedef std::shared_ptr<Value> value_pointer;
 
-    LruCache2(CostType maxCost) : maxCost_(maxCost), missCnt_(0), hitCnt_(0) {}
+    LruCache2(CostType maxCost)
+        : maxCost_(maxCost), totalCost_()
+        , missCnt_(0), hitCnt_(0)
+    {}
 
     /** Get an item from the cache (identified by 'key'). If the item is not
      *  in the cache, the supplied loading function is called first. The loading
