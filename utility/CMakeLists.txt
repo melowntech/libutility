@@ -108,6 +108,8 @@ set(utility_SOURCES
   typeinfo.hpp typeinfo.cpp
 
   persona.hpp switchpersona.cpp
+
+  limits.hpp limits.cpp
   )
 
 if(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
