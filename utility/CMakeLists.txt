@@ -1,5 +1,8 @@
+# bump version here
+set(utility_VERSION 1.11)
+
 set(utility_DEPENDS
-  dbglog
+  dbglog>=1.4
   Boost_THREAD
   Boost_PROGRAM_OPTIONS
   Boost_FILESYSTEM
@@ -39,7 +42,8 @@ else()
   message(STATUS "utility: compiling without magic support")
 endif()
 
-define_module(LIBRARY utility DEPENDS ${utility_DEPENDS}
+define_module(LIBRARY utility=${utility_VERSION}
+  DEPENDS ${utility_DEPENDS}
   DEFINITIONS ${utility_DEFINITIONS})
 
 set(utility_SOURCES
