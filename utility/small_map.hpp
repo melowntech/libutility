@@ -159,6 +159,11 @@ public:
     template<typename Archive>
     void serialize(Archive &ar, const unsigned int version);
 
+    /** Present only for deserialization.
+     *  It is up to the caller to ensure data are sorted.
+     */
+    storage_type& storage() { return storage_; }
+
 private:
     storage_type storage_;
 };
