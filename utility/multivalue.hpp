@@ -94,6 +94,25 @@ inline void process_multi_value(const detail::po::variables_map &map
     }
 }
 
+// support for helper parser
+
+template <typename Helper, typename T, typename C>
+inline void
+process_multi_value(const detail::po::variables_map &map
+                    , const char *name
+                    , std::vector<C> &output
+                    , T C::*destination)
+{
+    const auto &input
+        (detail::get_multi_value<Helper>(map, name, output.size()));
+
+    auto ioutput(output.begin());
+
+    for (const auto &value : input) {
+        ((*ioutput++).*destination) = value;
+    }
+}
+
 } // namespace utility
 
 #endif // utility_multivalues_hpp_included_
