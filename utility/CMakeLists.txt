@@ -42,6 +42,16 @@ else()
   message(STATUS "utility: compiling without magic support")
 endif()
 
+if(Boost_IOSTREAMS_FOUND)
+  message(STATUS "utility: compiling in boost iostreams support")
+
+  list(APPEND utility_DEPENDS Boost_IOSTREAMS)
+
+  set(utility_IOSTREAMS_SOURCES substream.hpp substream.cpp)
+else()
+  message(STATUS "utility: compiling without boost iostreams support")
+endif()
+
 define_module(LIBRARY utility=${utility_VERSION}
   DEPENDS ${utility_DEPENDS}
   DEFINITIONS ${utility_DEFINITIONS})
@@ -136,6 +146,7 @@ add_library(utility STATIC
   ${utility_MYSQL++_SOURCES}
   ${utility_LIBPROC_SOURCES}
   ${utility_MAGIC_SOURCES}
+  ${utility_IOSTREAMS_SOURCES}
   )
 buildsys_library(utility)
 target_link_libraries(utility ${MODULE_LIBRARIES})
