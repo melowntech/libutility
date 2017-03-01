@@ -86,6 +86,8 @@ struct Header : Block {
     std::time_t getTime() const;
 };
 
+typedef std::vector<char> Data;
+
 class Reader {
 public:
     Reader() : cursor_() {}
@@ -108,8 +110,6 @@ public:
 
     std::size_t cursorByte() const { return cursor_ * 512; }
 
-    typedef std::vector<char> Data;
-
     /** Reads given amount of bytes starting at given block number.
      */
     Data readData(std::size_t block, std::size_t size);
@@ -128,11 +128,25 @@ public:
 
     int filedes() const { return fd_; }
 
-    class Index;
-
-    /** Build index.
+    /** File info.
      */
-    Index index();
+    struct File {
+        typedef std::vector<File> list;
+
+        boost::filesystem::path path;
+        std::size_t start;
+        std::size_t size;
+        std::size_t end() const { return start + size; }
+
+        File(boost::filesystem::path path, std::size_t start
+             , std::size_t size)
+            : path(path), start(start), size(size)
+        {}
+    };
+
+    File::list files();
+
+    const boost::filesystem::path& path() const { return path_; }
 
 private:
     boost::filesystem::path path_;
@@ -142,22 +156,29 @@ private:
     std::size_t cursor_;
 };
 
-class Reader::Index {
+class Writer {
 public:
-    Index(const boost::filesystem::path &path) : path_(path) {}
+    enum Flags {
+        truncate = 0x01
+        , create = 0x02
+        , exclusive = 0x04
+    };
 
-    /** Add path to index
-     */
-    void add(const std::string &path, const Filedes &fd);
+    Writer(const boost::filesystem::path &path
+           , int flags = Flags::create | Flags::exclusive | Flags::truncate);
 
-    /** Get file descriptor for given path
+    void write(const Header &header, std::size_t block, std::size_t size);
+
+    void write(const Header &header, const boost::filesystem::path &file);
+
+    /** Write file terminator
      */
-    const Filedes& file(const std::string &path) const;
+    void end();
 
 private:
-    typedef std::map<std::string, Filedes> map;
-    const boost::filesystem::path path_;
-    map index_;
+    boost::filesystem::path path_;
+
+    utility::Filedes fd_;
 };
 
 // inlines

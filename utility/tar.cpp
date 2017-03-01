@@ -129,7 +129,7 @@ bool Reader::read(Block &block)
     return true;
 }
 
-Reader::Data Reader::readData(std::size_t block, std::size_t size)
+Data Reader::readData(std::size_t block, std::size_t size)
 {
     seek(block);
 
@@ -168,47 +168,71 @@ Reader::Filedes Reader::filedes(std::size_t block, std::size_t size)
             , std::size_t(block * 512) + size };
 }
 
-void Reader::Index::add(const std::string &path, const Filedes &fd)
-{
-    index_.insert(map::value_type(path, fd));
-}
-
-const Reader::Filedes& Reader::Index::file(const std::string &path) const
-{
-    auto findex(index_.find(path));
-    if (findex == index_.end()) {
-        LOGTHROW(err2, std::runtime_error)
-            << "File \"" << path << "\" not found in archive "
-            << path_ << ".";
-    }
-    return findex->second;
-}
-
 /** Build index.
  */
-Reader::Index Reader::index()
+Reader::File::list Reader::files()
 {
     // rewind
     seek(0);
 
-    Index index(path_);
+    File::list files;
 
-    for (utility::tar::Header header; read(header); ) {
+    for (Header header; read(header); ) {
         if (!header.valid()) {
             continue;
         }
 
         if (header.isFile()) {
             std::size_t start(cursorByte());
-            index.add(header.getPath().string()
-                      , { fd_, start, start + header.getSize() });
+            files.emplace_back(header.getPath()
+                               , start, header.getSize());
         }
 
         // skip file/whatever content
         skip(header);
     }
 
-    return index;
+    return files;
 }
+
+#if 0
+// TODO: implement me
+namespace {
+
+int flagsToOpenFlags(int inflags)
+{
+    flags = O_WRONLY | O_APPEND;
+    if (inflags & Writer::Flags::truncate) { flags |= O_TRUNC; }
+    if (inflags & Writer::Flags::create) { flags |= O_CREAT; }
+    if (inflags & Writer::Flags::exclusive) { flags |= O_EXCL; }
+}
+
+} // namespace
+
+Writer::Writer(const boost::filesystem::path &path, int flags)
+    : path_(path), fd_(::open(path.string().c_str(), flagsToOpenFlags(flags))
+                       , path)
+{
+    if (!fd_) {
+        std::system_error e(errno, std::system_category());
+        LOG(err2) << "Cannot create/overwrite/append tar file "
+                  << fd_.path() << ": <"
+                  << e.code() << ", " << e.what() << ">.";
+        throw e;
+    }
+
+    // TODO: handle 
+}
+
+void Writer::write(const Header &header, std::size_t block, std::size_t size)
+{
+    
+}
+
+void Writer::write(const Header &header, const boost::filesystem &file)
+{
+    
+}
+#endif
 
 } } // namespace utility::tar
