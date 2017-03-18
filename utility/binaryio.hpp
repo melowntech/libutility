@@ -28,7 +28,7 @@ void write(std::ostream &os, const T &v)
 }
 
 template <typename T>
-inline void write(std::ostream &os, const std::vector<T> &v) {
+void write(std::ostream &os, const std::vector<T> &v) {
     write(os, v.data(), v.size());
 }
 
@@ -54,8 +54,16 @@ void read(std::istream &is, T &v)
 }
 
 template <typename T>
-inline void read(std::istream &is, std::vector<T> &v) {
+void read(std::istream &is, std::vector<T> &v) {
     read(is, v.data(), v.size());
+}
+
+template <typename T>
+T read(std::istream &is)
+{
+    T v;
+    is.read(reinterpret_cast<char*>(&v), sizeof(T));
+    return v;
 }
 
 } } // namespace utility::binaryio
