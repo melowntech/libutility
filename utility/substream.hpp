@@ -47,6 +47,8 @@ struct SubStreamDevice {
         return bytes;
     }
 
+    const boost::filesystem::path& path() const { return path_; }
+
 private:
     std::streamsize read_impl(char *data, std::streamsize size
                               , boost::iostreams::stream_offset pos);

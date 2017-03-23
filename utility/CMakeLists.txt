@@ -46,8 +46,11 @@ if(Boost_IOSTREAMS_FOUND)
   message(STATUS "utility: compiling in boost iostreams support")
 
   list(APPEND utility_DEPENDS Boost_IOSTREAMS)
+  list(APPEND utility_DEFINITIONS UTILITY_HAS_BOOST_IOSTREAMS=1)
 
-  set(utility_IOSTREAMS_SOURCES substream.hpp substream.cpp)
+  set(utility_IOSTREAMS_SOURCES
+    substream.hpp substream.cpp
+    zip.hpp zip.cpp)
 else()
   message(STATUS "utility: compiling without boost iostreams support")
 endif()
