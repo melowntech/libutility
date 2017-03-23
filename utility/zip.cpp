@@ -54,6 +54,13 @@ void checkSignature(const std::string &what, std::istream &in
     }
 }
 
+const auto DeflateParams([]() -> bio::zlib_params {
+        bio::zlib_params params;
+        params.noheader = true;
+        return params;
+    }());
+
+
 struct LocalFileHeader {
     std::uint16_t versionNeeded;
     std::uint16_t flag;
@@ -384,6 +391,8 @@ RawFile Reader::rawfile(std::size_t index) const
                     { int(fd_), fileStart, fileEnd }));
 }
 
+
+
 PluggedFile Reader::plug(std::size_t index
                          , boost::iostreams::filtering_istream &fis)
     const
@@ -400,7 +409,7 @@ PluggedFile Reader::plug(std::size_t index
 
     case CompressionMethod::deflate:
     case CompressionMethod::deflate64:
-        fis.push(bio::zlib_decompressor(-15));
+        fis.push(bio::zlib_decompressor(DeflateParams));
         break;
 
     default:
