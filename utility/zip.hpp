@@ -29,46 +29,12 @@ struct BadSignature : Error {
     BadSignature(const std::string &e) : Error(e) {}
 };
 
-enum class CompressionMethod : std::uint16_t {
-    store = 0
-    , shrink = 1
-    , reduce1 = 2
-    , reduce2 = 3
-    , reduce3 = 4
-    , reduce4 = 5
-    , implode = 6
-    , deflate = 8
-    , deflate64 = 9
-    , pkwareImplode = 10
-    , bzip2 = 12
-    , lzma = 14
-    , terse = 18
-    , lz77 = 19
-    , wavpack = 97
-    , ppmd = 98
-};
-
-struct RawFile {
-    CompressionMethod compressionMethod;
-    std::size_t uncompressedSize;
-    utility::io::SubStreamDevice device;
-
-    RawFile(CompressionMethod compressionMethod
-            , std::size_t uncompressedSize
-            , utility::io::SubStreamDevice &&device)
-        : compressionMethod(compressionMethod)
-        , uncompressedSize(uncompressedSize)
-        , device(std::move(device))
-    {}
-};
-
 struct PluggedFile {
     boost::filesystem::path path;
     std::size_t uncompressedSize;
 
-    PluggedFile(const RawFile &rawFile)
-        : path(rawFile.device.path())
-        , uncompressedSize(rawFile.uncompressedSize)
+    PluggedFile(boost::filesystem::path path, std::size_t uncompressedSize)
+        : path(path), uncompressedSize(uncompressedSize)
     {}
 };
 
@@ -93,10 +59,6 @@ public:
 
     const Record::list& files() const { return records_; }
 
-    /** Access to file.
-     */
-    RawFile rawfile(std::size_t index) const;
-
     /** Plug decompressing stream for file at given index at the end of the
      *  filtering_istream.
      */
@@ -108,7 +70,11 @@ private:
 
     /** Open file descriptor.
      */
-    utility::Filedes fd_;
+    Filedes fd_;
+
+    /** Total lenght of file
+     */
+    std::size_t fileLength_;
 
     /** List of records.
      */

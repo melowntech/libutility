@@ -13,6 +13,7 @@
 
 #include "./binaryio.hpp"
 #include "./zip.hpp"
+#include "./enum-io.hpp"
 
 namespace bin = utility::binaryio;
 namespace fs = boost::filesystem;
@@ -25,6 +26,18 @@ namespace {
 constexpr std::uint32_t LOCAL_HEADER_SIGNATURE = 0x04034b50;
 constexpr std::uint32_t CENTRAL_DIRECTORY_FILE_HEADER_SIGNATURE = 0x02014b50;
 constexpr std::uint32_t END_OF_CENTRAL_DIRECTORY_SIGNATURE = 0x06054b50;
+constexpr std::uint32_t END_OF_CENTRAL_DIRECTORY64_SIGNATURE = 0x06064b50;
+constexpr std::uint32_t END_OF_CENTRAL_DIRECTORY64_LOCATOR_SIGNATURE = 0x07064b50;
+
+constexpr std::uint16_t Tag64 = 0x0001;
+
+/** Should be used only for uint16 and uint32
+ */
+template <typename T>
+bool invalid(T value)
+{
+    return value == std::numeric_limits<T>::max();
+}
 
 void readVector(std::istream &is, std::vector<char> &vec, std::size_t size)
 {
@@ -60,35 +73,65 @@ const auto DeflateParams([]() -> bio::zlib_params {
         return params;
     }());
 
-
-struct LocalFileHeader {
-    std::uint16_t versionNeeded;
-    std::uint16_t flag;
-    std::uint16_t compressionMethod;
-    std::uint16_t modificationTime;
-    std::uint16_t modificationDate;
-    std::uint32_t crc32;
-    std::uint32_t compressedSize;
-    std::uint32_t uncompressedSize;
-
-    std::string filename;
-    std::vector<char> fileExtra; // unparsed!
-
-    typedef std::vector<LocalFileHeader> list;
-
-    static LocalFileHeader read(std::istream &in);
-
-    std::size_t size() const;
-
-    std::size_t totalSize() const;
-
-    static std::size_t baseSize();
+enum class CompressionMethod : std::uint16_t {
+    store = 0
+    , shrink = 1
+    , reduce1 = 2
+    , reduce2 = 3
+    , reduce3 = 4
+    , reduce4 = 5
+    , implode = 6
+    , deflate = 8
+    , deflate64 = 9
+    , pkwareImplode = 10
+    , bzip2 = 12
+    , lzma = 14
+    , terse = 18
+    , lz77 = 19
+    , wavpack = 97
+    , ppmd = 98
 };
+
+UTILITY_GENERATE_ENUM_IO(CompressionMethod,
+                         ((store))
+                         ((shrink))
+                         ((reduce1))
+                         ((reduce2))
+                         ((reduce3))
+                         ((reduce4))
+                         ((implode))
+                         ((deflate))
+                         ((deflate64))
+                         ((pkwareImplode))
+                         ((bzip2))
+                         ((lzma))
+                         ((terse))
+                         ((lz77))
+                         ((wavpack))
+                         ((ppmd))
+                         )
+
+const std::size_t
+localFileHeaderSize(sizeof(std::uint32_t)
+                    + sizeof(std::uint16_t) // versionNeeded
+                    + sizeof(std::uint16_t) // flag)
+                    + sizeof(std::uint16_t) // compressionMethod)
+                    + sizeof(std::uint16_t) // modificationTime
+                    + sizeof(std::uint16_t) // modificationDate
+                    + sizeof(std::uint32_t) // crc32
+                    + sizeof(std::uint32_t) // compressedSize
+                    + sizeof(std::uint32_t) // uncompressedSize
+                    + sizeof(std::uint16_t)
+                    + sizeof(std::uint16_t)
+                    );
+
+const std::size_t maxFilenameSize(std::numeric_limits<std::uint16_t>::max());
+const std::size_t maxExtraSize(std::numeric_limits<std::uint16_t>::max());
 
 struct MinimalFileHeader {
     std::uint16_t compressionMethod;
-    std::uint32_t compressedSize;
-    std::uint32_t uncompressedSize;
+    std::uint64_t compressedSize;
+    std::uint64_t uncompressedSize;
     std::uint16_t filenameSize;
     std::uint16_t fileExtraSize;
 
@@ -100,36 +143,36 @@ struct MinimalFileHeader {
     void read(std::istream &in);
 
     std::size_t size() const {
-        return LocalFileHeader::baseSize() + filenameSize + fileExtraSize;
+        return localFileHeaderSize + filenameSize + fileExtraSize;
     }
 };
 
-struct CentralDirectoryFileHeader : LocalFileHeader {
+struct CentralDirectoryFileHeader {
+    std::uint16_t versionNeeded;
+    std::uint16_t flag;
+    std::uint16_t compressionMethod;
+    std::uint16_t modificationTime;
+    std::uint16_t modificationDate;
+    std::uint32_t crc32;
+    std::uint64_t compressedSize;
+    std::uint64_t uncompressedSize;
+    std::string filename;
     std::uint16_t versionMadeBy;
-    std::uint16_t diskNumberStart;
+    std::uint32_t diskNumberStart;
     std::uint16_t internalFileAttributes;
     std::uint32_t externalFileAttributes;
-    std::uint32_t fileOffset;
+    std::uint64_t fileOffset;
 
+    std::vector<char> fileExtra;
     std::vector<char> fileComment;
 
     typedef std::vector<CentralDirectoryFileHeader> list;
 
-    CentralDirectoryFileHeader(const LocalFileHeader &lh)
-        : LocalFileHeader(lh)
-        , versionMadeBy(lh.versionNeeded)
-        , diskNumberStart(0)
-        , internalFileAttributes(0)
-        , externalFileAttributes(0)
-        , fileOffset()
-    {}
-
     CentralDirectoryFileHeader()
-        : LocalFileHeader()
-        , versionMadeBy(0)
-        , diskNumberStart(0)
-        , internalFileAttributes(0)
-        , externalFileAttributes(0)
+        : versionMadeBy()
+        , diskNumberStart()
+        , internalFileAttributes()
+        , externalFileAttributes()
         , fileOffset()
     {}
 
@@ -137,12 +180,12 @@ struct CentralDirectoryFileHeader : LocalFileHeader {
 };
 
 struct EndOfCentralDirectoryRecord {
-    std::uint16_t numberOfThisDisk;
-    std::uint16_t diskWhereCentralDirectoryStarts;
-    std::uint16_t numberOfCentralDirectoryRecordsOnThisDisk;
-    std::uint16_t totalNumberOfCentralDirectoryRecords;
-    std::uint32_t sizeOfCentralDirectory;
-    std::uint32_t centralDirectoryOffset;
+    std::uint32_t numberOfThisDisk;
+    std::uint32_t diskWhereCentralDirectoryStarts;
+    std::uint64_t numberOfCentralDirectoryRecordsOnThisDisk;
+    std::uint64_t totalNumberOfCentralDirectoryRecords;
+    std::uint64_t sizeOfCentralDirectory;
+    std::uint64_t centralDirectoryOffset;
     std::vector<char> comment;
 
     EndOfCentralDirectoryRecord()
@@ -154,76 +197,112 @@ struct EndOfCentralDirectoryRecord {
         , centralDirectoryOffset(0)
     {}
 
+    bool has64locator() const {
+        return (invalid<std::uint16_t>(numberOfThisDisk)
+                || invalid<std::uint16_t>(diskWhereCentralDirectoryStarts)
+                || invalid<std::uint16_t>
+                (numberOfCentralDirectoryRecordsOnThisDisk)
+                || invalid<std::uint32_t>(totalNumberOfCentralDirectoryRecords)
+                || invalid<std::uint32_t>(sizeOfCentralDirectory)
+                || invalid<std::uint32_t>(centralDirectoryOffset));
+    }
+
     static EndOfCentralDirectoryRecord read(std::istream &in);
+    static EndOfCentralDirectoryRecord read64(std::istream &in);
 };
+
+struct EndOfCentralDirectory64Locator {
+    std::uint32_t numberOfThisDisk;
+    std::uint64_t endOfCentralDirectoryOffset;
+    std::uint32_t totalNumberOfDisks;
+
+    EndOfCentralDirectory64Locator()
+        : numberOfThisDisk()
+        , endOfCentralDirectoryOffset()
+        , totalNumberOfDisks()
+    {}
+
+    static EndOfCentralDirectory64Locator read(std::istream &in);
+
+    static std::size_t size() {
+        return (sizeof(std::uint32_t) // signature
+                + sizeof(numberOfThisDisk)
+                + sizeof(endOfCentralDirectoryOffset)
+                + sizeof(totalNumberOfDisks)
+                );
+    }
+};
+
+void readExtra64(std::istream &in, int extraSize
+                 , std::uint64_t &uncompressedSize
+                 , std::uint64_t &compressedSize
+                 , std::uint64_t *fileOffset = nullptr
+                 , std::uint32_t *diskNumberStart = nullptr)
+{
+    const auto headerSize(2 * sizeof(std::uint16_t));
+
+    // end seek to
+    auto skip(in.tellg());
+    skip += extraSize;
+
+    // read stuff from extra data
+    while (extraSize > 0) {
+        const auto tag(bin::read<std::uint16_t>(in));
+        const auto size(bin::read<std::uint16_t>(in));
+        extraSize -= (headerSize + size);
+
+        if (tag != Tag64) {
+            // skip
+            in.seekg(size, std::ios_base::cur);
+            continue;
+        }
+
+        // 64bit info -> read
+
+        // read only fields that are marked invalid
+        if (invalid<std::uint32_t>(uncompressedSize)) {
+            bin::read(in, uncompressedSize);
+        }
+
+        if (invalid<std::uint32_t>(compressedSize)) {
+            bin::read(in, compressedSize);
+        }
+
+        if (fileOffset && invalid<std::uint32_t>(*fileOffset)) {
+            bin::read(in, *fileOffset);
+        }
+
+        if (diskNumberStart && invalid<std::uint16_t>(*diskNumberStart)) {
+            bin::read(in, *diskNumberStart);
+        }
+
+        // no need to continue
+        break;
+    }
+
+    // seek to proper location regardless where we ended while parsing data
+    in.seekg(skip, std::ios_base::beg);
+}
 
 void MinimalFileHeader::read(std::istream &in)
 {
     checkSignature("local file header", in, LOCAL_HEADER_SIGNATURE);
-    bin::read<std::uint16_t>(in);
-    bin::read<std::uint16_t>(in);
+    bin::read<std::uint16_t>(in); // version needed to extract
+    bin::read<std::uint16_t>(in); // general purpose bit flag
     bin::read(in, compressionMethod);
-    bin::read<std::uint16_t>(in);
-    bin::read<std::uint16_t>(in);
-    bin::read<std::uint32_t>(in);
-    bin::read(in, compressedSize);
-    bin::read(in, uncompressedSize);
+    bin::read<std::uint16_t>(in); // last modification time
+    bin::read<std::uint16_t>(in); // last modification date
+    bin::read<std::uint32_t>(in); // crc-32
+    compressedSize = bin::read<std::uint32_t>(in);
+    uncompressedSize = bin::read<std::uint32_t>(in);
     bin::read(in, filenameSize);
     bin::read(in, fileExtraSize);
-}
 
-LocalFileHeader LocalFileHeader::read(std::istream &in)
-{
-    checkSignature("local file header", in, LOCAL_HEADER_SIGNATURE);
+    // skip filename
+    in.seekg(filenameSize, std::ios_base::cur);
 
-    LocalFileHeader h;
-
-    bin::read(in, h.versionNeeded);
-    bin::read(in, h.flag);
-    bin::read(in, h.compressionMethod);
-    bin::read(in, h.modificationTime);
-    bin::read(in, h.modificationDate);
-    bin::read(in, h.crc32);
-    bin::read(in, h.compressedSize);
-    bin::read(in, h.uncompressedSize);
-
-    const auto sizeFilename(bin::read<std::uint16_t>(in));
-    const auto sizeFileExtra(bin::read<std::uint16_t>(in));
-
-    // read filename
-    readString(in, h.filename, sizeFilename);
-    readVector(in, h.fileExtra, sizeFileExtra);
-
-    return h;
-}
-
-std::size_t LocalFileHeader::baseSize()
-{
-    // construct base size of header
-    return (sizeof(std::uint32_t)
-            + sizeof(LocalFileHeader::versionNeeded)
-            + sizeof(LocalFileHeader::flag)
-            + sizeof(LocalFileHeader::compressionMethod)
-            + sizeof(LocalFileHeader::modificationTime)
-            + sizeof(LocalFileHeader::modificationDate)
-            + sizeof(LocalFileHeader::crc32)
-            + sizeof(LocalFileHeader::compressedSize)
-            + sizeof(LocalFileHeader::uncompressedSize)
-            + sizeof(std::uint16_t)
-            + sizeof(std::uint16_t));
-}
-
-std::size_t LocalFileHeader::size() const
-{
-    // construct size of header
-    return (baseSize()
-            + filename.size()
-            + fileExtra.size());
-}
-
-std::size_t LocalFileHeader::totalSize() const
-{
-    return size() + compressedSize;
+    // read extra info for 64 bit version (if any)
+    readExtra64(in, fileExtraSize, compressedSize, uncompressedSize);
 }
 
 CentralDirectoryFileHeader CentralDirectoryFileHeader::read(std::istream &in)
@@ -240,20 +319,21 @@ CentralDirectoryFileHeader CentralDirectoryFileHeader::read(std::istream &in)
     bin::read(in, h.modificationTime);
     bin::read(in, h.modificationDate);
     bin::read(in, h.crc32);
-    bin::read(in, h.compressedSize);
-    bin::read(in, h.uncompressedSize);
+    h.compressedSize = bin::read<std::uint32_t>(in);
+    h.uncompressedSize = bin::read<std::uint32_t>(in);
 
     const auto filenameSize(bin::read<std::uint16_t>(in));
     const auto fileExtraSize(bin::read<std::uint16_t>(in));
     const auto fileCommentSize(bin::read<std::uint16_t>(in));
 
-    bin::read(in, h.diskNumberStart);
+    h.diskNumberStart = bin::read<std::uint16_t>(in);
     bin::read(in, h.internalFileAttributes);
     bin::read(in, h.externalFileAttributes);
-    bin::read(in, h.fileOffset);
+    h.fileOffset = bin::read<std::uint32_t>(in);
 
     readString(in, h.filename, filenameSize);
-    readVector(in, h.fileExtra, fileExtraSize);
+    readExtra64(in, fileExtraSize, h.compressedSize, h.uncompressedSize
+                , &h.fileOffset, &h.diskNumberStart);
     readVector(in, h.fileComment, fileCommentSize);
 
     return h;
@@ -266,12 +346,12 @@ EndOfCentralDirectoryRecord EndOfCentralDirectoryRecord::read(std::istream &in)
 
     EndOfCentralDirectoryRecord r;
 
-    bin::read(in, r.numberOfThisDisk);
-    bin::read(in, r.diskWhereCentralDirectoryStarts);
-    bin::read(in, r.numberOfCentralDirectoryRecordsOnThisDisk);
-    bin::read(in, r.totalNumberOfCentralDirectoryRecords);
-    bin::read(in, r.sizeOfCentralDirectory);
-    bin::read(in, r.centralDirectoryOffset);
+    r.numberOfThisDisk = bin::read<std::uint16_t>(in);
+    r.diskWhereCentralDirectoryStarts = bin::read<std::uint16_t>(in);
+    r.numberOfCentralDirectoryRecordsOnThisDisk = bin::read<std::uint16_t>(in);
+    r.totalNumberOfCentralDirectoryRecords = bin::read<std::uint16_t>(in);
+    r.sizeOfCentralDirectory = bin::read<std::uint32_t>(in);
+    r.centralDirectoryOffset = bin::read<std::uint32_t>(in);
 
     const auto fileCommentSize(bin::read<std::uint16_t>(in));
     readVector(in, r.comment, fileCommentSize);
@@ -279,37 +359,85 @@ EndOfCentralDirectoryRecord EndOfCentralDirectoryRecord::read(std::istream &in)
     return r;
 }
 
+EndOfCentralDirectoryRecord
+EndOfCentralDirectoryRecord::read64(std::istream &in)
+{
+    checkSignature("end of central directory (64)", in
+                   , END_OF_CENTRAL_DIRECTORY64_SIGNATURE);
+
+    // size of this record, ignore
+    bin::read<std::uint64_t>(in);
+    // version made by, ignroe
+    bin::read<std::uint16_t>(in);
+    // version needed, ignore
+    bin::read<std::uint16_t>(in);
+
+    EndOfCentralDirectoryRecord r;
+
+    r.numberOfThisDisk = bin::read<std::uint32_t>(in);
+    r.diskWhereCentralDirectoryStarts = bin::read<std::uint32_t>(in);
+    r.numberOfCentralDirectoryRecordsOnThisDisk = bin::read<std::uint64_t>(in);
+    r.totalNumberOfCentralDirectoryRecords = bin::read<std::uint64_t>(in);
+    r.sizeOfCentralDirectory = bin::read<std::uint64_t>(in);
+    r.centralDirectoryOffset = bin::read<std::uint64_t>(in);
+
+    return r;
+}
+
+EndOfCentralDirectory64Locator
+EndOfCentralDirectory64Locator::read(std::istream &in)
+{
+    checkSignature("end of central directory 64 locator", in
+                   , END_OF_CENTRAL_DIRECTORY64_LOCATOR_SIGNATURE);
+
+    EndOfCentralDirectory64Locator r;
+
+    bin::read(in, r.numberOfThisDisk);
+    bin::read(in, r.endOfCentralDirectoryOffset);
+    bin::read(in, r.totalNumberOfDisks);
+
+    return r;
+}
+
+Filedes openFile(const fs::path &path)
+{
+    Filedes fd(::open(path.string().c_str(), O_RDONLY), path);
+    if (!fd) {
+        std::system_error e(errno, std::system_category());
+        LOG(err2) << "Cannot open zip file " << path << ": <"
+                  << e.code() << ", " << e.what() << ">.";
+        throw e;
+    }
+    return fd;
+}
+
+std::size_t fileSize(const Filedes &fd)
+{
+    struct ::stat st;
+    if (-1 == ::fstat(fd, &st)) {
+        std::system_error e(errno, std::system_category());
+        LOG(err2) << "Cannot stat zip file " << fd.path() << ": <"
+                  << e.code() << ", " << e.what() << ">.";
+        throw e;
+    }
+    return st.st_size;
+}
+
 } // namespace
 
 Reader::Reader(const fs::path &path)
-    : path_(path), fd_(::open(path.string().c_str(), O_RDONLY), path)
+    : path_(path), fd_(openFile(path))
+    , fileLength_(fileSize(fd_))
 {
-    if (!fd_) {
-        std::system_error e(errno, std::system_category());
-        LOG(err2) << "Cannot open zip file " << fd_.path() << ": <"
-                  << e.code() << ", " << e.what() << ">.";
-        throw e;
-    }
-
-    struct ::stat st;
-    if (-1 == ::fstat(fd_, &st)) {
-        std::system_error e(errno, std::system_category());
-        LOG(err2) << "Cannot stat zip file " << fd_.path() << ": <"
-                  << e.code() << ", " << e.what() << ">.";
-        throw e;
-    }
-
-    std::size_t fsize(st.st_size);
-
     try {
         boost::iostreams::stream<utility::io::SubStreamDevice> f
             (utility::io::SubStreamDevice
              (path_, utility::io::SubStreamDevice::Filedes
-              { int(fd_), std::size_t(0), fsize }), 512);
+              { int(fd_), std::size_t(0), fileLength_}), 512);
         f.exceptions(std::ios::badbit | std::ios::failbit);
 
         // read at most 1 KB block from the end of file
-        auto bsize = (fsize > 1024) ? 1024 : fsize;
+        auto bsize = (fileLength_ > 1024) ? 1024 : fileLength_;
         f.seekg(-bsize, std::ios_base::end);
 
         // read block
@@ -339,6 +467,15 @@ Reader::Reader(const fs::path &path)
         f.seekg(-off, std::ios_base::end);
         auto eocd(EndOfCentralDirectoryRecord::read(f));
 
+        if (eocd.has64locator()) {
+            // seek to locator and read
+            f.seekg(-off - EndOfCentralDirectory64Locator::size()
+                    , std::ios_base::end);
+            const auto locator(EndOfCentralDirectory64Locator::read(f));
+            f.seekg(locator.endOfCentralDirectoryOffset, std::ios_base::beg);
+            eocd = EndOfCentralDirectoryRecord::read64(f);
+        }
+
         // seek to first central directory record
         f.seekg(eocd.centralDirectoryOffset, std::ios_base::beg);
 
@@ -358,11 +495,14 @@ Reader::Reader(const fs::path &path)
         }
     } catch (const std::ios_base::failure &e) {
         LOGTHROW(err2, Error)
-            << "Cannot process zip file " << path << ": " << e.what() << ".";
+            << "Cannot process the zip file " << path << ": " << e.what()
+            << ".";
     }
 }
 
-RawFile Reader::rawfile(std::size_t index) const
+PluggedFile Reader::plug(std::size_t index
+                         , boost::iostreams::filtering_istream &fis)
+    const
 {
     if (index >= records_.size())  {
         LOGTHROW(err2, Error)
@@ -370,37 +510,31 @@ RawFile Reader::rawfile(std::size_t index) const
             << path_ << ".";
     }
 
+    // grab record
     const auto &record(records_[index]);
 
-    boost::iostreams::stream<utility::io::SubStreamDevice> hf
-        (utility::io::SubStreamDevice
-         (path_, utility::io::SubStreamDevice::Filedes
-          { int(fd_), std::size_t(record.headerStart)
-            , std::size_t(record.headerStart) + LocalFileHeader::baseSize() })
-         , 512);
-
+    // load minimal version of files header
     MinimalFileHeader header;
-    header.read(hf);
-    std::size_t fileStart(record.headerStart + header.size());
-    std::size_t fileEnd(fileStart + header.compressedSize);
+    {
+        std::size_t headerStart(record.headerStart);
+        std::size_t headerEnd(headerStart + localFileHeaderSize
+                              + maxFilenameSize + maxExtraSize);
+        if (headerEnd > fileLength_) { headerEnd = fileLength_; }
 
-    return RawFile(static_cast<CompressionMethod>(header.compressionMethod)
-                   , header.uncompressedSize
-                   , utility::io::SubStreamDevice
-                   (record.path, utility::io::SubStreamDevice::Filedes
-                    { int(fd_), fileStart, fileEnd }));
-}
+        boost::iostreams::stream<utility::io::SubStreamDevice> hf
+            (utility::io::SubStreamDevice
+             (path_, utility::io::SubStreamDevice::Filedes
+              { int(fd_), headerStart, headerEnd }), 512);
 
+        header.read(hf);
+    }
 
-
-PluggedFile Reader::plug(std::size_t index
-                         , boost::iostreams::filtering_istream &fis)
-    const
-{
-    const auto raw(rawfile(index));
-    switch (raw.compressionMethod) {
+    // add decompressor based on compression method
+    switch (const auto cm
+            = static_cast<CompressionMethod>(header.compressionMethod))
+    {
     case CompressionMethod::store:
-        // nothing more
+        // not compressed, no decompressor needed
         break;
 
     case CompressionMethod::bzip2:
@@ -414,13 +548,20 @@ PluggedFile Reader::plug(std::size_t index
 
     default:
         LOGTHROW(err2, Error)
-            << "Unsupported compression method for file "
-            << raw.device.path() << " in zip file "
+            << "Unsupported compression method <" << cm << "> for file "
+            << record.path << " in the zip file "
             << path_ << ".";
     }
 
-    fis.push(raw.device);
-    return raw;
+    const std::size_t fileStart(record.headerStart + header.size());
+    const std::size_t fileEnd(fileStart + header.compressedSize);
+
+    // and finally push the device for the underlying compressed file
+    fis.push(utility::io::SubStreamDevice
+             (record.path, utility::io::SubStreamDevice::Filedes
+              { int(fd_), fileStart, fileEnd }));
+
+    return PluggedFile(record.path, header.uncompressedSize);
 }
 
 } } // namespace utility::zip
