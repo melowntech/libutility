@@ -5,6 +5,7 @@
 #include <string>
 #include <exception>
 #include <system_error>
+#include <future>
 
 #include "./uri.hpp"
 #include "./supplement.hpp"
@@ -63,6 +64,8 @@ public:
         void error(std::error_code ec) {ec_ = std::move(ec); }
 
         const Body& get() const;
+
+        Body&& moveOut();
 
         bool check(const std::error_code &ec) const { return (ec_ == ec); }
 
@@ -156,6 +159,14 @@ public:
      */
     void perform(MultiQuery query, const Done &done) const;
 
+    /** Blocking query operation.
+     */
+    Query perform(Query query) const;
+
+    /** Blocking multi-query operation.
+     */
+    MultiQuery perform(MultiQuery query) const;
+
 private:
     virtual void perform_impl(MultiQuery query, const Done &done)
         const = 0;
@@ -224,6 +235,13 @@ inline const ResourceFetcher::Query::Body& ResourceFetcher::Query::get() const
     return body_;
 }
 
+inline ResourceFetcher::Query::Body&& ResourceFetcher::Query::moveOut()
+{
+    if (exc_) { std::rethrow_exception(exc_); }
+    if (ec_) { throwErrorCode(ec_); }
+    return std::move(body_);
+}
+
 template <typename Sink>
 inline const ResourceFetcher::Query::Body*
 ResourceFetcher::Query::get(Sink &sink) const
@@ -236,6 +254,51 @@ ResourceFetcher::Query::get(Sink &sink) const
 inline bool ResourceFetcher::Query::valid() const
 {
     return (!exc_ && !ec_);
+}
+
+namespace detail {
+template <typename T>
+class Promise {
+public:
+    Promise() {}
+    Promise(const Promise &o)
+        : p_(std::move(o.promise()))
+    {}
+
+    std::promise<T>& promise() const {
+            return const_cast<std::promise<T>&>(p_);
+    }
+
+private:
+    std::promise<T> p_;
+};
+
+} // namespace detail
+
+inline ResourceFetcher::Query ResourceFetcher::perform(Query query) const
+{
+
+    detail::Promise<Query> promise;
+    auto future(promise.promise().get_future());
+    perform_impl({std::move(query)}, [promise](MultiQuery &&q)
+    {
+        promise.promise().set_value(std::move(q.front()));
+    });
+
+    return future.get();
+}
+
+inline ResourceFetcher::MultiQuery ResourceFetcher::perform(MultiQuery query)
+    const
+{
+    detail::Promise<MultiQuery> promise;
+    auto future(promise.promise().get_future());
+    perform_impl({std::move(query)}, [promise](MultiQuery &&q)
+    {
+        promise.promise().set_value(std::move(q));
+    });
+
+    return future.get();
 }
 
 } // namespace utility
