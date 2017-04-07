@@ -168,10 +168,8 @@ void parseHost(UriNetloc &nl, const std::string &in, const Range &r)
 std::string::size_type parseNetloc(UriNetloc &nl, const std::string &in
                                    , std::string::size_type pos)
 {
+    // find first separator (none found -> fine)
     auto delim(in.find_first_of("/?#", pos));
-    if (delim == std::string::npos) {
-        return delim;
-    }
 
     if (delim != pos) {
         auto netloc(range(in, pos, delim));
