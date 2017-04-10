@@ -20,7 +20,7 @@
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
-#include <mysql++.h>
+#include <mysql++/mysql++.h>
 #pragma GCC diagnostic pop
 
 #include "dbglog/dbglog.hpp"
