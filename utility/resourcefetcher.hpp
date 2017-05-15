@@ -56,6 +56,7 @@ public:
 
             Body() : lastModified(-1), expires(-1), redirect(false) {}
         };
+        typedef std::vector<std::pair<std::string, std::string>> Options;
 
         Query(Query&&) = default;
         Query(const Query&) = default;
@@ -77,6 +78,16 @@ public:
          *  timeout.
          */
         Query& timeout(long timeout) { timeout_ = timeout; return *this; }
+
+        /** Add options. Option is protocol dependent. For HTTP, option =
+         *  header.
+         */
+        Query& addOption(const std::string &name, const std::string &value) {
+            options_.emplace_back(name, value);
+            return *this;
+        }
+
+        const Options& options() const { return options_; }
 
         void set(std::time_t lastModified, std::time_t expires
                  , const void *data, std::size_t size
@@ -120,6 +131,8 @@ public:
         bool reuse_;
 
         long timeout_;
+
+        Options options_;
     };
 
     class MultiQuery : public utility::Supplement<MultiQuery> {
