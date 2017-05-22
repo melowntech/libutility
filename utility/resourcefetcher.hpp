@@ -61,7 +61,9 @@ public:
         Query(Query&&) = default;
         Query(const Query&) = default;
 
-        Query() : empty_(true), followRedirects_(true) {}
+        Query()
+            : empty_(true), followRedirects_(true), reuse_(true), timeout_(-1)
+        {}
         Query(const std::string &location, bool followRedirects = true);
 
 
@@ -228,7 +230,7 @@ inline ResourceFetcher::Query::Query(const std::string &location
                                      , bool followRedirects)
     : empty_(false), location_(location), exc_(), ec_()
     , followRedirects_(followRedirects)
-    , reuse_(true)
+    , reuse_(true), timeout_(-1)
 {}
 
 inline void ResourceFetcher::Query::assign(const std::string &location
