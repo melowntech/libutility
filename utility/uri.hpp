@@ -128,6 +128,9 @@ public:
      */
     static std::string removeDotSegments(const std::string &str);
 
+    static std::string joinAndRemoveDotSegments(std::string a
+                                                , const std::string &b);
+
 private:
     UriComponents components_;
 };

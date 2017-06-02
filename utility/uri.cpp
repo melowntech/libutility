@@ -423,8 +423,8 @@ std::string Uri::removeDotSegments(const std::string &str)
         {
             // remove /..
             in.first += 3;
-            // remove last element from output
-            out.pop_back();
+            // remove last element from output (if any)
+            if (!out.empty()) { out.pop_back(); }
 
             if (detail::empty(in)) { out.push_back(detail::range(slash)); }
             continue;
@@ -478,7 +478,7 @@ void join(std::string &out, const std::string &relative) {
     // NB: out is not empty here
     if (out.back() == '/') {
         // out ends with slash -> directory
-        Uri::removeDotSegments(out + relative);
+        out = Uri::removeDotSegments(out + relative);
         return;
     }
 
@@ -486,7 +486,7 @@ void join(std::string &out, const std::string &relative) {
     auto prev(out.rfind('/'));
     if (prev == std::string::npos) {
         // no slash at all, replace
-        Uri::removeDotSegments(relative);
+        out = Uri::removeDotSegments(relative);
         return;
     }
 
@@ -588,6 +588,14 @@ std::size_t Uri::pathComponentCount() const
     ba::split(tokens, components_.path, ba::is_any_of("/")
               , ba::token_compress_on);
     return (absolutePath() ? (tokens.size() - 1) : tokens.size());
+}
+
+std::string Uri::joinAndRemoveDotSegments(std::string a
+                                          , const std::string &b)
+{
+    std::string out(std::move(a));
+    detail::join(out, b);
+    return out;
 }
 
 } // utility
