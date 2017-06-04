@@ -554,12 +554,15 @@ PluggedFile Reader::plug(std::size_t index
         header.read(hf);
     }
 
+    bool seekable(false);
+
     // add decompressor based on compression method
     switch (const auto cm
             = static_cast<CompressionMethod>(header.compressionMethod))
     {
     case CompressionMethod::store:
         // not compressed, no decompressor needed
+        seekable = true;
         break;
 
     case CompressionMethod::bzip2:
@@ -586,7 +589,7 @@ PluggedFile Reader::plug(std::size_t index
              (record.path, utility::io::SubStreamDevice::Filedes
               { int(fd_), fileStart, fileEnd }));
 
-    return PluggedFile(record.path, header.uncompressedSize);
+    return PluggedFile(record.path, header.uncompressedSize, seekable);
 }
 
 } } // namespace utility::zip

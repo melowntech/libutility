@@ -57,9 +57,11 @@ struct BadSignature : Error {
 struct PluggedFile {
     boost::filesystem::path path;
     std::size_t uncompressedSize;
+    bool seekable;
 
-    PluggedFile(boost::filesystem::path path, std::size_t uncompressedSize)
-        : path(path), uncompressedSize(uncompressedSize)
+    PluggedFile(boost::filesystem::path path, std::size_t uncompressedSize
+                , bool seekable)
+        : path(path), uncompressedSize(uncompressedSize), seekable(seekable)
     {}
 };
 

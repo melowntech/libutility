@@ -82,7 +82,7 @@ SubStreamDevice::read_impl(char *data, std::streamsize size
         std::system_error e
             (errno, std::system_category()
              , utility::formatError
-             ("Unable to read from tilar file %s.", path_));
+             ("Unable to read from substream at %s.", path_));
         throw e;
     }
     return bytes;
