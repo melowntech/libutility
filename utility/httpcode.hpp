@@ -40,8 +40,15 @@ enum class HttpCode {
     unset = 0
     , OK = 200
 
+    , MultipleChoices = 300
+    , MovedPermanenty = 301
     , Found = 302
+    , SeeOther = 303
     , NotModified = 304
+    , UseProxy = 305
+    , SwitchProxy = 306
+    , TemporaryRedirect = 307
+    , PermanentRedrect = 308
 
     , BadRequest = 400
     , NotAuthorized = 401
@@ -50,7 +57,10 @@ enum class HttpCode {
     , NotAllowed = 405
 
     , InternalServerError = 500
+    , NotImplemented = 501
+    , BadGateway = 502
     , ServiceUnavailable = 503
+    , GatewayTimeout = 504
 
     // synthetic codes, not to be sent to the client
     , RequestAborted = 499
@@ -64,8 +74,16 @@ inline std::error_code make_error_code(HttpCode code) {
     return std::error_code(static_cast<int>(code), httpCodeCategory());
 }
 
+inline std::error_code make_http_error_code(int code) {
+    return std::error_code(code, httpCodeCategory());
+}
+
 inline std::error_condition make_error_condition(HttpCode code) {
     return std::error_condition(static_cast<int>(code), httpCodeCategory());
+}
+
+inline std::error_condition make_http_error_condition(int code) {
+    return std::error_condition(code, httpCodeCategory());
 }
 
 class HttpError : public std::runtime_error {
