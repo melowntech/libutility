@@ -62,6 +62,24 @@ std::time_t lastModified(const boost::filesystem::path &path);
 
 std::size_t fileSize(const boost::filesystem::path &path);
 
+/** Generalized file ID. Wrapper around file devide/inode. Using uint64 to
+ *  capture every possibility.
+ */
+struct FileId {
+    std::uint64_t dev;
+    std::uint64_t id;
+
+    FileId(std::uint64_t dev, std::uint64_t id) : dev(dev), id(id) {}
+
+    bool operator<(const FileId &fid) const {
+        if (dev < fid.dev) { return true; }
+        if (fid.dev < dev) { return false; }
+        return id < fid.id;
+    }
+
+    static FileId from(const boost::filesystem::path &path);
+};
+
 } // namespace utility
 
 // impelemtation
