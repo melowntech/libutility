@@ -41,6 +41,11 @@ void throwErrorCode(const std::error_code &ec) noexcept(false);
 void throwErrorCode(const std::error_code &ec, std::string message)
     noexcept(false);
 
+std::exception_ptr makeErrorCodeException(const std::error_code &ec);
+
+std::exception_ptr makeErrorCodeException(const std::error_code &ec
+                                          , std::string message);
+
 // inlines
 
 inline void throwErrorCode(const std::error_code &ec) noexcept(false)
@@ -78,7 +83,27 @@ inline void throwErrorCode(const std::error_code &ec, std::string message)
     throw std::system_error(ec, std::move(message));
 }
 
+inline std::exception_ptr makeErrorCodeException(const std::error_code &ec)
+{
+    try {
+        throwErrorCode(ec);
+    } catch (...) {
+        return std::current_exception();
+    }
+    return {};
+}
+
+inline std::exception_ptr makeErrorCodeException(const std::error_code &ec
+                                                 , std::string message)
+{
+    try {
+        throwErrorCode(ec, message);
+    } catch (...) {
+        return std::current_exception();
+    }
+    return {};
+}
+
 } // namespace std
 
 #endif // utility_errorcode_hpp_included_
-
