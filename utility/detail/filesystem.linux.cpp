@@ -42,7 +42,7 @@ FileId FileId::from(const boost::filesystem::path &path)
 
     if (-1 == ::stat(path.c_str(), &s)) {
         std::system_error e(errno, std::system_category());
-        LOG(err3) << "Unable to stat file " << path << ": "
+        LOG(err1) << "Unable to stat file " << path << ": "
                   << e.code() << ", " << e.what() << ">.";
         throw e;
     }

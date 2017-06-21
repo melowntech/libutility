@@ -83,6 +83,10 @@ public:
      */
     reference set(const std::error_code &ec);
 
+    /** Checks whether we have valid value.
+     */
+    operator bool() const { return value_; }
+
     /** Returns value or thows exception if set.
      */
     const_reference get() const;
