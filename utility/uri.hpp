@@ -41,14 +41,17 @@
 #include <cstdlib>
 
 #include <boost/filesystem/path.hpp>
-#include <boost/lexical_cast.hpp>
-#include <boost/algorithm/string/case_conv.hpp>
+
+#include "stringview.hpp"
 
 namespace utility {
 
 std::string urlEncode(const std::string &in, bool plus = true);
 
 std::string urlDecode(const std::string &in);
+
+std::string urlDecode(std::string::const_iterator begin
+                      , std::string::const_iterator end);
 
 struct InvalidUri : public std::runtime_error {
     InvalidUri(const std::string &message) : std::runtime_error(message) {}
@@ -135,11 +138,70 @@ private:
     UriComponents components_;
 };
 
+
+std::string str(const Uri &uri);
+
+// query parsing
+
+struct QueryKeyValue {
+    StringView key;
+    StringView value;
+
+    typedef std::vector<QueryKeyValue> list;
+
+    QueryKeyValue() = default;
+    QueryKeyValue(StringView key) : key(std::move(key)) {}
+    QueryKeyValue(StringView key, StringView value)
+        : key(std::move(key)), value(std::move(value))
+    {}
+
+    /** Splits single argument into key/value pair
+     */
+    static QueryKeyValue split(const StringView &arg);
+
+    /** Splits query to key/value list.
+     *
+     *  NB: elements are held as iterators to original string; do not use
+     *  key/value list after string destruction.
+     *
+     *  NB: elements are left intact, URL encoding is NOT removed.
+     */
+    static QueryKeyValue::list splitQuery(const std::string &query);
+};
+
+/** Wrapper around parsed query string. Holds string views to original string,
+ *  do not use after strings destruction.
+ */
+class QueryString {
+public:
+    QueryString(const std::string &query)
+        : query_(query), kvl_(QueryKeyValue::splitQuery(query_))
+    {
+        unescape();
+    }
+
+    typedef QueryKeyValue::list::const_iterator iterator;
+    typedef iterator const_iterator;
+    const_iterator begin() const { return kvl_.begin(); }
+    const_iterator end() const { return kvl_.end(); }
+
+    std::string get(const std::string &key
+                    , const std::string &defaultValue) const;
+
+private:
+    void unescape();
+    void unescape(StringView &what);
+
+    const std::string query_;
+    QueryKeyValue::list kvl_;
+    std::vector<std::string> storage_;
+};
+
+// inlines
+
 /** Reconstructs URI in string representation.
  */
 inline std::string str(const Uri &uri) { return uri.str(); }
-
-// inlines
 
 inline const std::string& Uri::scheme() const { return components_.scheme; }
 inline const std::string& Uri::host() const { return components_.host; }
@@ -151,6 +213,12 @@ inline Uri operator+(const Uri &base, const Uri &relative) {
 
 inline bool Uri::absolute() const { return !host().empty(); }
 inline boost::filesystem::path Uri::path() const { return components_.path; }
+
+
+inline std::string urlDecode(const std::string &in)
+{
+    return urlDecode(in.begin(), in.end());
+}
 
 } // namespace utility
 

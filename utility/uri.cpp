@@ -25,8 +25,11 @@
  */
 #include <cctype>
 #include <iterator>
+#include <algorithm>
+
 #include <boost/filesystem.hpp>
 
+#include <boost/lexical_cast.hpp>
 #include <boost/algorithm/string/case_conv.hpp>
 #include <boost/algorithm/string/predicate.hpp>
 #include <boost/algorithm/string/split.hpp>
@@ -83,13 +86,11 @@ std::string urlEncode(const std::string &in, bool plus)
     return out;
 }
 
-std::string urlDecode(const std::string &in)
+std::string urlDecode(std::string::const_iterator i
+                      , std::string::const_iterator e)
 {
     std::string out;
-    out.reserve(in.size());
 
-    const char* i(in.data());
-    const char* e(i + in.size());
     while (i != e) {
         auto c(*i++);
         if (c != '%') {
@@ -596,6 +597,66 @@ std::string Uri::joinAndRemoveDotSegments(std::string a
     std::string out(std::move(a));
     detail::join(out, b);
     return out;
+}
+
+QueryKeyValue QueryKeyValue::split(const StringView &arg)
+{
+    auto b(arg.begin());
+    auto e(arg.end());
+    for (auto i(b); i != e; ++i) {
+        if (*i == '=') {
+            return QueryKeyValue(StringView(b, i)
+                                 , StringView(std::next(i), e));
+        }
+    }
+    return QueryKeyValue(StringView(b, e), StringView());
+}
+
+QueryKeyValue::list QueryKeyValue::splitQuery(const std::string &query)
+{
+    std::vector<StringView> args;
+    ba::split(args, query, ba::is_any_of("&"), ba::token_compress_on);
+
+    list kvl;
+
+    for (auto iargs(args.begin()), eargs(args.end());
+         iargs != eargs; ++iargs)
+    {
+        kvl.push_back(split(*iargs));
+    }
+
+    return kvl;
+}
+
+void QueryString::unescape(StringView &what)
+{
+    // contains escape character? (% or +)
+    if (std::find_if(what.begin(), what.end()
+                     , [](char c) { return (c == '%'); }) == what.end())
+        { return; }
+
+    storage_.push_back(urlDecode(what.begin(), what.end()));
+    const auto &storage(storage_.back());
+    what = StringView(storage.begin(), storage.end());
+}
+
+void QueryString::unescape()
+{
+    for (auto &kv : kvl_) {
+        unescape(kv.key);
+        unescape(kv.value);
+    }
+}
+
+std::string QueryString::get(const std::string &key
+                             , const std::string &defaultValue) const
+{
+    for (const auto &kv : kvl_) {
+        if (ba::equals(kv.key, key)) {
+            return stringFrom(kv.value);
+        }
+    }
+    return defaultValue;
 }
 
 } // utility
