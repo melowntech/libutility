@@ -85,7 +85,7 @@ public:
 
     /** Checks whether we have valid value.
      */
-    operator bool() const { return value_; }
+    operator bool() const { return static_cast<bool>(value_); }
 
     /** Returns value or thows exception if set.
      */
