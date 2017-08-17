@@ -39,6 +39,7 @@
 #include "./binaryio.hpp"
 #include "./zip.hpp"
 #include "./enum-io.hpp"
+#include "./uri.hpp"
 
 namespace bin = utility::binaryio;
 namespace fs = boost::filesystem;
@@ -448,9 +449,20 @@ std::size_t fileSize(const Filedes &fd)
     return st.st_size;
 }
 
+fs::path sanitize(std::string original, bool enabled)
+{
+    if (!enabled) { return original; }
+
+    // \ -> /
+    for (auto &c : original) { if (c == '\\') { c= '/'; } }
+
+    // remove any (double-)dot occurrence and force start from root
+    return Uri::joinAndRemoveDotSegments("/", original);
+}
+
 } // namespace
 
-Reader::Reader(const fs::path &path)
+Reader::Reader(const fs::path &path, bool sanitizePaths)
     : path_(path), fd_(openFile(path))
     , fileLength_(fileSize(fd_))
 {
@@ -516,7 +528,8 @@ Reader::Reader(const fs::path &path)
                     << ": multiple discs encountered.";
             }
 
-            records_.emplace_back(i, cdfh.filename, cdfh.fileOffset);
+            records_.emplace_back(i, sanitize(cdfh.filename, sanitizePaths)
+                                  , cdfh.fileOffset);
         }
     } catch (const std::ios_base::failure &e) {
         LOGTHROW(err2, Error)

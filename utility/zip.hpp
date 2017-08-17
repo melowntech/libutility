@@ -67,7 +67,22 @@ struct PluggedFile {
 
 class Reader {
 public:
-    Reader(const boost::filesystem::path &path);
+    /** Opens ZIP file.
+     *
+     * If asked to paths are sanitizes:
+     *     1) backslashes are converted to forward slashes (yes, there are
+     *        such ZIP archvies...
+     *     2) multiple slashes are replaced with single slash
+     *     3) any occurrence of dot and double-dot is resolved
+     *     4) paths are fixed to start from root, i.e they start wih /
+     *
+     *  Rationale behind 4: ZIP archive works as a full filesystem with
+     *  predictable paths.
+     *
+     * \param path path to archive
+     * \param sanitizePaths sanities paths
+     */
+    Reader(const boost::filesystem::path &path, bool sanitizePaths = true);
 
     /** File record.
      */
