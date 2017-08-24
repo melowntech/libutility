@@ -34,6 +34,7 @@ FileId FileId::from(const boost::filesystem::path &path)
 {
     LOGTHROW(err4, std::runtime_error)
         << "FileId(path) unsupported on this platform.";
+    throw;
 }
 
 } // namespace utility

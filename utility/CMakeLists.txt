@@ -130,6 +130,7 @@ set(utility_SOURCES
   )
 
 if(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
+  message(STATUS "utility: adding linux-specific sources")
   list(APPEND utility_SOURCES
     detail/iface.linux.cpp
     detail/meminfo.linux.cpp
@@ -137,7 +138,16 @@ if(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
     detail/rlimit.linux.cpp
     detail/filesystem.linux.cpp
     )
+elseif(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+  message(STATUS "utility: adding darwin-specific sources")
+  list(APPEND utility_SOURCES
+    detail/iface.unsupported.cpp
+    detail/path.unsupported.cpp
+    detail/rlimit.unsupported.cpp
+    detail/filesystem.linux.cpp
+    )
 else()
+  message(STATUS "utility: adding sources for unsupported system")
   list(APPEND utility_SOURCES
     detail/iface.unsupported.cpp
     detail/path.unsupported.cpp

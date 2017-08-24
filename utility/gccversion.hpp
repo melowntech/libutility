@@ -46,12 +46,15 @@
 #    define UTILITY_FINAL final
 #endif
 
-#ifdef __GNUC__
-#define UTILITY_FUNCTION_ERROR(message) \
-    __attribute__((error(message)))
+#if defined(__GNUC__) && not defined(__clang__)
+#   define UTILITY_FUNCTION_ERROR(message) \
+        __attribute__((error(message)))
+#elif defined(__clang__)
+#   define UTILITY_FUNCTION_ERROR(message)
+    // todo
 #else
-#define UTILITY_FUNCTION_ERROR(message) \
-    ; static_assert(false, "error message allowed only in GCC")
+#   define UTILITY_FUNCTION_ERROR(message) \
+        ; static_assert(false, "error message allowed only in GCC")
 #endif
 
 // pre-4.8 gcc has no thread_local storage specifier but uses __thread extension
