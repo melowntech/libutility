@@ -37,6 +37,7 @@
 #include <stdexcept>
 #include <string>
 #include <vector>
+#include <limits>
 
 #include <boost/filesystem/path.hpp>
 #include <boost/iostreams/filtering_stream.hpp>
@@ -71,7 +72,7 @@ public:
      *
      * If asked to paths are sanitizes:
      *     1) backslashes are converted to forward slashes (yes, there are
-     *        such ZIP archvies...
+     *        such ZIP archvies...)
      *     2) multiple slashes are replaced with single slash
      *     3) any occurrence of dot and double-dot is resolved
      *     4) paths are fixed to start from root, i.e they start wih /
@@ -80,9 +81,12 @@ public:
      *  predictable paths.
      *
      * \param path path to archive
+     * \param limit limit number of files read into file list
      * \param sanitizePaths sanities paths
      */
-    Reader(const boost::filesystem::path &path, bool sanitizePaths = true);
+    Reader(const boost::filesystem::path &path
+           , std::size_t limit = std::numeric_limits<std::size_t>::max()
+           , bool sanitizePaths = true);
 
     /** File record.
      */

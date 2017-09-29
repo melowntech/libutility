@@ -462,7 +462,9 @@ fs::path sanitize(std::string original, bool enabled)
 
 } // namespace
 
-Reader::Reader(const fs::path &path, bool sanitizePaths)
+Reader::Reader(const fs::path &path
+               , std::size_t limit
+               , bool sanitizePaths)
     : path_(path), fd_(openFile(path))
     , fileLength_(fileSize(fd_))
 {
@@ -516,9 +518,14 @@ Reader::Reader(const fs::path &path, bool sanitizePaths)
         // seek to first central directory record
         f.seekg(eocd.centralDirectoryOffset, std::ios_base::beg);
 
+        // apply limit
+        const auto recordCount
+            ((eocd.numberOfCentralDirectoryRecordsOnThisDisk > limit)
+             ? limit
+             : eocd.numberOfCentralDirectoryRecordsOnThisDisk);
+
         // read central directory
-        for (std::size_t e(eocd.numberOfCentralDirectoryRecordsOnThisDisk)
-                 , i(0); i != e; ++i)
+        for (std::size_t i(0); i != recordCount; ++i)
         {
             auto cdfh(CentralDirectoryFileHeader::read(f));
 
