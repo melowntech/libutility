@@ -38,12 +38,14 @@
 #include <string>
 #include <vector>
 #include <limits>
+#include <memory>
 
 #include <boost/filesystem/path.hpp>
 #include <boost/iostreams/filtering_stream.hpp>
 
 #include "./filedes.hpp"
 #include "./substream.hpp"
+#include "./enum-io.hpp"
 
 namespace utility { namespace zip {
 
@@ -75,7 +77,7 @@ public:
      *        such ZIP archvies...)
      *     2) multiple slashes are replaced with single slash
      *     3) any occurrence of dot and double-dot is resolved
-     *     4) paths are fixed to start from root, i.e they start wih /
+     *     4) paths are fixed to start from root, i.e they start with /
      *
      *  Rationale behind 4: ZIP archive works as a full filesystem with
      *  predictable paths.
@@ -125,6 +127,66 @@ private:
     /** List of records.
      */
     Record::list records_;
+};
+
+UTILITY_GENERATE_ENUM(Compression,
+                      ((store))
+                      ((deflate))
+                      ((bzip2))
+                      )
+
+/** Simple ZIP archive writer
+ */
+class Writer {
+public:
+    /** Creates new (empty) archive.
+     *
+     * \param path path to archive
+     * \param overwrite do not fail if file already exists when true
+     */
+    Writer(const boost::filesystem::path &path, bool overwrite = false);
+
+    /** Destroys zip file. Warns on non-closed archive.
+     */
+    ~Writer();
+
+    /** Finalizes ZIP archive. Must be called before object destruction.
+     */
+    void close();
+
+    /** Output stream type. [fwd declarations]
+     */
+    class OStream;
+
+    /** Creates new ostream.
+     *
+     * Returned ostream must be closed by calling its close() function.
+     *
+     * \param path full file path inside the archive
+     * \param compression requested compression method
+     */
+    std::shared_ptr<OStream>
+    ostream(const boost::filesystem::path &path
+            , Compression compression = Compression::store);
+
+    /** Internals. [fwd declarations]
+     */
+    struct Detail;
+    Detail& detail() { return *detail_.get(); }
+    const Detail& detail() const { return *detail_.get(); }
+
+private:
+    std::shared_ptr<Detail> detail_;
+};
+
+class Writer::OStream {
+public:
+    typedef std::shared_ptr<OStream> pointer;
+
+    OStream() {}
+    virtual ~OStream() {}
+    virtual std::ostream& get() = 0;
+    virtual void close() = 0;
 };
 
 } } // namespace utility::zip
