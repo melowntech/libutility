@@ -96,11 +96,13 @@ usage
 
 int Zip::run()
 {
-    utility::zip::Reader zip(zip_);
+    utility::zip::Reader zip(zip_, std::numeric_limits<std::size_t>::max()
+                             , false);
 
     for (const auto &file : zip.files()) {
-        std::cout << file.path.string();
+        std::cout << file.path.string() << '\n';
     }
+    std::cout << std::flush;
 
     return EXIT_SUCCESS;
 }

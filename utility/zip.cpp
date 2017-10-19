@@ -29,6 +29,7 @@
 #include <unistd.h>
 #include <fcntl.h>
 
+#include <ctime>
 #include <system_error>
 
 #include <boost/iostreams/device/file_descriptor.hpp>
@@ -46,6 +47,66 @@
 #include "./uri.hpp"
 #include "./filedes.hpp"
 #include "./scopedguard.hpp"
+
+/*
+Format documentation (Library of Congress preserved version):
+https://www.loc.gov/preservation/digital/formats/digformatspecs/APPNOTE%2820120901%29_Version_6.3.3.txt
+
+Some useful stuff:
+
+version made by (2 bytes):
+     0 - MS-DOS and OS/2 (FAT / VFAT / FAT32 file systems)
+     1 - Amiga                     2 - OpenVMS
+     3 - UNIX                      4 - VM/CMS
+     5 - Atari ST                  6 - OS/2 H.P.F.S.
+     7 - Macintosh                 8 - Z-System
+     9 - CP/M                     10 - Windows NTFS
+    11 - MVS (OS/390 - Z/OS)      12 - VSE
+    13 - Acorn Risc               14 - VFAT
+    15 - alternate MVS            16 - BeOS
+    17 - Tandem                   18 - OS/400
+    19 - OS X (Darwin)            20 thru 255 - unused
+
+version needed to extract (2 bytes)
+    1.0 - Default value
+    1.1 - File is a volume label
+    2.0 - File is a folder (directory)
+    2.0 - File is compressed using Deflate compression
+    2.0 - File is encrypted using traditional PKWARE encryption
+    2.1 - File is compressed using Deflate64(tm)
+    2.5 - File is compressed using PKWARE DCL Implode
+    2.7 - File is a patch data set
+    4.5 - File uses ZIP64 format extensions
+    4.6 - File is compressed using BZIP2 compression*
+    5.0 - File is encrypted using DES
+    5.0 - File is encrypted using 3DES
+    5.0 - File is encrypted using original RC2 encryption
+    5.0 - File is encrypted using RC4 encryption
+    5.1 - File is encrypted using AES encryption
+    5.1 - File is encrypted using corrected RC2 encryption**
+    5.2 - File is encrypted using corrected RC2-64 encryption**
+    6.1 - File is encrypted using non-OAEP key wrapping***
+    6.2 - Central directory encryption
+    6.3 - File is compressed using LZMA
+    6.3 - File is compressed using PPMd+
+    6.3 - File is encrypted using Blowfish
+    6.3 - File is encrypted using Twofish
+
+
+MS-DOS time/date formats:
+https://msdn.microsoft.com/en-us/library/windows/desktop/ms724247.aspx
+
+MS-DOS date format:
+    Bits   Description
+    0-4    Day of the month (1–31)
+    5-8    Month (1 = January, 2 = February, and so on)
+    9-15   Year offset from 1980 (add 1980 to get actual year)
+
+MS-DOS time format:
+    0-4    Second divided by 2
+    5-10   Minute (0–59)
+    11-15   Hour (0–23 on a 24-hour clock)
+ */
 
 namespace bin = utility::binaryio;
 namespace fs = boost::filesystem;
@@ -70,9 +131,36 @@ template <typename T> bool invalid(T value)
     return value == std::numeric_limits<T>::max();
 }
 
-template <typename T> T invalid()
+template <typename T> constexpr T invalid()
 {
     return std::numeric_limits<T>::max();
+}
+
+std::pair<std::uint16_t, std::uint16_t>
+msDateTime(std::time_t timestamp = std::time(nullptr))
+{
+    std::tm lt;
+    if (!::localtime_r(&timestamp, &lt)) {
+        LOGTHROW(err1, Error)
+            << "Cannot convert timestamp <" << timestamp << "> to local time.";
+    }
+
+    std::pair<std::uint16_t, std::uint16_t> res;
+
+    // date
+    res.first
+        = ((lt.tm_mday & 0x1f) // 0-4: Day of the month (1–31)
+           | ((lt.tm_mon + 1) & 0xf) << 5 // 5-8: Month (1 = January, ...)
+           | ((lt.tm_year - 80) & 0x7f) << 9 // 9-15: Year offset from 1980
+           );
+
+    res.second
+        = (((lt.tm_sec >> 1) & 0x1f) // 0-4: Second divided by 2
+           | ((lt.tm_min) & 0x3f) << 5 // 5-10   Minute (0–59)
+           | ((lt.tm_hour) & 0x1f) << 11 // 11-15: Hour (0–23)
+           );
+
+    return res;
 }
 
 void readVector(std::istream &is, std::vector<char> &vec, std::size_t size)
@@ -387,6 +475,7 @@ EndOfCentralDirectoryRecord EndOfCentralDirectoryRecord::read(std::istream &in)
     checkSignature("end of central directory", in
                    , END_OF_CENTRAL_DIRECTORY_SIGNATURE);
 
+    LOG(debug) << "Reading end of central directory record.";
     EndOfCentralDirectoryRecord r;
 
     r.numberOfThisDisk = bin::read<std::uint16_t>(in);
@@ -480,6 +569,7 @@ EndOfCentralDirectory64Locator::read(std::istream &in)
     checkSignature("end of central directory 64 locator", in
                    , END_OF_CENTRAL_DIRECTORY64_LOCATOR_SIGNATURE);
 
+    LOG(debug) << "Reading end of central directory locator.";
     EndOfCentralDirectory64Locator r;
 
     bin::read(in, r.numberOfThisDisk);
@@ -492,6 +582,7 @@ EndOfCentralDirectory64Locator::read(std::istream &in)
 void EndOfCentralDirectory64Locator::writeSimple(std::ostream &os
                                                  , std::uint64_t eocd)
 {
+    bin::write(os, END_OF_CENTRAL_DIRECTORY64_LOCATOR_SIGNATURE);
     bin::write(os, std::uint32_t(0)); // numberOfThisDisk
     bin::write(os, std::uint64_t(eocd)); // endOfCentralDirectoryOffset
     bin::write(os, std::uint32_t(1)); // totalNumberOfDisks
@@ -534,9 +625,7 @@ fs::path sanitize(std::string original, bool enabled)
 
 } // namespace
 
-Reader::Reader(const fs::path &path
-               , std::size_t limit
-               , bool sanitizePaths)
+Reader::Reader(const fs::path &path, std::size_t limit, bool sanitizePaths)
     : path_(path), fd_(openFile(path))
     , fileLength_(fileSize(fd_))
 {
@@ -595,6 +684,10 @@ Reader::Reader(const fs::path &path
             ((eocd.numberOfCentralDirectoryRecordsOnThisDisk > limit)
              ? limit
              : eocd.numberOfCentralDirectoryRecordsOnThisDisk);
+
+        LOG(debug) << "Reading " << recordCount << " records out of "
+                   << eocd.numberOfCentralDirectoryRecordsOnThisDisk
+                   << " from ZIP archive " << path << ".";
 
         // read central directory
         for (std::size_t i(0); i != recordCount; ++i)
@@ -886,6 +979,8 @@ public:
 
         // TODO check compression
 
+        fis_.push(boost::ref(crc32_));
+
         switch (compression) {
         case Compression::store: break;
 
@@ -903,7 +998,6 @@ public:
         }
 
         fis_.push(boost::ref(compressedSize_));
-        fis_.push(boost::ref(crc32_));
         fis_.push(bio::file_descriptor_sink
                    (detail_->fd.get()
                     , bio::file_descriptor_flags::never_close_handle));
@@ -954,6 +1048,7 @@ private:
 void writeLocalHeader(std::ostream &os, const CentralDirectoryFileHeader &fh)
 {
     bin::write(os, LOCAL_HEADER_SIGNATURE);
+    bin::write(os, std::uint16_t(fh.versionMadeBy));
     bin::write(os, std::uint16_t(fh.versionNeeded));
     bin::write(os, std::uint16_t(fh.flag));
     bin::write(os, std::uint16_t(fh.compressionMethod));
@@ -964,7 +1059,7 @@ void writeLocalHeader(std::ostream &os, const CentralDirectoryFileHeader &fh)
     bin::write(os, std::uint32_t(invalid<std::uint32_t>())); // uncs
     bin::write(os, std::uint16_t(fh.filename.size()));
     bin::write(os, std::uint16_t(fh.fileExtra.size() + extra64SizeLocal));
-    bin::write(os, fh.filename);
+    bin::write(os, fh.filename.data(), fh.filename.size());
 
     // write extra 64
     // header
@@ -975,42 +1070,100 @@ void writeLocalHeader(std::ostream &os, const CentralDirectoryFileHeader &fh)
     bin::write(os, std::uint64_t(fh.compressedSize));
 
     // other extra
-    bin::write(os, fh.fileExtra);
+    bin::write(os, fh.fileExtra.data(), fh.fileExtra.size());
 }
+
+/** Helper type for handling short/long versions of some ZIP-related size
+ */
+template <typename Short, typename Long>
+struct ShortValue {
+    typedef Short short_type;
+    typedef Long long_type;
+
+    static constexpr short_type limit = invalid<Short>();
+
+    /** Is value inside short range?
+     */
+    bool inLimit;
+
+    /** Short version of value or invalid marker.
+     */
+    short_type shortValue;
+
+    /** Original (long version) value.
+     */
+    long_type value;
+
+    ShortValue(long_type v)
+        : inLimit(v < limit)
+        , shortValue(inLimit ? short_type(v) : limit)
+        , value(v)
+    {}
+
+    /** How many bytes do this element occupy in the extra field?
+     */
+    std::size_t extraSize() const { return inLimit ? 0 : sizeof(long_type); }
+
+    /** Write short version (always).
+     */
+    void writeShort(std::ostream &os) const {
+        bin::write(os, shortValue);
+    }
+
+    /** Write long version (only when too large to fit short version)
+     */
+    void writeLong(std::ostream &os) const {
+        if (!inLimit) {
+            bin::write(os, value);
+        }
+    }
+};
+
+typedef ShortValue<std::uint32_t, std::uint64_t> ShortValue64;
 
 void writeCentralHeader(std::ostream &os, const CentralDirectoryFileHeader &fh)
 {
-    bin::write(os, LOCAL_HEADER_SIGNATURE);
+    const ShortValue64 uncompressedSize(fh.uncompressedSize);
+    const ShortValue64 compressedSize(fh.compressedSize);
+    const ShortValue64 fileOffset(fh.fileOffset);
+    const auto extra64Size(uncompressedSize.extraSize()
+                           + compressedSize.extraSize()
+                           + fileOffset.extraSize());
+
+    bin::write(os, CENTRAL_DIRECTORY_FILE_HEADER_SIGNATURE);
+    bin::write(os, std::uint16_t(fh.versionMadeBy));
     bin::write(os, std::uint16_t(fh.versionNeeded));
     bin::write(os, std::uint16_t(fh.flag));
     bin::write(os, std::uint16_t(fh.compressionMethod));
     bin::write(os, std::uint16_t(fh.modificationTime));
     bin::write(os, std::uint16_t(fh.modificationDate));
     bin::write(os, std::uint32_t(fh.crc32));
-    bin::write(os, std::uint32_t(invalid<std::uint32_t>())); // cs
-    bin::write(os, std::uint32_t(invalid<std::uint32_t>())); // uncs
+    uncompressedSize.writeShort(os);
+    compressedSize.writeShort(os);
     bin::write(os, std::uint16_t(fh.filename.size()));
-    bin::write(os, std::uint16_t(fh.fileExtra.size() + extra64SizeCentral));
+    bin::write(os, std::uint16_t(fh.fileExtra.size() + extra64Size));
     bin::write(os, std::uint16_t(fh.fileComment.size()));
     bin::write(os, std::uint32_t(fh.diskNumberStart));
     bin::write(os, std::uint16_t(fh.internalFileAttributes));
     bin::write(os, std::uint16_t(fh.externalFileAttributes));
-    bin::write(os, invalid<std::uint32_t>()); // fileOffset
+    fileOffset.writeShort(os);
+    bin::write(os, fh.filename.data(), fh.filename.size());
 
-    bin::write(os, fh.filename);
+    if (extra64Size) {
+        // write extra 64
+        // header
+        bin::write(os, std::uint16_t(Tag64));
+        bin::write(os, std::uint16_t(extra64Size));
 
-    // write extra 64
-    // header
-    bin::write(os, std::uint16_t(Tag64));
-    bin::write(os, std::uint16_t(3 * sizeof(std::uint64_t)));
-    // body
-    bin::write(os, std::uint64_t(fh.uncompressedSize));
-    bin::write(os, std::uint64_t(fh.compressedSize));
-    bin::write(os, std::uint64_t(fh.fileOffset));
+        // body
+        uncompressedSize.writeLong(os);
+        compressedSize.writeLong(os);
+        fileOffset.writeLong(os);
+    }
 
-    // extra
-    bin::write(os, fh.fileExtra);
-    bin::write(os, fh.fileComment);
+    // extra + comment
+    bin::write(os, fh.fileExtra.data(), fh.fileExtra.size());
+    bin::write(os, fh.fileComment.data(), fh.fileComment.size());
 }
 
 Writer::OStream::pointer
@@ -1047,20 +1200,14 @@ void Writer::Detail::commit(const FileEntry &fe)
             << "Not inside a transaction.";
     }
 
-    LOG(info4) << "written: compressed=" << fe.compressedSize
-               << ", uncompressed=" << fe.uncompressedSize
-               << ", crc32=" << std::hex << std::setw(8) << fe.crc32
-        ;
-
     CentralDirectoryFileHeader fh;
 
-    // TODO: fill me!
-    fh.versionNeeded = fh.versionMadeBy = 1;
+    fh.versionNeeded = 3; // UNIX
+    fh.versionMadeBy = 46; // bzip2
     fh.compressionMethod = static_cast<decltype(fh.compressionMethod)>
         (fe.compressionMethod);
-    // fh.modificationTime; // TODO: MS-DOS format
-    // fh.modificationDate; // TODO
-    fh.crc32 = fh.crc32;
+    std::tie(fh.modificationDate, fh.modificationTime) = msDateTime();
+    fh.crc32 = fe.crc32;
     fh.compressedSize = fe.compressedSize;
     fh.uncompressedSize = fe.uncompressedSize;
     fh.filename = fe.name.string();
@@ -1121,25 +1268,22 @@ void Writer::Detail::close()
 
     // write file tail
     {
+        // central directory
+        const auto cdOff(seekEnd());
 
         bio::stream<bio::file_descriptor_sink> os
             (fd.get(), bio::file_descriptor_flags::never_close_handle);
         os.exceptions(std::ios::badbit | std::ios::failbit);
 
-        // central directory
-        const auto cdOff(seekEnd());
-
-        // write central directory
+        // write central directory headers
         for (const auto &fh : directory) {
-            LOG(info3) << "Writing central directory entry for "
-                       << fh.filename << ".";
             writeCentralHeader(os, fh);
         }
 
         // end of central directory
-        const auto eocdOff(whereAmI());
+        const ::off_t eocdOff(os.tellp());
 
-        // write ZIP64 end of central directory record
+        // write 64bit end of central directory record
         EndOfCentralDirectoryRecord eocd;
         eocd.numberOfThisDisk = 0;
         eocd.diskWhereCentralDirectoryStarts = 0;
@@ -1149,7 +1293,7 @@ void Writer::Detail::close()
         eocd.centralDirectoryOffset = cdOff;
         eocd.write64(os);
 
-        // write ZIP64 end of central directory locator
+        // write 64bit end of central directory locator
         EndOfCentralDirectory64Locator::writeSimple(os, eocdOff);
 
         // write end of central directory record
