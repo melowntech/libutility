@@ -47,6 +47,7 @@
 #include "./uri.hpp"
 #include "./filedes.hpp"
 #include "./scopedguard.hpp"
+#include "./typeinfo.hpp"
 
 /*
 Format documentation (Library of Congress preserved version):
@@ -122,6 +123,21 @@ constexpr std::uint32_t END_OF_CENTRAL_DIRECTORY_SIGNATURE = 0x06054b50;
 constexpr std::uint32_t END_OF_CENTRAL_DIRECTORY64_SIGNATURE = 0x06064b50;
 constexpr std::uint32_t END_OF_CENTRAL_DIRECTORY64_LOCATOR_SIGNATURE = 0x07064b50;
 
+
+/** 64-bit support + bzip2
+ */
+constexpr std::uint16_t VERSION_NEEDED = 46;
+
+/** UNIX (3) + version 6.3 (3f = 63)
+ */
+constexpr std::uint16_t VERSION_MADE_BY = 0x33f;
+
+/** Attributes for regular file.
+ */
+constexpr std::uint32_t REGULAR_FILE_ATTRIBUTES
+((S_IFREG | S_IRUSR | S_IWUSR | S_IRGRP) << 16);
+
+
 constexpr std::uint16_t Tag64 = 0x0001;
 
 /** Should be used only for uint16 and uint32
@@ -193,6 +209,16 @@ void checkSignature(const std::string &what, std::istream &in
 
 const auto DeflateParams([]() -> bio::zlib_params {
         bio::zlib_params params;
+        params.noheader = true;
+        return params;
+    }());
+
+const auto InflateParams([]() -> bio::zlib_params {
+        bio::zlib_params params;
+        params.method = bio::zlib::deflated;
+        params.level = 9;
+        params.window_bits = 15;
+        params.mem_level = 8;
         params.noheader = true;
         return params;
     }());
@@ -337,7 +363,7 @@ struct EndOfCentralDirectoryRecord {
     static EndOfCentralDirectoryRecord read64(std::istream &in);
 
     void write64(std::ostream &os) const;
-    static void write64Marker(std::ostream &os);
+    void write64Marker(std::ostream &os);
 };
 
 struct EndOfCentralDirectory64Locator {
@@ -539,14 +565,25 @@ void EndOfCentralDirectoryRecord::write64(std::ostream &os) const
                        the starting disk number */
                     + sizeof(std::uint64_t));
 
+    // signature
     bin::write(os, END_OF_CENTRAL_DIRECTORY64_SIGNATURE);
+
+    // size of this record
     bin::write(os, std::uint64_t(size));
-    bin::write(os, std::uint16_t(0)); // version made
-    bin::write(os, std::uint16_t(0)); // version needed
+
+    // versions
+    bin::write(os, std::uint16_t(VERSION_MADE_BY));
+    bin::write(os, std::uint16_t(VERSION_NEEDED));
+
+    // disk info
     bin::write(os, std::uint32_t(numberOfThisDisk));
     bin::write(os, std::uint32_t(diskWhereCentralDirectoryStarts));
+
+    // record info
     bin::write(os, std::uint64_t(numberOfCentralDirectoryRecordsOnThisDisk));
     bin::write(os, std::uint64_t(totalNumberOfCentralDirectoryRecords));
+
+    // central directory
     bin::write(os, std::uint64_t(sizeOfCentralDirectory));
     bin::write(os, std::uint64_t(centralDirectoryOffset));
 }
@@ -554,8 +591,8 @@ void EndOfCentralDirectoryRecord::write64(std::ostream &os) const
 void EndOfCentralDirectoryRecord::write64Marker(std::ostream &os)
 {
     bin::write(os, END_OF_CENTRAL_DIRECTORY_SIGNATURE);
-    bin::write(os, invalid<std::uint16_t>());
-    bin::write(os, invalid<std::uint16_t>());
+    bin::write(os, std::uint16_t(0));
+    bin::write(os, std::uint16_t(0));
     bin::write(os, invalid<std::uint16_t>());
     bin::write(os, invalid<std::uint16_t>());
     bin::write(os, invalid<std::uint32_t>());
@@ -629,7 +666,7 @@ Reader::Reader(const fs::path &path, std::size_t limit, bool sanitizePaths)
     : path_(path), fd_(openFile(path))
     , fileLength_(fileSize(fd_))
 {
-    // try {
+    try {
         boost::iostreams::stream<utility::io::SubStreamDevice> f
             (utility::io::SubStreamDevice
              (path_, utility::io::SubStreamDevice::Filedes
@@ -703,11 +740,11 @@ Reader::Reader(const fs::path &path, std::size_t limit, bool sanitizePaths)
             records_.emplace_back(i, sanitize(cdfh.filename, sanitizePaths)
                                   , cdfh.fileOffset);
         }
-    // } catch (const std::ios_base::failure &e) {
-    //     LOGTHROW(err2, Error)
-    //         << "Cannot process the zip file " << path << ": " << e.what()
-    //         << ".";
-    // }
+    } catch (const std::ios_base::failure &e) {
+        LOGTHROW(err2, Error)
+            << "Cannot process the zip file " << path << ": " << e.what()
+            << ".";
+    }
 }
 
 PluggedFile Reader::plug(std::size_t index
@@ -777,21 +814,6 @@ PluggedFile Reader::plug(std::size_t index
     return PluggedFile(record.path, header.uncompressedSize, seekable);
 }
 
-const std::size_t
-extra64SizeLocal(sizeof(std::uint16_t) // tag
-                 + sizeof(std::uint16_t) // size
-                 + sizeof(std::uint64_t) // uncompressedSize
-                 + sizeof(std::uint64_t) // compressedSize
-                 );
-
-const std::size_t
-extra64SizeCentral(sizeof(std::uint16_t) // tag
-                   + sizeof(std::uint16_t) // size
-                   + sizeof(std::uint64_t) // uncompressedSize
-                   + sizeof(std::uint64_t) // compressedSize
-                   + sizeof(std::uint64_t) // fileOffset
-                 );
-
 struct Writer::Detail : public std::enable_shared_from_this<Detail>
 {
     typedef std::shared_ptr<Detail> pointer;
@@ -811,7 +833,7 @@ struct Writer::Detail : public std::enable_shared_from_this<Detail>
 
     void close();
 
-    void begin();
+    void begin(const std::string &name);
 
     struct FileEntry {
         fs::path name;
@@ -920,7 +942,7 @@ CompressionMethod compressionMethod(Compression compression)
 {
     switch (compression) {
     case Compression::store: return CompressionMethod::store;
-    case Compression::deflate: return CompressionMethod::deflate64;
+    case Compression::deflate: return CompressionMethod::deflate;
     case Compression::bzip2: return CompressionMethod::bzip2;
     }
 
@@ -974,30 +996,37 @@ public:
         : detail_(std::move(detail))
         , fileEntry_(name, compressionMethod(compression))
     {
-        detail_->begin();
+        detail_->begin(fileEntry_.name.string());
         open_ = true;
 
-        // TODO check compression
-
+        // compute crc32 for uncompressed file
         fis_.push(boost::ref(crc32_));
 
         switch (compression) {
-        case Compression::store: break;
+        case Compression::store:
+            // do not touch
+            break;
 
         case Compression::deflate:
+            // measure uncompressed size
             uncompressedSize_ = boost::in_place();
             fis_.push(boost::ref(*uncompressedSize_));
-            fis_.push(bio::zlib_compressor(DeflateParams));
+            // compress
+            fis_.push(bio::zlib_compressor(InflateParams));
             break;
 
         case Compression::bzip2:
+            // measure uncompressed size
             uncompressedSize_ = boost::in_place();
             fis_.push(boost::ref(*uncompressedSize_));
+            // compress
             fis_.push(bio::bzip2_compressor());
             break;
         }
 
+        // measure compressed size
         fis_.push(boost::ref(compressedSize_));
+        // sink to file
         fis_.push(bio::file_descriptor_sink
                    (detail_->fd.get()
                     , bio::file_descriptor_flags::never_close_handle));
@@ -1045,20 +1074,32 @@ private:
     Crc32Filter crc32_;
 };
 
+const auto extra64SizeLocalHeader
+(2 * sizeof(std::uint16_t) // tag + size
+ + 2 * sizeof(std::uint64_t) // (un)compressedSize
+ );
+
 void writeLocalHeader(std::ostream &os, const CentralDirectoryFileHeader &fh)
 {
+    // signature
     bin::write(os, LOCAL_HEADER_SIGNATURE);
-    bin::write(os, std::uint16_t(fh.versionMadeBy));
+
+    // fixed fields
     bin::write(os, std::uint16_t(fh.versionNeeded));
     bin::write(os, std::uint16_t(fh.flag));
     bin::write(os, std::uint16_t(fh.compressionMethod));
     bin::write(os, std::uint16_t(fh.modificationTime));
     bin::write(os, std::uint16_t(fh.modificationDate));
+
     bin::write(os, std::uint32_t(fh.crc32));
-    bin::write(os, std::uint32_t(invalid<std::uint32_t>())); // cs
-    bin::write(os, std::uint32_t(invalid<std::uint32_t>())); // uncs
+
+    // lengths, mark them as invalid -> redirect to extra 64 field
+    bin::write(os, invalid<std::uint32_t>()); // cs
+    bin::write(os, invalid<std::uint32_t>()); // uncs
+
     bin::write(os, std::uint16_t(fh.filename.size()));
-    bin::write(os, std::uint16_t(fh.fileExtra.size() + extra64SizeLocal));
+    bin::write(os, std::uint16_t(fh.fileExtra.size()
+                                 + extra64SizeLocalHeader));
     bin::write(os, fh.filename.data(), fh.filename.size());
 
     // write extra 64
@@ -1066,8 +1107,8 @@ void writeLocalHeader(std::ostream &os, const CentralDirectoryFileHeader &fh)
     bin::write(os, std::uint16_t(Tag64));
     bin::write(os, std::uint16_t(2 * sizeof(std::uint64_t)));
     // body
-    bin::write(os, std::uint64_t(fh.uncompressedSize));
     bin::write(os, std::uint64_t(fh.compressedSize));
+    bin::write(os, std::uint64_t(fh.uncompressedSize));
 
     // other extra
     bin::write(os, fh.fileExtra.data(), fh.fileExtra.size());
@@ -1123,41 +1164,55 @@ typedef ShortValue<std::uint32_t, std::uint64_t> ShortValue64;
 
 void writeCentralHeader(std::ostream &os, const CentralDirectoryFileHeader &fh)
 {
-    const ShortValue64 uncompressedSize(fh.uncompressedSize);
     const ShortValue64 compressedSize(fh.compressedSize);
+    const ShortValue64 uncompressedSize(fh.uncompressedSize);
     const ShortValue64 fileOffset(fh.fileOffset);
-    const auto extra64Size(uncompressedSize.extraSize()
-                           + compressedSize.extraSize()
-                           + fileOffset.extraSize());
+    const auto tag64Size(compressedSize.extraSize()
+                         + uncompressedSize.extraSize()
+                         + fileOffset.extraSize());
+    const auto extraSize(tag64Size
+                         ? tag64Size + 2 * sizeof(std::uint16_t)
+                         : 0);
 
     bin::write(os, CENTRAL_DIRECTORY_FILE_HEADER_SIGNATURE);
+
+    // fixed fields
     bin::write(os, std::uint16_t(fh.versionMadeBy));
     bin::write(os, std::uint16_t(fh.versionNeeded));
     bin::write(os, std::uint16_t(fh.flag));
+
     bin::write(os, std::uint16_t(fh.compressionMethod));
     bin::write(os, std::uint16_t(fh.modificationTime));
     bin::write(os, std::uint16_t(fh.modificationDate));
+
     bin::write(os, std::uint32_t(fh.crc32));
-    uncompressedSize.writeShort(os);
+
     compressedSize.writeShort(os);
+    uncompressedSize.writeShort(os);
+
+    // variable sizes
     bin::write(os, std::uint16_t(fh.filename.size()));
-    bin::write(os, std::uint16_t(fh.fileExtra.size() + extra64Size));
+    bin::write(os, std::uint16_t(fh.fileExtra.size() + extraSize));
     bin::write(os, std::uint16_t(fh.fileComment.size()));
-    bin::write(os, std::uint32_t(fh.diskNumberStart));
+
+    bin::write(os, std::uint16_t(fh.diskNumberStart));
     bin::write(os, std::uint16_t(fh.internalFileAttributes));
-    bin::write(os, std::uint16_t(fh.externalFileAttributes));
+
+    bin::write(os, std::uint32_t(fh.externalFileAttributes));
     fileOffset.writeShort(os);
+
+    // variable sized fields
     bin::write(os, fh.filename.data(), fh.filename.size());
 
-    if (extra64Size) {
+    if (extraSize) {
         // write extra 64
         // header
         bin::write(os, std::uint16_t(Tag64));
-        bin::write(os, std::uint16_t(extra64Size));
+        bin::write(os, std::uint16_t(tag64Size));
 
         // body
-        uncompressedSize.writeLong(os);
         compressedSize.writeLong(os);
+        uncompressedSize.writeLong(os);
         fileOffset.writeLong(os);
     }
 
@@ -1181,7 +1236,7 @@ Writer::Detail::ostream(const boost::filesystem::path &path
     return os;
 }
 
-void Writer::Detail::begin()
+void Writer::Detail::begin(const std::string &name)
 {
     if (tx >= 0) {
         LOGTHROW(err2, Error)
@@ -1190,7 +1245,7 @@ void Writer::Detail::begin()
     tx = whereAmI();
 
     // make room for header
-    advance(localFileHeaderSize + extra64SizeLocal);
+    advance(localFileHeaderSize + extra64SizeLocalHeader + name.size());
 }
 
 void Writer::Detail::commit(const FileEntry &fe)
@@ -1202,14 +1257,15 @@ void Writer::Detail::commit(const FileEntry &fe)
 
     CentralDirectoryFileHeader fh;
 
-    fh.versionNeeded = 3; // UNIX
-    fh.versionMadeBy = 46; // bzip2
+    fh.versionNeeded = VERSION_NEEDED;
+    fh.versionMadeBy = VERSION_MADE_BY;
     fh.compressionMethod = static_cast<decltype(fh.compressionMethod)>
         (fe.compressionMethod);
     std::tie(fh.modificationDate, fh.modificationTime) = msDateTime();
     fh.crc32 = fe.crc32;
     fh.compressedSize = fe.compressedSize;
     fh.uncompressedSize = fe.uncompressedSize;
+    fh.externalFileAttributes = REGULAR_FILE_ATTRIBUTES;
     fh.filename = fe.name.string();
     fh.fileOffset = tx;
 
@@ -1271,17 +1327,23 @@ void Writer::Detail::close()
         // central directory
         const auto cdOff(seekEnd());
 
-        bio::stream<bio::file_descriptor_sink> os
-            (fd.get(), bio::file_descriptor_flags::never_close_handle);
-        os.exceptions(std::ios::badbit | std::ios::failbit);
+        {
+            bio::stream<bio::file_descriptor_sink> os
+                (fd.get(), bio::file_descriptor_flags::never_close_handle);
+            os.exceptions(std::ios::badbit | std::ios::failbit);
 
-        // write central directory headers
-        for (const auto &fh : directory) {
-            writeCentralHeader(os, fh);
+            // write central directory headers
+            for (const auto &fh : directory) {
+                writeCentralHeader(os, fh);
+            }
         }
 
         // end of central directory
-        const ::off_t eocdOff(os.tellp());
+        const auto eocdOff(seekEnd());
+
+        bio::stream<bio::file_descriptor_sink> os
+            (fd.get(), bio::file_descriptor_flags::never_close_handle);
+        os.exceptions(std::ios::badbit | std::ios::failbit);
 
         // write 64bit end of central directory record
         EndOfCentralDirectoryRecord eocd;
@@ -1297,7 +1359,7 @@ void Writer::Detail::close()
         EndOfCentralDirectory64Locator::writeSimple(os, eocdOff);
 
         // write end of central directory record
-        EndOfCentralDirectoryRecord::write64Marker(os);
+        eocd.write64Marker(os);
 
         bio::close(os);
     }

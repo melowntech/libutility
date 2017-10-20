@@ -26,6 +26,8 @@
 #include <cstdlib>
 #include <iostream>
 
+#include <boost/filesystem.hpp>
+
 #include "utility/buildsys.hpp"
 #include "utility/gccversion.hpp"
 #include "utility/streams.hpp"
@@ -43,8 +45,9 @@ class Zip : public service::Cmdline
 public:
     Zip()
         : service::Cmdline("utility-zip", BUILD_TARGET_VERSION)
-    {
-    }
+        , overwrite_(false), verbose_(false)
+        , method_(utility::zip::Compression::store)
+    {}
 
 private:
     virtual void configuration(po::options_description &cmdline
@@ -60,9 +63,14 @@ private:
 
     virtual int run() UTILITY_OVERRIDE;
 
+    void add(utility::zip::Writer &zip, const fs::path &file);
+
     fs::path zip_;
     bool overwrite_;
     std::vector<fs::path> files_;
+    boost::optional<fs::path> cdir_;
+    bool verbose_;
+    utility::zip::Compression method_;
 };
 
 void Zip::configuration(po::options_description &cmdline
@@ -75,10 +83,17 @@ void Zip::configuration(po::options_description &cmdline
         ("overwrite", "Overwrite existing zip archive if empty.")
         ("file", po::value(&files_)->required()
          , "File to place into the zip archive, can be used multiple times.")
+        ("directory,C", po::value<fs::path>()
+         , "Change to given directory.")
+        ("verbose", "Show what is going on.")
+        ("method", po::value(&method_)
+         , utility::concat
+         ("Compression method, one of "
+          , enumerationString(method_), ".").c_str())
         ;
 
     pd.add("zip", 1)
- .add("file", -1);
+        .add("file", -1);
 
     (void) config;
 }
@@ -86,6 +101,10 @@ void Zip::configuration(po::options_description &cmdline
 void Zip::configure(const po::variables_map &vars)
 {
     overwrite_ = vars.count("overwrite");
+    verbose_ = vars.count("verbose");
+    if (vars.count("directory")) {
+        cdir_ = vars["directory"].as<fs::path>();
+    }
 }
 
 bool Zip::help(std::ostream &out, const std::string &what) const
@@ -108,13 +127,56 @@ void copy(const fs::path &path
     os->close();
 }
 
+class Packer {
+public:
+    Packer(utility::zip::Writer zip
+           , utility::zip::Compression method, bool verbose)
+        : zip_(zip), method_(method), verbose_(verbose)
+    {}
+
+    void add(const fs::path &file);
+
+private:
+    void store(const fs::path &file);
+
+    utility::zip::Writer &zip_;
+    const utility::zip::Compression method_;
+    const bool verbose_;
+};
+
+void Packer::store(const fs::path &file)
+{
+    if (verbose_) {
+        std::cout << file.string() << '\n';
+    }
+    copy(file, zip_.ostream(file, method_));
+    return;
+}
+
+void Packer::add(const fs::path &file)
+{
+    if (!fs::is_directory(file)) {
+        store(file);
+        return;
+    }
+
+    for (fs::recursive_directory_iterator i(file), e; i != e; ++i) {
+        const auto &path(i->path());
+        if (!fs::is_directory(path)) { store(path); }
+    }
+}
+
 int Zip::run()
 {
     utility::zip::Writer zip(zip_, overwrite_);
 
-    for (const auto &file : files_) {
-        copy(file, zip.ostream(file, utility::zip::Compression::deflate));
+    if (cdir_) {
+        // switch to configured directory
+        fs::current_path(*cdir_);
     }
+
+    Packer packer(zip, method_, verbose_);
+    for (const auto &file : files_) { packer.add(file); }
 
     zip.close();
 
