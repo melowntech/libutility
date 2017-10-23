@@ -32,6 +32,7 @@
 #include <ctime>
 #include <system_error>
 
+#include <boost/utility/in_place_factory.hpp>
 #include <boost/iostreams/device/file_descriptor.hpp>
 #include <boost/iostreams/stream.hpp>
 #include <boost/iostreams/filter/bzip2.hpp>
