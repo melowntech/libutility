@@ -33,7 +33,22 @@ namespace utility {
 FileId FileId::from(const boost::filesystem::path &path)
 {
     LOGTHROW(err4, std::runtime_error)
-        << "FileId(path) unsupported on this platform.";
+        << "FileId(" << path << ") unsupported on this platform.";
+    throw;
+}
+
+FileStat FileStat::from(const boost::filesystem::path &path)
+{
+    LOGTHROW(err4, std::runtime_error)
+        << "FileStat(" << path << ") unsupported on this platform.";
+    throw;
+}
+
+FileStat FileStat::from(const boost::filesystem::path &path
+                        , std::nothrow_t)
+{
+    LOGTHROW(err4, std::runtime_error)
+        << "FileStat(" << path << " ) unsupported on this platform.";
     throw;
 }
 
