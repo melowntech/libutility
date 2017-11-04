@@ -830,7 +830,8 @@ struct Writer::Detail : public std::enable_shared_from_this<Detail>
     }
 
     OStream::pointer ostream(const boost::filesystem::path &path
-                             , Compression compression);
+                             , Compression compression
+                             , const FilterInit &filterInit);
 
     void close();
 
@@ -993,15 +994,17 @@ class ZipStream : public Writer::OStream
 {
 public:
     ZipStream(Writer::Detail::pointer detail, const fs::path &name
-              , Compression compression)
+              , Compression compression, const Writer::FilterInit &filterInit)
         : detail_(std::move(detail))
         , fileEntry_(name, compressionMethod(compression))
     {
         detail_->begin(fileEntry_.name.string());
         open_ = true;
 
+        if (filterInit) { filterInit(fos_); }
+
         // compute crc32 for uncompressed file
-        fis_.push(boost::ref(crc32_));
+        fos_.push(boost::ref(crc32_));
 
         switch (compression) {
         case Compression::store:
@@ -1011,24 +1014,24 @@ public:
         case Compression::deflate:
             // measure uncompressed size
             uncompressedSize_ = boost::in_place();
-            fis_.push(boost::ref(*uncompressedSize_));
+            fos_.push(boost::ref(*uncompressedSize_));
             // compress
-            fis_.push(bio::zlib_compressor(InflateParams));
+            fos_.push(bio::zlib_compressor(InflateParams));
             break;
 
         case Compression::bzip2:
             // measure uncompressed size
             uncompressedSize_ = boost::in_place();
-            fis_.push(boost::ref(*uncompressedSize_));
+            fos_.push(boost::ref(*uncompressedSize_));
             // compress
-            fis_.push(bio::bzip2_compressor());
+            fos_.push(bio::bzip2_compressor());
             break;
         }
 
         // measure compressed size
-        fis_.push(boost::ref(compressedSize_));
+        fos_.push(boost::ref(compressedSize_));
         // sink to file
-        fis_.push(bio::file_descriptor_sink
+        fos_.push(bio::file_descriptor_sink
                    (detail_->fd.get()
                     , bio::file_descriptor_flags::never_close_handle));
     }
@@ -1044,14 +1047,14 @@ public:
         }
     }
 
-    virtual std::ostream& get() { return fis_; }
+    virtual std::ostream& get() { return fos_; }
 
     virtual void close() {
         if (!open_) { return; }
         open_ = false;
 
         // close output file
-        bio::close(fis_);
+        bio::close(fos_);
 
         fileEntry_.compressedSize = compressedSize_.count();
         fileEntry_.uncompressedSize
@@ -1068,7 +1071,7 @@ private:
     Writer::Detail::FileEntry fileEntry_;
 
     bool open_;
-    bio::filtering_ostream fis_;
+    bio::filtering_ostream fos_;
 
     CounterFilter compressedSize_;
     boost::optional<CounterFilter> uncompressedSize_;
@@ -1224,7 +1227,8 @@ void writeCentralHeader(std::ostream &os, const CentralDirectoryFileHeader &fh)
 
 Writer::OStream::pointer
 Writer::Detail::ostream(const boost::filesystem::path &path
-                        , Compression compression)
+                        , Compression compression
+                        , const FilterInit &filterInit)
 {
     if (!fd) {
         LOGTHROW(err2, Error)
@@ -1232,7 +1236,7 @@ Writer::Detail::ostream(const boost::filesystem::path &path
     }
 
     auto os(std::make_shared<ZipStream>
-            (shared_from_this(), path, compression));
+            (shared_from_this(), path, compression, filterInit));
     os->get().exceptions(std::ios::badbit | std::ios::failbit);
     return os;
 }
@@ -1378,9 +1382,10 @@ void Writer::close()
 }
 
 Writer::OStream::pointer Writer::ostream(const boost::filesystem::path &path
-                                         , Compression compression)
+                                         , Compression compression
+                                         , const FilterInit &filterInit)
 {
-    return detail_->ostream(path, compression);
+    return detail_->ostream(path, compression, filterInit);
 }
 
 } } // namespace utility::zip

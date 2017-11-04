@@ -158,6 +158,9 @@ public:
      */
     class OStream;
 
+    typedef std::function<void(boost::iostreams::filtering_ostream&)
+                          > FilterInit;
+
     /** Creates new ostream.
      *
      * Returned ostream must be closed by calling its close() function.
@@ -167,7 +170,8 @@ public:
      */
     std::shared_ptr<OStream>
     ostream(const boost::filesystem::path &path
-            , Compression compression = Compression::store);
+            , Compression compression = Compression::store
+            , const FilterInit &filterInit = FilterInit());
 
     /** Internals. [fwd declarations]
      */
