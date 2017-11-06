@@ -187,10 +187,21 @@ class Writer::OStream {
 public:
     typedef std::shared_ptr<OStream> pointer;
 
+    struct Statistics {
+        std::size_t compressedSize;
+        std::size_t uncompressedSize;
+
+        Statistics(std::size_t compressedSize = 0
+                   , std::size_t uncompressedSize = 0)
+            : compressedSize(compressedSize)
+            , uncompressedSize(uncompressedSize)
+        {}
+    };
+
     OStream() {}
     virtual ~OStream() {}
     virtual std::ostream& get() = 0;
-    virtual void close() = 0;
+    virtual Statistics close() = 0;
 };
 
 } } // namespace utility::zip

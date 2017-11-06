@@ -1049,8 +1049,8 @@ public:
 
     virtual std::ostream& get() { return fos_; }
 
-    virtual void close() {
-        if (!open_) { return; }
+    virtual Statistics close() {
+        if (!open_) { return {}; }
         open_ = false;
 
         // close output file
@@ -1062,8 +1062,10 @@ public:
                ? uncompressedSize_->count() : fileEntry_.compressedSize);
         fileEntry_.crc32 = crc32_.checksum();
 
-        // TODO: pass file info
         detail_->commit(fileEntry_);
+
+        return Statistics(fileEntry_.compressedSize
+                          , fileEntry_.uncompressedSize);
     }
 
 private:
