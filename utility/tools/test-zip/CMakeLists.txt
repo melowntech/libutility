@@ -20,3 +20,11 @@ set(utility-lszip_SOURCES
 add_executable(utility-lszip ${utility-lszip_SOURCES})
 target_link_libraries(utility-lszip ${MODULE_LIBRARIES})
 buildsys_binary(utility-lszip)
+
+set(utility-unzip_SOURCES
+  unzip.cpp
+  )
+
+add_executable(utility-unzip ${utility-unzip_SOURCES})
+target_link_libraries(utility-unzip ${MODULE_LIBRARIES})
+buildsys_binary(utility-unzip)
