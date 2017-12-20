@@ -23,6 +23,7 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  */
+
 #include <cstdlib>
 #include <iostream>
 
@@ -42,7 +43,7 @@ class Zip : public service::Cmdline
 {
 public:
     Zip()
-        : service::Cmdline("utility-lszip", BUILD_TARGET_VERSION)
+        : service::Cmdline("utility-unzip", BUILD_TARGET_VERSION)
     {
     }
 
@@ -61,6 +62,7 @@ private:
     virtual int run() UTILITY_OVERRIDE;
 
     fs::path zip_;
+    fs::path filename_;
 };
 
 void Zip::configuration(po::options_description &cmdline
@@ -70,9 +72,12 @@ void Zip::configuration(po::options_description &cmdline
     cmdline.add_options()
         ("zip,f", po::value(&zip_)->required()
          , "Zip file.")
+        ("filename", po::value(&filename_)->required()
+         , "File to extract.")
         ;
 
-    pd.add("zip", 1);
+    pd.add("zip", 1)
+        .add("filename", 1);
 
     (void) config;
 }
@@ -85,9 +90,9 @@ void Zip::configure(const po::variables_map &vars)
 bool Zip::help(std::ostream &out, const std::string &what) const
 {
     if (what.empty()) {
-        out << R"RAW(utility-lszip
+        out << R"RAW(utility-unzip
 usage
-    utility-lszip ZIP-FILE [OPTIONS]
+    utility-unzip ZIP-FILE FILENAME [OPTIONS]
 
 )RAW";
     }
@@ -99,10 +104,25 @@ int Zip::run()
     utility::zip::Reader zip(zip_, std::numeric_limits<std::size_t>::max()
                              , false);
 
-    for (const auto &file : zip.files()) {
-        std::cout << file.path.string() << '\n';
+    const utility::zip::Reader::Record *record(nullptr);
+
+    for (const auto &r : zip.files()) {
+        if (r.path == filename_) {
+            record = &r;
+            break;
+        }
     }
-    std::cout << std::flush;
+
+    if (!record) {
+        std::cerr << "Cannot find file " << filename_ << " in ZIP archive "
+                  << zip_ << ".";
+        return EXIT_FAILURE;
+    }
+
+    boost::iostreams::filtering_istream ifs;
+    zip.plug(record->index, ifs);
+
+    std::cout << ifs.rdbuf() << std::flush;
 
     return EXIT_SUCCESS;
 }

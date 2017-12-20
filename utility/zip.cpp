@@ -116,7 +116,7 @@ namespace bio = boost::iostreams;
 
 namespace utility { namespace zip {
 
-namespace {
+namespace detail {
 
 constexpr std::uint32_t LOCAL_HEADER_SIGNATURE = 0x04034b50;
 constexpr std::uint32_t CENTRAL_DIRECTORY_FILE_HEADER_SIGNATURE = 0x02014b50;
@@ -138,8 +138,9 @@ constexpr std::uint16_t VERSION_MADE_BY = 0x33f;
 constexpr std::uint32_t REGULAR_FILE_ATTRIBUTES
 ((S_IFREG | S_IRUSR | S_IWUSR | S_IRGRP) << 16);
 
+constexpr std::uint16_t Tag64 = 0x0001u;
 
-constexpr std::uint16_t Tag64 = 0x0001;
+constexpr std::uint16_t FlagDataDescriptor = 1u << 3;
 
 /** Should be used only for uint16 and uint32
  */
@@ -279,25 +280,6 @@ localFileHeaderSize(sizeof(std::uint32_t)
 const std::size_t maxFilenameSize(std::numeric_limits<std::uint16_t>::max());
 const std::size_t maxExtraSize(std::numeric_limits<std::uint16_t>::max());
 
-struct MinimalFileHeader {
-    std::uint16_t compressionMethod;
-    std::uint64_t compressedSize;
-    std::uint64_t uncompressedSize;
-    std::uint16_t filenameSize;
-    std::uint16_t fileExtraSize;
-
-    MinimalFileHeader()
-        : compressionMethod(), compressedSize(), uncompressedSize()
-        , filenameSize(), fileExtraSize()
-    {}
-
-    void read(std::istream &in);
-
-    std::size_t size() const {
-        return localFileHeaderSize + filenameSize + fileExtraSize;
-    }
-};
-
 struct CentralDirectoryFileHeader {
     std::uint16_t versionNeeded;
     std::uint16_t flag;
@@ -328,6 +310,17 @@ struct CentralDirectoryFileHeader {
         , externalFileAttributes()
         , fileOffset()
     {}
+
+    MinimalFileHeader minimal() const {
+        MinimalFileHeader mh;
+        mh.flag = flag;
+        mh.compressionMethod = compressionMethod;
+        mh.compressedSize = compressedSize;
+        mh.uncompressedSize = uncompressedSize;
+        mh.filenameSize = filename.size();
+        mh.fileExtraSize = fileExtra.size();
+        return mh;
+    }
 
     static CentralDirectoryFileHeader read(std::istream &in);
 };
@@ -442,11 +435,16 @@ void readExtra64(std::istream &in, int extraSize
     in.seekg(skip, std::ios_base::beg);
 }
 
+inline std::size_t MinimalFileHeader::size() const
+{
+    return localFileHeaderSize + filenameSize + fileExtraSize;
+}
+
 void MinimalFileHeader::read(std::istream &in)
 {
     checkSignature("local file header", in, LOCAL_HEADER_SIGNATURE);
     bin::read<std::uint16_t>(in); // version needed to extract
-    bin::read<std::uint16_t>(in); // general purpose bit flag
+    flag = bin::read<std::uint16_t>(in); // general purpose bit flag
     bin::read(in, compressionMethod);
     bin::read<std::uint16_t>(in); // last modification time
     bin::read<std::uint16_t>(in); // last modification date
@@ -461,6 +459,16 @@ void MinimalFileHeader::read(std::istream &in)
 
     // read extra info for 64 bit version (if any)
     readExtra64(in, fileExtraSize, compressedSize, uncompressedSize);
+}
+
+inline void updateHeader(MinimalFileHeader &header
+                         , const MinimalFileHeader &other)
+{
+    if (!(header.flag & FlagDataDescriptor)) { return; }
+
+    header.compressedSize = other.compressedSize;
+    header.uncompressedSize = other.uncompressedSize;
+    // CRC not used
 }
 
 CentralDirectoryFileHeader CentralDirectoryFileHeader::read(std::istream &in)
@@ -661,7 +669,10 @@ fs::path sanitize(std::string original, bool enabled)
     return Uri::joinAndRemoveDotSegments("/", original);
 }
 
-} // namespace
+} // namespace detail
+
+// pull in everything from detail namespace above
+using namespace detail;
 
 Reader::Reader(const fs::path &path, std::size_t limit, bool sanitizePaths)
     : path_(path), fd_(openFile(path))
@@ -739,7 +750,7 @@ Reader::Reader(const fs::path &path, std::size_t limit, bool sanitizePaths)
             }
 
             records_.emplace_back(i, sanitize(cdfh.filename, sanitizePaths)
-                                  , cdfh.fileOffset);
+                                  , cdfh.fileOffset, cdfh.minimal());
         }
     } catch (const std::ios_base::failure &e) {
         LOGTHROW(err2, Error)
@@ -775,6 +786,7 @@ PluggedFile Reader::plug(std::size_t index
               { int(fd_), headerStart, headerEnd }), 512);
 
         header.read(hf);
+        updateHeader(header, record.header);
     }
 
     bool seekable(false);

@@ -68,6 +68,28 @@ struct PluggedFile {
     {}
 };
 
+namespace detail {
+
+struct MinimalFileHeader {
+    std::uint16_t flag;
+    std::uint16_t compressionMethod;
+    std::uint64_t compressedSize;
+    std::uint64_t uncompressedSize;
+    std::uint16_t filenameSize;
+    std::uint16_t fileExtraSize;
+
+    MinimalFileHeader()
+        : flag(), compressionMethod(), compressedSize(), uncompressedSize()
+        , filenameSize(), fileExtraSize()
+    {}
+
+    void read(std::istream &in);
+
+    std::size_t size() const;
+};
+
+} // namespace detail
+
 class Reader {
 public:
     /** Opens ZIP file.
@@ -92,17 +114,22 @@ public:
 
     /** File record.
      */
-    struct Record {
+    class Record {
+    public:
         typedef std::vector<Record> list;
 
         std::size_t index;
         boost::filesystem::path path;
         std::size_t headerStart;
+        detail::MinimalFileHeader header;
 
         Record(std::size_t index, const boost::filesystem::path &path
-               , std::size_t headerStart)
+               , std::size_t headerStart
+               , const detail::MinimalFileHeader &header)
             : index(index), path(path), headerStart(headerStart)
+            , header(header)
         {}
+
     };
 
     const Record::list& files() const { return records_; }
