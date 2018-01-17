@@ -77,7 +77,7 @@ public:
 
 private:
     friend class Lock::Internals;
-    friend class LockFilesInitializer;
+    friend struct LockFilesInitializer;
     LockFiles() {}
 
     void destroy(ino_t inode);
