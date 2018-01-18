@@ -34,6 +34,7 @@
 #include <utility>
 #include <exception>
 #include <stdexcept>
+#include <future>
 
 #include <system_error>
 
@@ -83,6 +84,10 @@ public:
      */
     reference set(const std::error_code &ec);
 
+    /** Checks whether we have valid value.
+     */
+    operator bool() const { return static_cast<bool>(value_); }
+
     /** Returns value or thows exception if set.
      */
     const_reference get() const;
@@ -121,6 +126,13 @@ public:
      */
     template <typename ErrorSink>
     bool get(reference &out, ErrorSink &sink);
+
+    /** Gets value/exceptions and stores it into promise. Promise can have
+     *  different (but compatible type)/
+     *  Returns true if value was set.
+     */
+    template <typename ValueType>
+    bool get(std::promise<ValueType> &promise) const;
 
 private:
     std::exception_ptr exc_;
@@ -280,6 +292,26 @@ bool Expected<T>::forwardError(ErrorSink &sink) const
     }
 
     return false;
+}
+
+template <typename T>
+template <typename ValueType>
+bool Expected<T>::get(std::promise<ValueType> &promise) const
+{
+    if (exc_) { promise.set_exception(exc_); return true; }
+    if (ec_) {
+        promise.set_exception(makeErrorCodeException(ec_));
+        return false;
+    }
+
+    if (!value_) {
+        promise.set_exception(std::make_exception_ptr
+                              (std::logic_error("Expected value unset")));
+        return false;
+    }
+
+    promise.set_value(*value_);
+    return true;
 }
 
 } // namespace utility

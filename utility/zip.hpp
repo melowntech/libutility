@@ -37,12 +37,15 @@
 #include <stdexcept>
 #include <string>
 #include <vector>
+#include <limits>
+#include <memory>
 
 #include <boost/filesystem/path.hpp>
 #include <boost/iostreams/filtering_stream.hpp>
 
 #include "./filedes.hpp"
 #include "./substream.hpp"
+#include "./enum-io.hpp"
 
 namespace utility { namespace zip {
 
@@ -57,29 +60,76 @@ struct BadSignature : Error {
 struct PluggedFile {
     boost::filesystem::path path;
     std::size_t uncompressedSize;
+    bool seekable;
 
-    PluggedFile(boost::filesystem::path path, std::size_t uncompressedSize)
-        : path(path), uncompressedSize(uncompressedSize)
+    PluggedFile(boost::filesystem::path path, std::size_t uncompressedSize
+                , bool seekable)
+        : path(path), uncompressedSize(uncompressedSize), seekable(seekable)
     {}
 };
 
+namespace detail {
+
+struct MinimalFileHeader {
+    std::uint16_t flag;
+    std::uint16_t compressionMethod;
+    std::uint64_t compressedSize;
+    std::uint64_t uncompressedSize;
+    std::uint16_t filenameSize;
+    std::uint16_t fileExtraSize;
+
+    MinimalFileHeader()
+        : flag(), compressionMethod(), compressedSize(), uncompressedSize()
+        , filenameSize(), fileExtraSize()
+    {}
+
+    void read(std::istream &in);
+
+    std::size_t size() const;
+};
+
+} // namespace detail
+
 class Reader {
 public:
-    Reader(const boost::filesystem::path &path);
+    /** Opens ZIP file.
+     *
+     * If asked to paths are sanitizes:
+     *     1) backslashes are converted to forward slashes (yes, there are
+     *        such ZIP archvies...)
+     *     2) multiple slashes are replaced with single slash
+     *     3) any occurrence of dot and double-dot is resolved
+     *     4) paths are fixed to start from root, i.e they start with /
+     *
+     *  Rationale behind 4: ZIP archive works as a full filesystem with
+     *  predictable paths.
+     *
+     * \param path path to archive
+     * \param limit limit number of files read into file list
+     * \param sanitizePaths sanities paths
+     */
+    Reader(const boost::filesystem::path &path
+           , std::size_t limit = std::numeric_limits<std::size_t>::max()
+           , bool sanitizePaths = true);
 
     /** File record.
      */
-    struct Record {
+    class Record {
+    public:
         typedef std::vector<Record> list;
 
         std::size_t index;
         boost::filesystem::path path;
         std::size_t headerStart;
+        detail::MinimalFileHeader header;
 
         Record(std::size_t index, const boost::filesystem::path &path
-               , std::size_t headerStart)
+               , std::size_t headerStart
+               , const detail::MinimalFileHeader &header)
             : index(index), path(path), headerStart(headerStart)
+            , header(header)
         {}
+
     };
 
     const Record::list& files() const { return records_; }
@@ -104,6 +154,81 @@ private:
     /** List of records.
      */
     Record::list records_;
+};
+
+UTILITY_GENERATE_ENUM(Compression,
+                      ((store))
+                      ((deflate))
+                      ((bzip2))
+                      )
+
+/** Simple ZIP archive writer
+ */
+class Writer {
+public:
+    /** Creates new (empty) archive.
+     *
+     * \param path path to archive
+     * \param overwrite do not fail if file already exists when true
+     */
+    Writer(const boost::filesystem::path &path, bool overwrite = false);
+
+    /** Destroys zip file. Warns on non-closed archive.
+     */
+    ~Writer();
+
+    /** Finalizes ZIP archive. Must be called before object destruction.
+     */
+    void close();
+
+    /** Output stream type. [fwd declarations]
+     */
+    class OStream;
+
+    typedef std::function<void(boost::iostreams::filtering_ostream&)
+                          > FilterInit;
+
+    /** Creates new ostream.
+     *
+     * Returned ostream must be closed by calling its close() function.
+     *
+     * \param path full file path inside the archive
+     * \param compression requested compression method
+     */
+    std::shared_ptr<OStream>
+    ostream(const boost::filesystem::path &path
+            , Compression compression = Compression::store
+            , const FilterInit &filterInit = FilterInit());
+
+    /** Internals. [fwd declarations]
+     */
+    struct Detail;
+    Detail& detail() { return *detail_.get(); }
+    const Detail& detail() const { return *detail_.get(); }
+
+private:
+    std::shared_ptr<Detail> detail_;
+};
+
+class Writer::OStream {
+public:
+    typedef std::shared_ptr<OStream> pointer;
+
+    struct Statistics {
+        std::size_t compressedSize;
+        std::size_t uncompressedSize;
+
+        Statistics(std::size_t compressedSize = 0
+                   , std::size_t uncompressedSize = 0)
+            : compressedSize(compressedSize)
+            , uncompressedSize(uncompressedSize)
+        {}
+    };
+
+    OStream() {}
+    virtual ~OStream() {}
+    virtual std::ostream& get() = 0;
+    virtual Statistics close() = 0;
 };
 
 } } // namespace utility::zip

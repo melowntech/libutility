@@ -298,6 +298,18 @@ operator<<(std::basic_ostream<E, T> &os
 
 } // namespace first_valid
 
+
+// terminator
+inline void concat(std::ostream&) {}
+
+template <typename T, typename ...Args>
+void concat(std::ostream &os, T &&head, Args &&...args)
+{
+    os << head;
+    concat(os, std::forward<Args>(args)...);
+}
+
+
 } } // namespace utility::detail
 
 #endif // utility_detail_streams_hpp_included_

@@ -23,22 +23,92 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  */
+
 #include <sys/stat.h>
+#include <sys/types.h>
 #include <unistd.h>
 #include <fcntl.h>
 
+#include <ctime>
 #include <system_error>
 
+#include <boost/utility/in_place_factory.hpp>
 #include <boost/iostreams/device/file_descriptor.hpp>
 #include <boost/iostreams/stream.hpp>
 #include <boost/iostreams/filter/bzip2.hpp>
 #include <boost/iostreams/filter/zlib.hpp>
+#include <boost/iostreams/device/array.hpp>
+#include <boost/crc.hpp>
 
 #include "dbglog/dbglog.hpp"
 
 #include "./binaryio.hpp"
 #include "./zip.hpp"
 #include "./enum-io.hpp"
+#include "./uri.hpp"
+#include "./filedes.hpp"
+#include "./scopedguard.hpp"
+#include "./typeinfo.hpp"
+
+/*
+Format documentation (Library of Congress preserved version):
+https://www.loc.gov/preservation/digital/formats/digformatspecs/APPNOTE%2820120901%29_Version_6.3.3.txt
+
+Some useful stuff:
+
+version made by (2 bytes):
+     0 - MS-DOS and OS/2 (FAT / VFAT / FAT32 file systems)
+     1 - Amiga                     2 - OpenVMS
+     3 - UNIX                      4 - VM/CMS
+     5 - Atari ST                  6 - OS/2 H.P.F.S.
+     7 - Macintosh                 8 - Z-System
+     9 - CP/M                     10 - Windows NTFS
+    11 - MVS (OS/390 - Z/OS)      12 - VSE
+    13 - Acorn Risc               14 - VFAT
+    15 - alternate MVS            16 - BeOS
+    17 - Tandem                   18 - OS/400
+    19 - OS X (Darwin)            20 thru 255 - unused
+
+version needed to extract (2 bytes)
+    1.0 - Default value
+    1.1 - File is a volume label
+    2.0 - File is a folder (directory)
+    2.0 - File is compressed using Deflate compression
+    2.0 - File is encrypted using traditional PKWARE encryption
+    2.1 - File is compressed using Deflate64(tm)
+    2.5 - File is compressed using PKWARE DCL Implode
+    2.7 - File is a patch data set
+    4.5 - File uses ZIP64 format extensions
+    4.6 - File is compressed using BZIP2 compression*
+    5.0 - File is encrypted using DES
+    5.0 - File is encrypted using 3DES
+    5.0 - File is encrypted using original RC2 encryption
+    5.0 - File is encrypted using RC4 encryption
+    5.1 - File is encrypted using AES encryption
+    5.1 - File is encrypted using corrected RC2 encryption**
+    5.2 - File is encrypted using corrected RC2-64 encryption**
+    6.1 - File is encrypted using non-OAEP key wrapping***
+    6.2 - Central directory encryption
+    6.3 - File is compressed using LZMA
+    6.3 - File is compressed using PPMd+
+    6.3 - File is encrypted using Blowfish
+    6.3 - File is encrypted using Twofish
+
+
+MS-DOS time/date formats:
+https://msdn.microsoft.com/en-us/library/windows/desktop/ms724247.aspx
+
+MS-DOS date format:
+    Bits   Description
+    0-4    Day of the month (1–31)
+    5-8    Month (1 = January, 2 = February, and so on)
+    9-15   Year offset from 1980 (add 1980 to get actual year)
+
+MS-DOS time format:
+    0-4    Second divided by 2
+    5-10   Minute (0–59)
+    11-15   Hour (0–23 on a 24-hour clock)
+ */
 
 namespace bin = utility::binaryio;
 namespace fs = boost::filesystem;
@@ -46,7 +116,7 @@ namespace bio = boost::iostreams;
 
 namespace utility { namespace zip {
 
-namespace {
+namespace detail {
 
 constexpr std::uint32_t LOCAL_HEADER_SIGNATURE = 0x04034b50;
 constexpr std::uint32_t CENTRAL_DIRECTORY_FILE_HEADER_SIGNATURE = 0x02014b50;
@@ -54,14 +124,61 @@ constexpr std::uint32_t END_OF_CENTRAL_DIRECTORY_SIGNATURE = 0x06054b50;
 constexpr std::uint32_t END_OF_CENTRAL_DIRECTORY64_SIGNATURE = 0x06064b50;
 constexpr std::uint32_t END_OF_CENTRAL_DIRECTORY64_LOCATOR_SIGNATURE = 0x07064b50;
 
-constexpr std::uint16_t Tag64 = 0x0001;
+
+/** 64-bit support + bzip2
+ */
+constexpr std::uint16_t VERSION_NEEDED = 46;
+
+/** UNIX (3) + version 6.3 (3f = 63)
+ */
+constexpr std::uint16_t VERSION_MADE_BY = 0x33f;
+
+/** Attributes for regular file.
+ */
+constexpr std::uint32_t REGULAR_FILE_ATTRIBUTES
+((S_IFREG | S_IRUSR | S_IWUSR | S_IRGRP) << 16);
+
+constexpr std::uint16_t Tag64 = 0x0001u;
+
+constexpr std::uint16_t FlagDataDescriptor = 1u << 3;
 
 /** Should be used only for uint16 and uint32
  */
-template <typename T>
-bool invalid(T value)
+template <typename T> bool invalid(T value)
 {
     return value == std::numeric_limits<T>::max();
+}
+
+template <typename T> constexpr T invalid()
+{
+    return std::numeric_limits<T>::max();
+}
+
+std::pair<std::uint16_t, std::uint16_t>
+msDateTime(std::time_t timestamp = std::time(nullptr))
+{
+    std::tm lt;
+    if (!::localtime_r(&timestamp, &lt)) {
+        LOGTHROW(err1, Error)
+            << "Cannot convert timestamp <" << timestamp << "> to local time.";
+    }
+
+    std::pair<std::uint16_t, std::uint16_t> res;
+
+    // date
+    res.first
+        = ((lt.tm_mday & 0x1f) // 0-4: Day of the month (1–31)
+           | ((lt.tm_mon + 1) & 0xf) << 5 // 5-8: Month (1 = January, ...)
+           | ((lt.tm_year - 80) & 0x7f) << 9 // 9-15: Year offset from 1980
+           );
+
+    res.second
+        = (((lt.tm_sec >> 1) & 0x1f) // 0-4: Second divided by 2
+           | ((lt.tm_min) & 0x3f) << 5 // 5-10   Minute (0–59)
+           | ((lt.tm_hour) & 0x1f) << 11 // 11-15: Hour (0–23)
+           );
+
+    return res;
 }
 
 void readVector(std::istream &is, std::vector<char> &vec, std::size_t size)
@@ -94,6 +211,16 @@ void checkSignature(const std::string &what, std::istream &in
 
 const auto DeflateParams([]() -> bio::zlib_params {
         bio::zlib_params params;
+        params.noheader = true;
+        return params;
+    }());
+
+const auto InflateParams([]() -> bio::zlib_params {
+        bio::zlib_params params;
+        params.method = bio::zlib::deflated;
+        params.level = 9;
+        params.window_bits = 15;
+        params.mem_level = 8;
         params.noheader = true;
         return params;
     }());
@@ -153,25 +280,6 @@ localFileHeaderSize(sizeof(std::uint32_t)
 const std::size_t maxFilenameSize(std::numeric_limits<std::uint16_t>::max());
 const std::size_t maxExtraSize(std::numeric_limits<std::uint16_t>::max());
 
-struct MinimalFileHeader {
-    std::uint16_t compressionMethod;
-    std::uint64_t compressedSize;
-    std::uint64_t uncompressedSize;
-    std::uint16_t filenameSize;
-    std::uint16_t fileExtraSize;
-
-    MinimalFileHeader()
-        : compressionMethod(), compressedSize(), uncompressedSize()
-        , filenameSize(), fileExtraSize()
-    {}
-
-    void read(std::istream &in);
-
-    std::size_t size() const {
-        return localFileHeaderSize + filenameSize + fileExtraSize;
-    }
-};
-
 struct CentralDirectoryFileHeader {
     std::uint16_t versionNeeded;
     std::uint16_t flag;
@@ -194,12 +302,25 @@ struct CentralDirectoryFileHeader {
     typedef std::vector<CentralDirectoryFileHeader> list;
 
     CentralDirectoryFileHeader()
-        : versionMadeBy()
-        , diskNumberStart()
+        : versionNeeded(), flag(), compressionMethod()
+        , modificationTime(), modificationDate()
+        , crc32(), compressedSize(), uncompressedSize()
+        , versionMadeBy(), diskNumberStart()
         , internalFileAttributes()
         , externalFileAttributes()
         , fileOffset()
     {}
+
+    MinimalFileHeader minimal() const {
+        MinimalFileHeader mh;
+        mh.flag = flag;
+        mh.compressionMethod = compressionMethod;
+        mh.compressedSize = compressedSize;
+        mh.uncompressedSize = uncompressedSize;
+        mh.filenameSize = filename.size();
+        mh.fileExtraSize = fileExtra.size();
+        return mh;
+    }
 
     static CentralDirectoryFileHeader read(std::istream &in);
 };
@@ -234,6 +355,9 @@ struct EndOfCentralDirectoryRecord {
 
     static EndOfCentralDirectoryRecord read(std::istream &in);
     static EndOfCentralDirectoryRecord read64(std::istream &in);
+
+    void write64(std::ostream &os) const;
+    void write64Marker(std::ostream &os);
 };
 
 struct EndOfCentralDirectory64Locator {
@@ -248,6 +372,8 @@ struct EndOfCentralDirectory64Locator {
     {}
 
     static EndOfCentralDirectory64Locator read(std::istream &in);
+
+    static void writeSimple(std::ostream &os, std::uint64_t eocd);
 
     static std::size_t size() {
         return (sizeof(std::uint32_t) // signature
@@ -309,11 +435,16 @@ void readExtra64(std::istream &in, int extraSize
     in.seekg(skip, std::ios_base::beg);
 }
 
+inline std::size_t MinimalFileHeader::size() const
+{
+    return localFileHeaderSize + filenameSize + fileExtraSize;
+}
+
 void MinimalFileHeader::read(std::istream &in)
 {
     checkSignature("local file header", in, LOCAL_HEADER_SIGNATURE);
     bin::read<std::uint16_t>(in); // version needed to extract
-    bin::read<std::uint16_t>(in); // general purpose bit flag
+    flag = bin::read<std::uint16_t>(in); // general purpose bit flag
     bin::read(in, compressionMethod);
     bin::read<std::uint16_t>(in); // last modification time
     bin::read<std::uint16_t>(in); // last modification date
@@ -328,6 +459,16 @@ void MinimalFileHeader::read(std::istream &in)
 
     // read extra info for 64 bit version (if any)
     readExtra64(in, fileExtraSize, compressedSize, uncompressedSize);
+}
+
+inline void updateHeader(MinimalFileHeader &header
+                         , const MinimalFileHeader &other)
+{
+    if (!(header.flag & FlagDataDescriptor)) { return; }
+
+    header.compressedSize = other.compressedSize;
+    header.uncompressedSize = other.uncompressedSize;
+    // CRC not used
 }
 
 CentralDirectoryFileHeader CentralDirectoryFileHeader::read(std::istream &in)
@@ -369,6 +510,7 @@ EndOfCentralDirectoryRecord EndOfCentralDirectoryRecord::read(std::istream &in)
     checkSignature("end of central directory", in
                    , END_OF_CENTRAL_DIRECTORY_SIGNATURE);
 
+    LOG(debug) << "Reading end of central directory record.";
     EndOfCentralDirectoryRecord r;
 
     r.numberOfThisDisk = bin::read<std::uint16_t>(in);
@@ -409,12 +551,71 @@ EndOfCentralDirectoryRecord::read64(std::istream &in)
     return r;
 }
 
+void EndOfCentralDirectoryRecord::write64(std::ostream &os) const
+{
+    const auto size(sizeof(std::uint16_t) // version made by
+                    + sizeof(std::uint16_t) // version needed to extract
+                    + sizeof(std::uint32_t) // number of this disk
+
+                    /* number of the disk with the start of the central
+                       directory */
+                    + sizeof(std::uint32_t)
+
+                    /* total number of entries in the central directory
+                       on this disk */
+                    + sizeof(std::uint64_t)
+
+                    /* total number of entries in the central directory */
+                    + sizeof(std::uint64_t)
+
+                    + sizeof(std::uint64_t) // size of the central directory
+
+                    /* offset of start of central directory with respect to
+                       the starting disk number */
+                    + sizeof(std::uint64_t));
+
+    // signature
+    bin::write(os, END_OF_CENTRAL_DIRECTORY64_SIGNATURE);
+
+    // size of this record
+    bin::write(os, std::uint64_t(size));
+
+    // versions
+    bin::write(os, std::uint16_t(VERSION_MADE_BY));
+    bin::write(os, std::uint16_t(VERSION_NEEDED));
+
+    // disk info
+    bin::write(os, std::uint32_t(numberOfThisDisk));
+    bin::write(os, std::uint32_t(diskWhereCentralDirectoryStarts));
+
+    // record info
+    bin::write(os, std::uint64_t(numberOfCentralDirectoryRecordsOnThisDisk));
+    bin::write(os, std::uint64_t(totalNumberOfCentralDirectoryRecords));
+
+    // central directory
+    bin::write(os, std::uint64_t(sizeOfCentralDirectory));
+    bin::write(os, std::uint64_t(centralDirectoryOffset));
+}
+
+void EndOfCentralDirectoryRecord::write64Marker(std::ostream &os)
+{
+    bin::write(os, END_OF_CENTRAL_DIRECTORY_SIGNATURE);
+    bin::write(os, std::uint16_t(0));
+    bin::write(os, std::uint16_t(0));
+    bin::write(os, invalid<std::uint16_t>());
+    bin::write(os, invalid<std::uint16_t>());
+    bin::write(os, invalid<std::uint32_t>());
+    bin::write(os, invalid<std::uint32_t>());
+    bin::write(os, std::uint16_t(0));
+}
+
 EndOfCentralDirectory64Locator
 EndOfCentralDirectory64Locator::read(std::istream &in)
 {
     checkSignature("end of central directory 64 locator", in
                    , END_OF_CENTRAL_DIRECTORY64_LOCATOR_SIGNATURE);
 
+    LOG(debug) << "Reading end of central directory locator.";
     EndOfCentralDirectory64Locator r;
 
     bin::read(in, r.numberOfThisDisk);
@@ -422,6 +623,15 @@ EndOfCentralDirectory64Locator::read(std::istream &in)
     bin::read(in, r.totalNumberOfDisks);
 
     return r;
+}
+
+void EndOfCentralDirectory64Locator::writeSimple(std::ostream &os
+                                                 , std::uint64_t eocd)
+{
+    bin::write(os, END_OF_CENTRAL_DIRECTORY64_LOCATOR_SIGNATURE);
+    bin::write(os, std::uint32_t(0)); // numberOfThisDisk
+    bin::write(os, std::uint64_t(eocd)); // endOfCentralDirectoryOffset
+    bin::write(os, std::uint32_t(1)); // totalNumberOfDisks
 }
 
 Filedes openFile(const fs::path &path)
@@ -448,9 +658,23 @@ std::size_t fileSize(const Filedes &fd)
     return st.st_size;
 }
 
-} // namespace
+fs::path sanitize(std::string original, bool enabled)
+{
+    if (!enabled) { return original; }
 
-Reader::Reader(const fs::path &path)
+    // \ -> /
+    for (auto &c : original) { if (c == '\\') { c= '/'; } }
+
+    // remove any (double-)dot occurrence and force start from root
+    return Uri::joinAndRemoveDotSegments("/", original);
+}
+
+} // namespace detail
+
+// pull in everything from detail namespace above
+using namespace detail;
+
+Reader::Reader(const fs::path &path, std::size_t limit, bool sanitizePaths)
     : path_(path), fd_(openFile(path))
     , fileLength_(fileSize(fd_))
 {
@@ -504,9 +728,18 @@ Reader::Reader(const fs::path &path)
         // seek to first central directory record
         f.seekg(eocd.centralDirectoryOffset, std::ios_base::beg);
 
+        // apply limit
+        const auto recordCount
+            ((eocd.numberOfCentralDirectoryRecordsOnThisDisk > limit)
+             ? limit
+             : eocd.numberOfCentralDirectoryRecordsOnThisDisk);
+
+        LOG(debug) << "Reading " << recordCount << " records out of "
+                   << eocd.numberOfCentralDirectoryRecordsOnThisDisk
+                   << " from ZIP archive " << path << ".";
+
         // read central directory
-        for (std::size_t e(eocd.numberOfCentralDirectoryRecordsOnThisDisk)
-                 , i(0); i != e; ++i)
+        for (std::size_t i(0); i != recordCount; ++i)
         {
             auto cdfh(CentralDirectoryFileHeader::read(f));
 
@@ -516,7 +749,8 @@ Reader::Reader(const fs::path &path)
                     << ": multiple discs encountered.";
             }
 
-            records_.emplace_back(i, cdfh.filename, cdfh.fileOffset);
+            records_.emplace_back(i, sanitize(cdfh.filename, sanitizePaths)
+                                  , cdfh.fileOffset, cdfh.minimal());
         }
     } catch (const std::ios_base::failure &e) {
         LOGTHROW(err2, Error)
@@ -552,7 +786,10 @@ PluggedFile Reader::plug(std::size_t index
               { int(fd_), headerStart, headerEnd }), 512);
 
         header.read(hf);
+        updateHeader(header, record.header);
     }
+
+    bool seekable(false);
 
     // add decompressor based on compression method
     switch (const auto cm
@@ -560,6 +797,7 @@ PluggedFile Reader::plug(std::size_t index
     {
     case CompressionMethod::store:
         // not compressed, no decompressor needed
+        seekable = true;
         break;
 
     case CompressionMethod::bzip2:
@@ -586,7 +824,582 @@ PluggedFile Reader::plug(std::size_t index
              (record.path, utility::io::SubStreamDevice::Filedes
               { int(fd_), fileStart, fileEnd }));
 
-    return PluggedFile(record.path, header.uncompressedSize);
+    return PluggedFile(record.path, header.uncompressedSize, seekable);
+}
+
+struct Writer::Detail : public std::enable_shared_from_this<Detail>
+{
+    typedef std::shared_ptr<Detail> pointer;
+
+    Detail(const boost::filesystem::path &path, bool overwrite);
+
+    ~Detail() {
+        // TODO: check for closed archive
+        if (fd) {
+            LOG(warn2) << "ZIP file " << fd.path() << " was not flushed. "
+                       << "Use close() member function.";
+        }
+    }
+
+    OStream::pointer ostream(const boost::filesystem::path &path
+                             , Compression compression
+                             , const FilterInit &filterInit);
+
+    void close();
+
+    void begin(const std::string &name);
+
+    struct FileEntry {
+        fs::path name;
+        CompressionMethod compressionMethod;
+        std::size_t compressedSize;
+        std::size_t uncompressedSize;
+        std::uint32_t crc32;
+
+        FileEntry(const fs::path &name, CompressionMethod compressionMethod)
+            : name(name), compressionMethod(compressionMethod)
+            , compressedSize(), uncompressedSize(), crc32()
+        {}
+    };
+
+    // TODO: pass record info
+    void commit(const FileEntry &fileEntry);
+
+    void rollback();
+
+    void seekTo(std::size_t off) {
+        auto res(::lseek(fd, off, SEEK_SET));
+        if (res == -1) {
+            std::system_error e(errno, std::system_category());
+            LOG(err2) << "Cannot seek in a ZIP file " << fd.path() << ": <"
+                      << e.code() << ", " << e.what() << ">.";
+            throw e;
+        }
+    }
+
+    ::off_t seekEnd() {
+        auto res(::lseek(fd, 0, SEEK_END));
+        if (res == -1) {
+            std::system_error e(errno, std::system_category());
+            LOG(err2) << "Cannot seek in a ZIP file " << fd.path() << ": <"
+                      << e.code() << ", " << e.what() << ">.";
+            throw e;
+        }
+        return res;
+    }
+
+    ::off_t whereAmI() {
+        auto res(::lseek(fd, 0, SEEK_CUR));
+        if (res == -1) {
+            std::system_error e(errno, std::system_category());
+            LOG(err2) << "Cannot seek in a ZIP file " << fd.path() << ": <"
+                      << e.code() << ", " << e.what() << ">.";
+            throw e;
+        }
+        return res;
+    }
+
+    void advance(std::size_t bytes) {
+        // ensure we are at current end
+        auto end(seekEnd());
+
+        // truncated to inflated size
+        auto res(::ftruncate(fd, end + bytes));
+        if (res == -1) {
+            std::system_error e(errno, std::system_category());
+            LOG(err2) << "Cannot truncate a ZIP file " << fd.path() << ": <"
+                      << e.code() << ", " << e.what() << ">.";
+            throw e;
+        }
+
+        // and seek at the new end
+        seekEnd();
+    }
+
+    Filedes fd;
+
+    ::off_t tx;
+
+    CentralDirectoryFileHeader::list directory;
+};
+
+int openFlags(bool overwrite)
+{
+    if (overwrite) {
+        return (O_WRONLY | O_CREAT | O_TRUNC);
+    }
+
+    return (O_WRONLY | O_CREAT | O_EXCL);
+}
+
+Filedes openFile(const boost::filesystem::path &path, bool overwrite)
+{
+    Filedes fd(::open(path.c_str(), openFlags(overwrite)
+                      , (S_IRUSR | S_IWUSR | S_IRGRP)), path);
+
+    if (!fd) {
+        std::system_error e(errno, std::system_category());
+        LOG(err2) << "Cannot create a ZIP file " << path << ": <"
+                  << e.code() << ", " << e.what() << ">.";
+        throw e;
+    }
+
+    return fd;
+}
+
+Writer::Detail::Detail(const boost::filesystem::path &path, bool overwrite)
+    : fd(openFile(path, overwrite)), tx(-1)
+{
+}
+
+CompressionMethod compressionMethod(Compression compression)
+{
+    switch (compression) {
+    case Compression::store: return CompressionMethod::store;
+    case Compression::deflate: return CompressionMethod::deflate;
+    case Compression::bzip2: return CompressionMethod::bzip2;
+    }
+
+    LOGTHROW(err2, Error)
+        << "Unsupported compression value (" << static_cast<int>(compression)
+        << ").";
+    throw;
+}
+
+class CounterFilter : public bio::multichar_output_filter
+{
+public:
+    explicit CounterFilter() : count_() {}
+
+    template<typename Sink>
+    std::streamsize write(Sink &sink, const char_type *s, std::streamsize n) {
+        auto result(bio::write(sink, s, n));
+        count_ += result;
+        return result;
+    }
+
+    std::size_t count() const { return count_; }
+
+private:
+    std::size_t count_;
+};
+
+class Crc32Filter : public bio::multichar_output_filter
+{
+public:
+    explicit Crc32Filter() : crc32_() {}
+
+    template<typename Sink>
+    std::streamsize write(Sink &sink, const char_type *s, std::streamsize n) {
+        auto result(bio::write(sink, s, n));
+        crc32_.process_bytes(s, result);
+        return result;
+    }
+
+    std::uint32_t checksum() const { return crc32_.checksum(); }
+
+private:
+    boost::crc_32_type crc32_;
+};
+
+class ZipStream : public Writer::OStream
+{
+public:
+    ZipStream(Writer::Detail::pointer detail, const fs::path &name
+              , Compression compression, const Writer::FilterInit &filterInit)
+        : detail_(std::move(detail))
+        , fileEntry_(name, compressionMethod(compression))
+    {
+        detail_->begin(fileEntry_.name.string());
+        open_ = true;
+
+        if (filterInit) { filterInit(fos_); }
+
+        // compute crc32 for uncompressed file
+        fos_.push(boost::ref(crc32_));
+
+        switch (compression) {
+        case Compression::store:
+            // do not touch
+            break;
+
+        case Compression::deflate:
+            // measure uncompressed size
+            uncompressedSize_ = boost::in_place();
+            fos_.push(boost::ref(*uncompressedSize_));
+            // compress
+            fos_.push(bio::zlib_compressor(InflateParams));
+            break;
+
+        case Compression::bzip2:
+            // measure uncompressed size
+            uncompressedSize_ = boost::in_place();
+            fos_.push(boost::ref(*uncompressedSize_));
+            // compress
+            fos_.push(bio::bzip2_compressor());
+            break;
+        }
+
+        // measure compressed size
+        fos_.push(boost::ref(compressedSize_));
+        // sink to file
+        fos_.push(bio::file_descriptor_sink
+                   (detail_->fd.get()
+                    , bio::file_descriptor_flags::never_close_handle));
+    }
+
+    virtual ~ZipStream() {
+        try {
+            close();
+        } catch (const std::exception &e) {
+            LOG(warn2) << "Uncaught exception in ZipStream flush: <"
+                       << e.what() << ">.";
+        } catch (...) {
+            LOG(warn2) << "Unknowmn uncaught exception in ZipStream flush.";
+        }
+    }
+
+    virtual std::ostream& get() { return fos_; }
+
+    virtual Statistics close() {
+        if (!open_) { return {}; }
+        open_ = false;
+
+        // close output file
+        bio::close(fos_);
+
+        fileEntry_.compressedSize = compressedSize_.count();
+        fileEntry_.uncompressedSize
+            = (uncompressedSize_
+               ? uncompressedSize_->count() : fileEntry_.compressedSize);
+        fileEntry_.crc32 = crc32_.checksum();
+
+        detail_->commit(fileEntry_);
+
+        return Statistics(fileEntry_.compressedSize
+                          , fileEntry_.uncompressedSize);
+    }
+
+private:
+    Writer::Detail::pointer detail_;
+    Writer::Detail::FileEntry fileEntry_;
+
+    bool open_;
+    bio::filtering_ostream fos_;
+
+    CounterFilter compressedSize_;
+    boost::optional<CounterFilter> uncompressedSize_;
+    Crc32Filter crc32_;
+};
+
+const auto extra64SizeLocalHeader
+(2 * sizeof(std::uint16_t) // tag + size
+ + 2 * sizeof(std::uint64_t) // (un)compressedSize
+ );
+
+void writeLocalHeader(std::ostream &os, const CentralDirectoryFileHeader &fh)
+{
+    // signature
+    bin::write(os, LOCAL_HEADER_SIGNATURE);
+
+    // fixed fields
+    bin::write(os, std::uint16_t(fh.versionNeeded));
+    bin::write(os, std::uint16_t(fh.flag));
+    bin::write(os, std::uint16_t(fh.compressionMethod));
+    bin::write(os, std::uint16_t(fh.modificationTime));
+    bin::write(os, std::uint16_t(fh.modificationDate));
+
+    bin::write(os, std::uint32_t(fh.crc32));
+
+    // lengths, mark them as invalid -> redirect to extra 64 field
+    bin::write(os, invalid<std::uint32_t>()); // cs
+    bin::write(os, invalid<std::uint32_t>()); // uncs
+
+    bin::write(os, std::uint16_t(fh.filename.size()));
+    bin::write(os, std::uint16_t(fh.fileExtra.size()
+                                 + extra64SizeLocalHeader));
+    bin::write(os, fh.filename.data(), fh.filename.size());
+
+    // write extra 64
+    // header
+    bin::write(os, std::uint16_t(Tag64));
+    bin::write(os, std::uint16_t(2 * sizeof(std::uint64_t)));
+    // body
+    bin::write(os, std::uint64_t(fh.compressedSize));
+    bin::write(os, std::uint64_t(fh.uncompressedSize));
+
+    // other extra
+    bin::write(os, fh.fileExtra.data(), fh.fileExtra.size());
+}
+
+/** Helper type for handling short/long versions of some ZIP-related size
+ */
+template <typename Short, typename Long>
+struct ShortValue {
+    typedef Short short_type;
+    typedef Long long_type;
+
+    static constexpr short_type limit = invalid<Short>();
+
+    /** Is value inside short range?
+     */
+    bool inLimit;
+
+    /** Short version of value or invalid marker.
+     */
+    short_type shortValue;
+
+    /** Original (long version) value.
+     */
+    long_type value;
+
+    ShortValue(long_type v)
+        : inLimit(v < limit)
+        , shortValue(inLimit ? short_type(v) : limit)
+        , value(v)
+    {}
+
+    /** How many bytes do this element occupy in the extra field?
+     */
+    std::size_t extraSize() const { return inLimit ? 0 : sizeof(long_type); }
+
+    /** Write short version (always).
+     */
+    void writeShort(std::ostream &os) const {
+        bin::write(os, shortValue);
+    }
+
+    /** Write long version (only when too large to fit short version)
+     */
+    void writeLong(std::ostream &os) const {
+        if (!inLimit) {
+            bin::write(os, value);
+        }
+    }
+};
+
+typedef ShortValue<std::uint32_t, std::uint64_t> ShortValue64;
+
+void writeCentralHeader(std::ostream &os, const CentralDirectoryFileHeader &fh)
+{
+    const ShortValue64 compressedSize(fh.compressedSize);
+    const ShortValue64 uncompressedSize(fh.uncompressedSize);
+    const ShortValue64 fileOffset(fh.fileOffset);
+    const auto tag64Size(compressedSize.extraSize()
+                         + uncompressedSize.extraSize()
+                         + fileOffset.extraSize());
+    const auto extraSize(tag64Size
+                         ? tag64Size + 2 * sizeof(std::uint16_t)
+                         : 0);
+
+    bin::write(os, CENTRAL_DIRECTORY_FILE_HEADER_SIGNATURE);
+
+    // fixed fields
+    bin::write(os, std::uint16_t(fh.versionMadeBy));
+    bin::write(os, std::uint16_t(fh.versionNeeded));
+    bin::write(os, std::uint16_t(fh.flag));
+
+    bin::write(os, std::uint16_t(fh.compressionMethod));
+    bin::write(os, std::uint16_t(fh.modificationTime));
+    bin::write(os, std::uint16_t(fh.modificationDate));
+
+    bin::write(os, std::uint32_t(fh.crc32));
+
+    compressedSize.writeShort(os);
+    uncompressedSize.writeShort(os);
+
+    // variable sizes
+    bin::write(os, std::uint16_t(fh.filename.size()));
+    bin::write(os, std::uint16_t(fh.fileExtra.size() + extraSize));
+    bin::write(os, std::uint16_t(fh.fileComment.size()));
+
+    bin::write(os, std::uint16_t(fh.diskNumberStart));
+    bin::write(os, std::uint16_t(fh.internalFileAttributes));
+
+    bin::write(os, std::uint32_t(fh.externalFileAttributes));
+    fileOffset.writeShort(os);
+
+    // variable sized fields
+    bin::write(os, fh.filename.data(), fh.filename.size());
+
+    if (extraSize) {
+        // write extra 64
+        // header
+        bin::write(os, std::uint16_t(Tag64));
+        bin::write(os, std::uint16_t(tag64Size));
+
+        // body
+        compressedSize.writeLong(os);
+        uncompressedSize.writeLong(os);
+        fileOffset.writeLong(os);
+    }
+
+    // extra + comment
+    bin::write(os, fh.fileExtra.data(), fh.fileExtra.size());
+    bin::write(os, fh.fileComment.data(), fh.fileComment.size());
+}
+
+Writer::OStream::pointer
+Writer::Detail::ostream(const boost::filesystem::path &path
+                        , Compression compression
+                        , const FilterInit &filterInit)
+{
+    if (!fd) {
+        LOGTHROW(err2, Error)
+            << "ZIP archive " << fd.path() << " is closed.";
+    }
+
+    auto os(std::make_shared<ZipStream>
+            (shared_from_this(), path, compression, filterInit));
+    os->get().exceptions(std::ios::badbit | std::ios::failbit);
+    return os;
+}
+
+void Writer::Detail::begin(const std::string &name)
+{
+    if (tx >= 0) {
+        LOGTHROW(err2, Error)
+            << "Cannot write more than one file to a ZIP archive at once.";
+    }
+    tx = whereAmI();
+
+    // make room for header
+    advance(localFileHeaderSize + extra64SizeLocalHeader + name.size());
+}
+
+void Writer::Detail::commit(const FileEntry &fe)
+{
+    if (tx < 0) {
+        LOGTHROW(err2, Error)
+            << "Not inside a transaction.";
+    }
+
+    CentralDirectoryFileHeader fh;
+
+    fh.versionNeeded = VERSION_NEEDED;
+    fh.versionMadeBy = VERSION_MADE_BY;
+    fh.compressionMethod = static_cast<decltype(fh.compressionMethod)>
+        (fe.compressionMethod);
+    std::tie(fh.modificationDate, fh.modificationTime) = msDateTime();
+    fh.crc32 = fe.crc32;
+    fh.compressedSize = fe.compressedSize;
+    fh.uncompressedSize = fe.uncompressedSize;
+    fh.externalFileAttributes = REGULAR_FILE_ATTRIBUTES;
+    fh.filename = fe.name.string();
+    fh.fileOffset = tx;
+
+    try {
+        // write a file header
+        seekTo(tx);
+        {
+            bio::stream<bio::file_descriptor_sink> os
+                (fd.get(), bio::file_descriptor_flags::never_close_handle);
+            os.exceptions(std::ios::badbit | std::ios::failbit);
+            writeLocalHeader(os, fh);
+            bio::close(os);
+        }
+        seekEnd();
+    } catch (const std::exception &e) {
+        LOG(err2) << "Cannot commit a ZIP file " << fd.path()
+                  << "; rolling back.";
+        rollback();
+        throw;
+    }
+
+    directory.push_back(fh);
+
+    tx = -1;
+}
+
+void Writer::Detail::rollback()
+{
+    if (tx < 0) {
+        LOGTHROW(err2, Error)
+            << "Not inside a transaction.";
+    }
+
+    auto res(::ftruncate(fd, tx));
+    if (res == -1) {
+        std::system_error e(errno, std::system_category());
+        LOG(err2) << "Cannot truncate a ZIP file " << fd.path() << ": <"
+                  << e.code() << ", " << e.what() << ">.";
+        throw e;
+    }
+    seekEnd();
+
+    tx = -1;
+}
+
+void Writer::Detail::close()
+{
+    if (!fd) { return; }
+
+    // this ensures fd is closed even if tail write fails
+    ScopedGuard guard([&]() -> void
+    {
+        try { fd.close(); } catch (...) {}
+    });
+
+
+    // write file tail
+    {
+        // central directory
+        const auto cdOff(seekEnd());
+
+        {
+            bio::stream<bio::file_descriptor_sink> os
+                (fd.get(), bio::file_descriptor_flags::never_close_handle);
+            os.exceptions(std::ios::badbit | std::ios::failbit);
+
+            // write central directory headers
+            for (const auto &fh : directory) {
+                writeCentralHeader(os, fh);
+            }
+        }
+
+        // end of central directory
+        const auto eocdOff(seekEnd());
+
+        bio::stream<bio::file_descriptor_sink> os
+            (fd.get(), bio::file_descriptor_flags::never_close_handle);
+        os.exceptions(std::ios::badbit | std::ios::failbit);
+
+        // write 64bit end of central directory record
+        EndOfCentralDirectoryRecord eocd;
+        eocd.numberOfThisDisk = 0;
+        eocd.diskWhereCentralDirectoryStarts = 0;
+        eocd.numberOfCentralDirectoryRecordsOnThisDisk = directory.size();
+        eocd.totalNumberOfCentralDirectoryRecords = directory.size();
+        eocd.sizeOfCentralDirectory = (eocdOff - cdOff);
+        eocd.centralDirectoryOffset = cdOff;
+        eocd.write64(os);
+
+        // write 64bit end of central directory locator
+        EndOfCentralDirectory64Locator::writeSimple(os, eocdOff);
+
+        // write end of central directory record
+        eocd.write64Marker(os);
+
+        bio::close(os);
+    }
+}
+
+Writer::Writer(const boost::filesystem::path &path, bool overwrite)
+    : detail_(std::make_shared<Detail>(path, overwrite))
+{}
+
+Writer::~Writer() {}
+
+void Writer::close()
+{
+    return detail_->close();
+}
+
+Writer::OStream::pointer Writer::ostream(const boost::filesystem::path &path
+                                         , Compression compression
+                                         , const FilterInit &filterInit)
+{
+    return detail_->ostream(path, compression, filterInit);
 }
 
 } } // namespace utility::zip

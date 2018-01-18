@@ -195,7 +195,7 @@ Reader::Filedes Reader::filedes(std::size_t block, std::size_t size)
 
 /** Build index.
  */
-Reader::File::list Reader::files()
+Reader::File::list Reader::files(std::size_t limit)
 {
     // rewind
     seek(0);
@@ -211,6 +211,9 @@ Reader::File::list Reader::files()
             std::size_t start(cursorByte());
             files.emplace_back(header.getPath()
                                , start, header.getSize());
+
+            // apply limit
+            if (files.size() >= limit) { break; }
         }
 
         // skip file/whatever content

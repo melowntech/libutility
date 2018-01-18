@@ -41,9 +41,9 @@ void Progress::report(const ratio_t &threshold, const std::string &name)
     }
 
     auto r(ratio());
-    auto integral(boost::rational_cast<std::size_t>(r * 100));
+    auto integral(boost::rational_cast<std::size_t>(r * std::size_t(100)));
     auto decimals(boost::rational_cast<std::size_t>
-                  ((r * 10000) - (integral * 100)));
+                  ((r * std::size_t(10000)) - (integral * std::size_t(100))));
 
     LOG(info3)
         << name << "progress: " << std::setw(3) << std::setfill(' ')
@@ -94,9 +94,9 @@ void Progress::report(std::size_t rv)
 
         // free to report
         Ratio r(rv, total_);
-        auto integral(boost::rational_cast<std::size_t>(r * 100));
+        auto integral(boost::rational_cast<std::size_t>(r * std::size_t(100)));
         auto decimals(boost::rational_cast<std::size_t>
-                      ((r * 10000) - (integral * 100)));
+                      ((r * std::size_t(10000)) - (integral * std::size_t(100))));
 
         LOG(info3)
             << name_ << " progress: " << std::setw(3) << std::setfill(' ')

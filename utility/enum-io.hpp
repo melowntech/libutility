@@ -49,13 +49,14 @@
  * "left-top" write: ((left_top)("left-top"))
  *
  * These support functions are also generated:
- *     std::initializer_list<Type> enumerationValues(Type)
+ *     std::array<Type, number-of-enumerations> enumerationValues(Type)
  *     const char* enumerationString(Type)
  */
 
 #ifndef utility_enum_io_hpp_included_
 #define utility_enum_io_hpp_included_
 
+#include <array>
 #include <iostream>
 #include <boost/preprocessor/seq.hpp>
 #include <boost/preprocessor/stringize.hpp>
@@ -186,7 +187,7 @@
 
 #define UTILITY_DETAIL_toEnum_compare1                                  \
     auto compare([](const std::string &l, const std::string &r) {       \
-            return boost::algorithm::iequals(l, r);                    \
+            return boost::algorithm::iequals(l, r);                     \
         });
 
 #define UTILITY_GENERATE_ENUM_IO_IMPL(Type, seq, ci)                    \
@@ -214,13 +215,14 @@
         return is;                                                      \
     }                                                                   \
                                                                         \
-    inline std::initializer_list<Type> enumerationValues(Type)          \
+    inline std::array<Type, BOOST_PP_SEQ_SIZE(seq)>                     \
+    enumerationValues(Type)                                             \
     {                                                                   \
-        return {                                                        \
+        return {{                                                       \
             UTILITY_DETAIL_value(Type, BOOST_PP_SEQ_HEAD(seq))          \
             BOOST_PP_SEQ_FOR_EACH(UTILITY_DETAIL_comma_value            \
                                   , Type, BOOST_PP_SEQ_TAIL(seq))       \
-        };                                                              \
+        }};                                                             \
     }                                                                   \
                                                                         \
     inline const char* enumerationString(Type)                          \
@@ -250,5 +252,16 @@
     };                                                                  \
                                                                         \
     UTILITY_GENERATE_ENUM_IO(Type, seq)
+
+/** Generate enum class and I/O stuff at one go, case insensitive version
+ */
+#define UTILITY_GENERATE_ENUM_CI(Type, seq)                             \
+    enum class Type {                                                   \
+        UTILITY_DETAIL_untyped_value(Type, BOOST_PP_SEQ_HEAD(seq))      \
+        BOOST_PP_SEQ_FOR_EACH(UTILITY_DETAIL_comma_untyped_value        \
+                              , Type, BOOST_PP_SEQ_TAIL(seq))           \
+    };                                                                  \
+                                                                        \
+    UTILITY_GENERATE_ENUM_IO_CI(Type, seq)
 
 #endif // utility_enum_io_hpp_included_

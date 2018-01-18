@@ -28,6 +28,7 @@
 
 #include <ctime>
 #include <array>
+#include <limits>
 
 #include <boost/filesystem/path.hpp>
 
@@ -169,7 +170,8 @@ public:
         {}
     };
 
-    File::list files();
+    File::list files(std::size_t limit
+                     = std::numeric_limits<std::size_t>::max());
 
     const boost::filesystem::path& path() const { return path_; }
 

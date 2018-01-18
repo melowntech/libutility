@@ -26,6 +26,8 @@
 /** Generic HTTP code-related stuff
  */
 
+#include <boost/format.hpp>
+
 #include "./httpcode.hpp"
 
 namespace utility {
@@ -37,18 +39,32 @@ struct HttpErrorCategory : public std::error_category {
     virtual std::string message(int c) const {
         switch (HttpCode(c)) {
         case HttpCode::OK: return "OK";
+
+        case HttpCode::MultipleChoices: return "Multiple Choices";
+        case HttpCode::MovedPermanenty: return "Moved Permanenty";
         case HttpCode::Found: return "Found";
+        case HttpCode::SeeOther: return "See Other";
         case HttpCode::NotModified: return "Not Modified";
+        case HttpCode::UseProxy: return "Use Proxy";
+        case HttpCode::SwitchProxy: return "Switch Proxy";
+        case HttpCode::TemporaryRedirect: return "Temporary Redirect";
+        case HttpCode::PermanentRedrect: return "Permanent Redrect";
+
         case HttpCode::BadRequest: return "Bad Request";
         case HttpCode::NotAuthorized: return "Not Authorized";
         case HttpCode::Forbidden: return "Forbidden";
         case HttpCode::NotFound: return "Not Found";
         case HttpCode::NotAllowed: return "Not Allowed";
+
         case HttpCode::InternalServerError: return "Internal Server Error";
+        case HttpCode::NotImplemented: return "Not Implemented";
+        case HttpCode::BadGateway: return "Bad Gateway";
         case HttpCode::ServiceUnavailable: return "Service Unavailable";
+        case HttpCode::GatewayTimeout: return "Gateway Timeout";
+
         default: break;
         }
-        return "Unknown";
+        return str(boost::format("HTTP status=%d") % c);
     }
 };
 

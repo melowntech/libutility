@@ -35,6 +35,8 @@
 
 namespace utility { namespace io {
 
+/** Input device for part of file. Can be pointed at any point.
+ */
 struct SubStreamDevice {
     typedef char char_type;
     struct category : boost::iostreams::device_tag

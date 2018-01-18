@@ -50,11 +50,11 @@ public:
         struct Body {
             std::time_t lastModified;
             std::time_t expires;
-            bool redirect;
+            std::error_code redirect;
             std::string contentType;
             std::string data;
 
-            Body() : lastModified(-1), expires(-1), redirect(false) {}
+            Body() : lastModified(-1), expires(-1), redirect() {}
         };
         typedef std::vector<std::pair<std::string, std::string>> Options;
 
@@ -95,7 +95,7 @@ public:
                  , const void *data, std::size_t size
                  , const std::string &contentType);
 
-        void redirect(const std::string &url);
+        void redirect(const std::string &url, std::error_code code);
 
         void error(std::exception_ptr exc) { exc_ = std::move(exc); }
 
@@ -253,17 +253,18 @@ inline void ResourceFetcher::Query::set(std::time_t lastModified
     body_.expires = expires;
     body_.contentType = contentType;
     body_.data.assign(static_cast<const char*>(data), size);
-    body_.redirect = false;
+    body_.redirect = std::error_code();
     exc_ = {};
     ec_ = {};
 }
 
-inline void ResourceFetcher::Query::redirect(const std::string &url)
+inline void ResourceFetcher::Query::redirect(const std::string &url
+                                             , std::error_code code)
 {
     body_.lastModified = body_.expires = -1;
     body_.data = url;
     body_.contentType.clear();
-    body_.redirect = true;
+    body_.redirect = code;
     exc_ = {};
     ec_ = {};
 }

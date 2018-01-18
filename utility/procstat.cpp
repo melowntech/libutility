@@ -65,20 +65,30 @@ ProcStat::list getProcStat(const PidList &pids)
         ::PROCTAB *p;
     } table(pidList.data());
 
-    ::proc_t *proc(nullptr);
+    struct Record {
+        Record(Table &table, ::pid_t pid) : proc(nullptr) {
+            proc = ::readproc(table.p, proc);
+            if (!proc) {
+                if (!errno) { errno = ESRCH; }
+                std::system_error e(errno, std::system_category());
+                LOG(err3) << "Cannot read from /proc (pid " << pid << "): <"
+                          << e.code() << ", " << e.what() << ">.";
+                throw e;
+            }
+        }
+
+        ~Record() { ::freeproc(proc); }
+
+        ::proc_t *proc;
+    };
 
     ProcStat::list stat;
 
     for (const auto &pid : pids) {
         errno = 0;
-        proc = ::readproc(table.p, proc);
-        if (!proc) {
-            if (!errno) { errno = ESRCH; }
-            std::system_error e(errno, std::system_category());
-            LOG(err3) << "Cannot read from /proc (pid " << pid << "): <"
-                      << e.code() << ", " << e.what() << ">.";
-            throw e;
-        }
+        Record record(table, pid);
+        const auto *proc(record.proc);
+
         ProcStat ps;
         ps.pid = proc->tid;
         ps.rss = proc->vm_rss;

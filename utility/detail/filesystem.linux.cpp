@@ -23,69 +23,59 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  */
+
+#include <sys/types.h>
+#include <sys/stat.h>
 #include <unistd.h>
 
 #include <system_error>
 
-#include "./raise.hpp"
-#include "./substream.hpp"
+#include "dbglog/dbglog.hpp"
 
-namespace utility { namespace io {
+#include "../filesystem.hpp"
 
-std::streampos SubStreamDevice::seek(boost::iostreams::stream_offset off
-                                     , std::ios_base::seekdir way)
+namespace utility {
+
+FileId FileId::from(const boost::filesystem::path &path)
 {
-    std::int64_t newPos(0);
+    struct ::stat s;
 
-    switch (way) {
-    case std::ios_base::beg:
-        newPos = fd_.start + off;
-        break;
-
-    case std::ios_base::end:
-        newPos = fd_.end + off;
-        break;
-
-    case std::ios_base::cur:
-        newPos = pos_ + off;
-        break;
-
-    default: // shut up compiler!
-        break;
-    };
-
-    if (newPos < std::int64_t(fd_.start)) {
-        pos_ = fd_.start;
-    } else if (newPos > std::int64_t(fd_.end)) {
-        pos_ = fd_.end;
-    } else {
-        pos_ = newPos;
-    }
-
-    return (pos_ - fd_.start);
-}
-
-std::streamsize
-SubStreamDevice::read_impl(char *data, std::streamsize size
-                           , boost::iostreams::stream_offset pos)
-{
-    // trim if out of range
-    auto end(fd_.end);
-    if (size > std::streamsize(end - pos)) {
-        size = end - pos;
-    }
-
-    if (!size) { return size; }
-
-    auto bytes(::pread(fd_.fd, data, size, pos));
-    if (-1 == bytes) {
-        std::system_error e
-            (errno, std::system_category()
-             , utility::formatError
-             ("Unable to read from substream at %s.", path_));
+    if (-1 == ::stat(path.c_str(), &s)) {
+        std::system_error e(errno, std::system_category());
+        LOG(err1) << "Unable to stat file " << path << ": "
+                  << e.code() << ", " << e.what() << ">.";
         throw e;
     }
-    return bytes;
+
+    return FileId(s.st_dev, s.st_ino);
 }
 
-} } // namespace utility::io
+FileStat FileStat::from(const boost::filesystem::path &path)
+{
+    struct ::stat s;
+
+    if (-1 == ::stat(path.c_str(), &s)) {
+        std::system_error e(errno, std::system_category());
+        LOG(err1) << "Unable to stat file " << path << ": "
+                  << e.code() << ", " << e.what() << ">.";
+        throw e;
+    }
+
+    return FileStat(s.st_mtime, s.st_size, FileId(s.st_dev, s.st_ino));
+}
+
+FileStat FileStat::from(const boost::filesystem::path &path, std::nothrow_t)
+{
+    struct ::stat s;
+
+    if (-1 == ::stat(path.c_str(), &s)) {
+        std::system_error e(errno, std::system_category());
+        LOG(warn1) << "Unable to stat file " << path << ": "
+                   << e.code() << ", " << e.what() << ">.";
+        return FileStat(-1, 0, FileId(0, 0));
+    }
+
+    return FileStat(s.st_mtime, s.st_size, FileId(s.st_dev, s.st_ino));
+}
+
+} // namespace utility

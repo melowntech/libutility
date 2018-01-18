@@ -25,8 +25,11 @@
  */
 #include <cctype>
 #include <iterator>
+#include <algorithm>
+
 #include <boost/filesystem.hpp>
 
+#include <boost/lexical_cast.hpp>
 #include <boost/algorithm/string/case_conv.hpp>
 #include <boost/algorithm/string/predicate.hpp>
 #include <boost/algorithm/string/split.hpp>
@@ -83,13 +86,11 @@ std::string urlEncode(const std::string &in, bool plus)
     return out;
 }
 
-std::string urlDecode(const std::string &in)
+std::string urlDecode(std::string::const_iterator i
+                      , std::string::const_iterator e)
 {
     std::string out;
-    out.reserve(in.size());
 
-    const char* i(in.data());
-    const char* e(i + in.size());
     while (i != e) {
         auto c(*i++);
         if (c != '%') {
@@ -423,8 +424,8 @@ std::string Uri::removeDotSegments(const std::string &str)
         {
             // remove /..
             in.first += 3;
-            // remove last element from output
-            out.pop_back();
+            // remove last element from output (if any)
+            if (!out.empty()) { out.pop_back(); }
 
             if (detail::empty(in)) { out.push_back(detail::range(slash)); }
             continue;
@@ -478,7 +479,7 @@ void join(std::string &out, const std::string &relative) {
     // NB: out is not empty here
     if (out.back() == '/') {
         // out ends with slash -> directory
-        Uri::removeDotSegments(out + relative);
+        out = Uri::removeDotSegments(out + relative);
         return;
     }
 
@@ -486,7 +487,7 @@ void join(std::string &out, const std::string &relative) {
     auto prev(out.rfind('/'));
     if (prev == std::string::npos) {
         // no slash at all, replace
-        Uri::removeDotSegments(relative);
+        out = Uri::removeDotSegments(relative);
         return;
     }
 
@@ -588,6 +589,74 @@ std::size_t Uri::pathComponentCount() const
     ba::split(tokens, components_.path, ba::is_any_of("/")
               , ba::token_compress_on);
     return (absolutePath() ? (tokens.size() - 1) : tokens.size());
+}
+
+std::string Uri::joinAndRemoveDotSegments(std::string a
+                                          , const std::string &b)
+{
+    std::string out(std::move(a));
+    detail::join(out, b);
+    return out;
+}
+
+QueryKeyValue QueryKeyValue::split(const StringView &arg)
+{
+    auto b(arg.begin());
+    auto e(arg.end());
+    for (auto i(b); i != e; ++i) {
+        if (*i == '=') {
+            return QueryKeyValue(StringView(b, i)
+                                 , StringView(std::next(i), e));
+        }
+    }
+    return QueryKeyValue(StringView(b, e), StringView());
+}
+
+QueryKeyValue::list QueryKeyValue::splitQuery(const std::string &query)
+{
+    std::vector<StringView> args;
+    ba::split(args, query, ba::is_any_of("&"), ba::token_compress_on);
+
+    list kvl;
+
+    for (auto iargs(args.begin()), eargs(args.end());
+         iargs != eargs; ++iargs)
+    {
+        kvl.push_back(split(*iargs));
+    }
+
+    return kvl;
+}
+
+void QueryString::unescape(StringView &what)
+{
+    // contains escape character? (% or +)
+    if (std::find_if(what.begin(), what.end()
+                     , [](char c) { return (c == '%'); }) == what.end())
+        { return; }
+
+    storage_.push_back(urlDecode(what.begin(), what.end()));
+    const auto &storage(storage_.back());
+    what = StringView(storage.begin(), storage.end());
+}
+
+void QueryString::unescape()
+{
+    for (auto &kv : kvl_) {
+        unescape(kv.key);
+        unescape(kv.value);
+    }
+}
+
+std::string QueryString::get(const std::string &key
+                             , const std::string &defaultValue) const
+{
+    for (const auto &kv : kvl_) {
+        if (ba::equals(kv.key, key)) {
+            return stringFrom(kv.value);
+        }
+    }
+    return defaultValue;
 }
 
 } // utility

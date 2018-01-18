@@ -99,7 +99,7 @@ public:
 
     double percentage() const { return (100. * value_) / total_; }
 
-    Ratio ratio() const { return { value_, total_ }; }
+    Ratio ratio() const { return { std::size_t(value_), total_ }; }
 
 private:
     std::size_t calculateNextReportValue(std::size_t v) {

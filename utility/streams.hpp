@@ -34,6 +34,7 @@
 #define utility_streams_hpp_included_
 
 #include <string>
+#include <sstream>
 
 #include <boost/filesystem.hpp>
 
@@ -119,6 +120,16 @@ detail::Join<Container> join(const Container &c, const std::string &sep
                              , const std::string dflt = std::string())
 {
     return { c, sep, dflt };
+}
+
+/** Join given values and return result as a std::string.
+ */
+template <typename ...Args>
+inline std::string concat(Args &&...args)
+{
+    std::ostringstream os;
+    detail::concat(os, std::forward<Args>(args)...);
+    return os.str();
 }
 
 template<typename T, int size>
