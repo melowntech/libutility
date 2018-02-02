@@ -127,6 +127,8 @@ set(utility_SOURCES
   persona.hpp switchpersona.cpp
 
   limits.hpp limits.cpp
+
+  archive-loading.hpp
   )
 
 if(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
