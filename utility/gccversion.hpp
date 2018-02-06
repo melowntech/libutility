@@ -64,11 +64,22 @@
 #    define UTILITY_THREAD_LOCAL thread_local
 #endif
 
-#if GCC_VERSION
+#if defined(__GNUC__) && not defined(__clang__)
 #    define UTILITY_INIT_PRIORITY(PRIORITY) \
     __attribute__ ((init_priority (PRIORITY)))
 #else
 #    define UTILITY_INIT_PRIORITY(PRIORITY)
+#endif
+
+#if defined(__GNUC__) && not defined(__clang__)
+#    define UTILITY_POSSIBLY_UNUSED             \
+    __attribute__ ((unused))
+#elif __clang__
+#    define UTILITY_POSSIBLY_UNUSED             \
+    __attribute__ ((unused))
+#else
+// TODO: implement for other compilers
+#    define UTILITY_POSSIBLY_UNUSED
 #endif
 
 #endif // SHARED_UTILITY_GCCVERSION_HPP_INCLUDED_
