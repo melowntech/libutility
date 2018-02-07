@@ -181,4 +181,7 @@ if (COMPILE_TESTS)
   add_subdirectory(test-base64)
 endif()
 
-add_subdirectory(test-uri EXCLUDE_FROM_ALL)
+if(NOT BUILDSYS_EMBEDDED)
+  add_subdirectory(test-uri EXCLUDE_FROM_ALL)
+endif()
+
