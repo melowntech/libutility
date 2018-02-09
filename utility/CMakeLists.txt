@@ -1,5 +1,5 @@
 # bump version here
-set(utility_VERSION 1.20)
+set(utility_VERSION 1.23)
 
 set(utility_DEPENDS
   dbglog>=1.4
@@ -127,6 +127,8 @@ set(utility_SOURCES
   persona.hpp switchpersona.cpp
 
   limits.hpp limits.cpp
+
+  archive-loading.hpp
   )
 
 if(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
@@ -179,4 +181,7 @@ if (COMPILE_TESTS)
   add_subdirectory(test-base64)
 endif()
 
-add_subdirectory(test-uri EXCLUDE_FROM_ALL)
+if(NOT BUILDSYS_EMBEDDED)
+  add_subdirectory(test-uri EXCLUDE_FROM_ALL)
+endif()
+

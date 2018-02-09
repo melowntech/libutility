@@ -62,6 +62,8 @@
 #include <boost/preprocessor/stringize.hpp>
 #include <boost/algorithm/string/predicate.hpp>
 
+#include "./gccversion.hpp"
+
 #define UTILITY_DETAIL_fromEnum_element1(r,Type,value)              \
     case Type::BOOST_PP_SEQ_ELEM(0, value):                         \
     return os << BOOST_PP_STRINGIZE(BOOST_PP_SEQ_ELEM(0, value));
@@ -192,7 +194,11 @@
 
 #define UTILITY_GENERATE_ENUM_IO_IMPL(Type, seq, ci)                    \
     template <typename E, typename T>                                   \
-    inline std::basic_ostream<E, T>&                                    \
+    std::basic_ostream<E, T>&                                           \
+    operator<<(std::basic_ostream<E, T> &os, const Type &value)         \
+        UTILITY_POSSIBLY_UNUSED;                                        \
+    template <typename E, typename T>                                   \
+    std::basic_ostream<E, T>&                                           \
     operator<<(std::basic_ostream<E, T> &os, const Type &value)         \
     {                                                                   \
         switch (value) {                                                \
@@ -203,7 +209,11 @@
     }                                                                   \
                                                                         \
     template <typename E, typename T>                                   \
-    inline std::basic_istream<E, T>&                                    \
+    std::basic_istream<E, T>&                                           \
+    operator>>(std::basic_istream<E, T> &is, Type &out)                 \
+        UTILITY_POSSIBLY_UNUSED;                                        \
+    template <typename E, typename T>                                   \
+    std::basic_istream<E, T>&                                           \
     operator>>(std::basic_istream<E, T> &is, Type &out)                 \
     {                                                                   \
         std::string s;                                                  \
@@ -215,6 +225,8 @@
         return is;                                                      \
     }                                                                   \
                                                                         \
+    std::array<Type, BOOST_PP_SEQ_SIZE(seq)>                            \
+    enumerationValues(Type) UTILITY_POSSIBLY_UNUSED;                    \
     inline std::array<Type, BOOST_PP_SEQ_SIZE(seq)>                     \
     enumerationValues(Type)                                             \
     {                                                                   \
@@ -225,6 +237,7 @@
         }};                                                             \
     }                                                                   \
                                                                         \
+    const char* enumerationString(Type) UTILITY_POSSIBLY_UNUSED;        \
     inline const char* enumerationString(Type)                          \
     {                                                                   \
         return UTILITY_DETAIL_name(Type, BOOST_PP_SEQ_HEAD(seq))        \

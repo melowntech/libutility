@@ -38,7 +38,8 @@
 
 namespace utility {
 
-struct ProcessExecContext {
+class ProcessExecContext {
+public:
     typedef std::vector<boost::optional<std::string> > Argv;
     typedef std::vector<detail::RedirectFile> Redirects;
     typedef std::map<int, int> PlaceHolders;
