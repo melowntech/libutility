@@ -91,11 +91,15 @@ public:
     const UriComponents& components() const { return components_; }
 
     const std::string& scheme() const;
-    void scheme(std::string value) { components_.scheme = std::move(value); }
+    Uri& scheme(std::string value);
     const std::string& host() const;
-    void host(std::string value) { components_.host = std::move(value); }
+    Uri& host(std::string value);
     int port() const;
     boost::filesystem::path path() const;
+
+    /** Drops authentization info (username and password) from URI.
+     */
+    Uri& dropAuthInfo();
 
     /** Returns slice of path starting at given index.
      *
@@ -204,8 +208,24 @@ private:
 inline std::string str(const Uri &uri) { return uri.str(); }
 
 inline const std::string& Uri::scheme() const { return components_.scheme; }
+inline Uri& Uri::scheme(std::string value) {
+    components_.scheme = std::move(value);
+    return *this;
+}
+
 inline const std::string& Uri::host() const { return components_.host; }
+inline Uri& Uri::host(std::string value) {
+    components_.host = std::move(value);
+    return *this;
+}
+
 inline int Uri::port() const { return components_.port; }
+
+inline Uri& Uri::dropAuthInfo() {
+    components_.user.clear();
+    components_.password.clear();
+    return *this;
+}
 
 inline Uri operator+(const Uri &base, const Uri &relative) {
     return base.resolve(relative);
@@ -219,6 +239,7 @@ inline std::string urlDecode(const std::string &in)
 {
     return urlDecode(in.begin(), in.end());
 }
+
 
 } // namespace utility
 
