@@ -23,6 +23,7 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  */
+
 // include opengl
 
 #ifdef __APPLE__
@@ -36,4 +37,5 @@
 # endif
 #else
 # include <GL/gl.h>
+# include <GL/glext.h>
 #endif
