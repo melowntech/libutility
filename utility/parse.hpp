@@ -75,6 +75,7 @@ namespace separated_values {
 enum {
     FLAG_KEEP_EMPTY_TOKENS = 0x01
     , FLAG_DONT_TRIM_FIELDS = 0x02
+    , FLAG_PASS_COMMENTS = 0x04
 };
 
 template <typename RowProcessor>
@@ -96,8 +97,16 @@ std::size_t parse(std::istream &is, const std::string &separator
     while (getline(is, line) && (index <= range.to)) {
         // skip until from is reached
         if (index++ < range.from) { continue; }
-        auto trimmed(boost::algorithm::trim_copy(line));
-        if (trimmed.empty() || (line[0] == '#')) { continue; }
+
+        // skip empty lines and comments
+        if (line[0] == '#') {
+            if (flags & FLAG_PASS_COMMENTS) {
+                // pass comment as instructed
+                processor({ std::string("#"), line.substr(1) });
+            }
+            continue;
+        }
+        if (boost::algorithm::trim_copy(line).empty()) { continue; }
 
         ++index;
         Tokenizer tok(line, sep);
