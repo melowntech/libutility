@@ -790,6 +790,7 @@ PluggedFile Reader::plug(std::size_t index
     }
 
     bool seekable(false);
+    std::size_t safetyPadding(0);
 
     // add decompressor based on compression method
     switch (const auto cm
@@ -807,6 +808,7 @@ PluggedFile Reader::plug(std::size_t index
     case CompressionMethod::deflate:
     case CompressionMethod::deflate64:
         fis.push(bio::zlib_decompressor(DeflateParams));
+        safetyPadding = 16;
         break;
 
     default:
@@ -817,12 +819,13 @@ PluggedFile Reader::plug(std::size_t index
     }
 
     const std::size_t fileStart(record.headerStart + header.size());
-    const std::size_t fileEnd(fileStart + header.compressedSize);
+    const std::size_t fileEnd(fileStart + header.compressedSize
+                              + safetyPadding);
 
     // and finally push the device for the underlying compressed file
     fis.push(utility::io::SubStreamDevice
              (record.path, utility::io::SubStreamDevice::Filedes
-              { int(fd_), fileStart, fileEnd }));
+              { int(fd_), fileStart, fileEnd}));
 
     return PluggedFile(record.path, header.uncompressedSize, seekable);
 }

@@ -31,6 +31,7 @@
 #include "utility/gccversion.hpp"
 #include "utility/streams.hpp"
 #include "utility/zip.hpp"
+#include "utility/binaryio.hpp"
 
 #include "service/cmdline.hpp"
 
@@ -121,6 +122,7 @@ int Zip::run()
 
     boost::iostreams::filtering_istream ifs;
     zip.plug(record->index, ifs);
+    ifs.exceptions(std::ios::badbit | std::ios::failbit);
 
     std::cout << ifs.rdbuf() << std::flush;
 
