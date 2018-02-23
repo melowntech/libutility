@@ -100,7 +100,9 @@ int Zip::run()
                              , false);
 
     for (const auto &file : zip.files()) {
-        std::cout << file.path.string() << '\n';
+        std::cout
+            << file.path.string()
+            << " " << file.header.compressionMethod << '\n';
     }
     std::cout << std::flush;
 
