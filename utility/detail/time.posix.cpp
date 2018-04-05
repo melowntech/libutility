@@ -23,30 +23,38 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  */
+#include <sys/time.h>
 
-#include <boost/filesystem/operations.hpp>
+#include "../time.hpp"
 
-#include "filesystem.hpp"
+namespace utility {
 
-namespace fs = boost::filesystem;
-
-namespace utility { namespace detail {
-
-void copy_file(const boost::filesystem::path &from
-               , const boost::filesystem::path &to
-               , bool overwrite)
+std::string formatDateTime(const std::time_t t, bool gmt)
 {
-   copy_file(from, to, (overwrite ? fs::copy_option::overwrite_if_exists
-                        : fs::copy_option::fail_if_exists));
+    std::tm tm;
+    if (gmt) {
+        ::gmtime_r(&t, &tm);
+    } else {
+        ::localtime_r(&t, &tm);
+    }
+    char buf[128];
+    ::strftime(buf, sizeof(buf) - 1, "%Y-%m-%d %T", &tm);
+    return buf;
 }
 
-void copy_file(const boost::filesystem::path &from
-               , const boost::filesystem::path &to
-               , bool overwrite
-               , boost::system::error_code& ec)
+std::pair<std::uint64_t, std::uint64_t> currentTime()
 {
-   copy_file(from, to, (overwrite ? fs::copy_option::overwrite_if_exists
-                        : fs::copy_option::fail_if_exists), ec);
+    timeval now;
+    ::gettimeofday(&now, 0x0);
+    return { now.tv_sec, now. tv_usec };
 }
 
-} } // namespace utility::detail
+std::uint64_t usecFromEpoch()
+{
+    timeval now;
+    ::gettimeofday(&now, 0x0);
+    return std::uint64_t(now.tv_sec) * 1000000 + now.tv_usec;
+}
+
+} // namespace utility
+

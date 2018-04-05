@@ -24,9 +24,7 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <unistd.h>
+#include <io.h>
 
 #include <system_error>
 
@@ -38,9 +36,9 @@ namespace utility {
 
 FileId FileId::from(const boost::filesystem::path &path)
 {
-    struct ::stat s;
+    struct ::_stat s;
 
-    if (-1 == ::stat(path.c_str(), &s)) {
+    if (-1 == ::_stat(path.string().c_str(), &s)) {
         std::system_error e(errno, std::system_category());
         LOG(err1) << "Unable to stat file " << path << ": "
                   << e.code() << ", " << e.what() << ">.";
@@ -52,9 +50,9 @@ FileId FileId::from(const boost::filesystem::path &path)
 
 FileStat FileStat::from(const boost::filesystem::path &path)
 {
-    struct ::stat s;
+    struct ::_stat s;
 
-    if (-1 == ::stat(path.c_str(), &s)) {
+    if (-1 == ::_stat(path.string().c_str(), &s)) {
         std::system_error e(errno, std::system_category());
         LOG(err1) << "Unable to stat file " << path << ": "
                   << e.code() << ", " << e.what() << ">.";
@@ -66,9 +64,9 @@ FileStat FileStat::from(const boost::filesystem::path &path)
 
 FileStat FileStat::from(const boost::filesystem::path &path, std::nothrow_t)
 {
-    struct ::stat s;
+    struct ::_stat s;
 
-    if (-1 == ::stat(path.c_str(), &s)) {
+    if (-1 == ::_stat(path.string().c_str(), &s)) {
         std::system_error e(errno, std::system_category());
         LOG(warn1) << "Unable to stat file " << path << ": "
                    << e.code() << ", " << e.what() << ">.";
@@ -80,8 +78,8 @@ FileStat FileStat::from(const boost::filesystem::path &path, std::nothrow_t)
 
 std::time_t lastModified(const boost::filesystem::path &path)
 {
-    struct ::stat buf;
-    if (-1 == ::stat(path.c_str(), &buf)) {
+    struct ::_stat buf;
+    if (-1 == ::_stat(path.string().c_str(), &buf)) {
         std::system_error e(errno, std::system_category());
         LOG(err3) << "Cannot stat file " << path << ": <"
                   << e.code() << ", " << e.what() << ">.";
@@ -92,8 +90,8 @@ std::time_t lastModified(const boost::filesystem::path &path)
 
 std::size_t fileSize(const boost::filesystem::path &path)
 {
-    struct ::stat buf;
-    if (-1 == ::stat(path.c_str(), &buf)) {
+    struct ::_stat buf;
+    if (-1 == ::_stat(path.string().c_str(), &buf)) {
         std::system_error e(errno, std::system_category());
         LOG(err3) << "Cannot stat file " << path << ": <"
                   << e.code() << ", " << e.what() << ">.";

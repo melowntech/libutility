@@ -23,10 +23,6 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  */
-#include <fnmatch.h>
-#include <unistd.h>
-#include <sys/types.h>
-#include <pwd.h>
 
 #include <cstdlib>
 #include <cerrno>
@@ -42,47 +38,40 @@ namespace fs = boost::filesystem;
 
 namespace utility {
 
-bool match(const std::string &globPattern
-           , const boost::filesystem::path &path
-           , int flags)
+bool match(const std::string&, const boost::filesystem::path&, int)
 {
-    int fnFlags(0x0);
-    if (flags & FileMatch::icase) {
-        fnFlags |= FNM_CASEFOLD;
-    }
-
-    auto res(::fnmatch(globPattern.c_str(), path.string().c_str(), fnFlags));
-
-    if (!res) { return true; }
-    if (res != FNM_NOMATCH) {
-        boost::system::error_code ec(boost::system::errc::invalid_argument
-                                     , boost::system::system_category());
-        throw fs::filesystem_error("Error matching with pattern " + globPattern
-                                   , path, ec);
-    }
-
+    LOGTHROW(err3, std::runtime_error)
+        << "utility::match unavailable on Windows. TODO: implement me.";
     return false;
 }
 
 boost::filesystem::path homeDir()
 {
-    // first, try ${HOME}
-    if (const char *home = ::getenv("HOME")) { return home; }
-
-    // no ${HOME} -> consult user database
-
-    struct ::passwd pwd, *dummy;
-    auto buflen(::sysconf(_SC_GETPW_R_SIZE_MAX));
-    std::unique_ptr<char[]> buf(new char[buflen]);
-
-    if (-1 == ::getpwuid_r(::getuid(), &pwd, buf.get(), buflen, &dummy)) {
-        std::system_error e(errno, std::system_category());
-        LOG(err3) << "Cannot determine home directory (getpwuid_r failed): <"
+    // measure
+    size_t size;
+    if (auto err = ::getenv_s(&size, nullptr, 0, "USERPROFILE")) {
+        std::system_error e(err, std::system_category());
+        LOG(err3) << "Cannot determine home directory (getenv_s failed): <"
                   << e.code() << ", " << e.what() << ">.";
         throw e;
     }
 
-    return pwd.pw_dir;
+    std::vector<char> buf(size, 0);
+    ::getenv_s(&size, buf.data(), size, "USERPROFILE");
+    return buf.data();
+}
+
+boost::optional<boost::filesystem::path> exePath()
+{
+    std::vector<char> buf(MAX_PATH + 1);
+    if (!::GetModuleFileName(nullptr, buf.data(), DWORD(buf.size()))) {
+        std::system_error e(::GetLastError(), std::generic_category());
+        LOG(err3)
+            << "Cannot determine exe file path "
+            "(GetModuleFileName failed): <"
+            << e.code() << ", " << e.what() << ">.";
+    }
+    return buf;
 }
 
 } // namespace utility

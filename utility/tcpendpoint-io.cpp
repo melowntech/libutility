@@ -23,6 +23,7 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  */
+
 #include <stdexcept>
 
 #include <boost/lexical_cast.hpp>
@@ -106,10 +107,11 @@ TcpEndpoint parseTcpEndpoint(const std::string &input) {
         throw std::runtime_error
             ("Not an endpoint: <" + input + ">: invalid port value.");
     }
+    auto sPort(static_cast<unsigned short int>(port));
 
     if (host.empty() || (host == "*")) {
         // just port
-        return {ip::tcp::endpoint(ip::address_v4(), port)};
+        return {ip::tcp::endpoint(ip::address_v4(), sPort)};
     }
 
     // we have host specification here
@@ -119,10 +121,10 @@ TcpEndpoint parseTcpEndpoint(const std::string &input) {
                 ("Not an endpoint: <" + input + ">: missing closing ']'.");
         }
         return detail::parseIpv6(input, host.substr(1, host.size() - 2)
-                                 , port);
+                                 , sPort);
     }
 
-    return detail::parseIpv4(input, host, port);
+    return detail::parseIpv4(input, host, sPort);
 }
 
 } // namespace utility

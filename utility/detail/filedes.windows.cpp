@@ -24,29 +24,64 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <boost/filesystem/operations.hpp>
+#include <io.h>
 
-#include "filesystem.hpp"
+#include <cerrno>
+#include <system_error>
 
-namespace fs = boost::filesystem;
+#include "dbglog/dbglog.hpp"
 
-namespace utility { namespace detail {
+#include "../filedes.hpp"
 
-void copy_file(const boost::filesystem::path &from
-               , const boost::filesystem::path &to
-               , bool overwrite)
-{
-   copy_file(from, to, (overwrite ? fs::copy_option::overwrite_if_exists
-                        : fs::copy_option::fail_if_exists));
+namespace utility {
+
+// implement TEMP_FAILURE_RETRY if not present on platform (via C++11 lambda)
+#ifndef TEMP_FAILURE_RETRY
+#define TEMP_FAILURE_RETRY(operation) [&]()->int {       \
+        for (;;) { int e(operation);                     \
+            if ((-1 == e) && (EINTR == errno)) continue; \
+            return e;                                    \
+        }                                                \
+    }()
+#endif
+
+Filedes::~Filedes() {
+    close();
 }
 
-void copy_file(const boost::filesystem::path &from
-               , const boost::filesystem::path &to
-               , bool overwrite
-               , boost::system::error_code& ec)
+void Filedes::close()
 {
-   copy_file(from, to, (overwrite ? fs::copy_option::overwrite_if_exists
-                        : fs::copy_option::fail_if_exists), ec);
+    if (valid()) {
+        TEMP_FAILURE_RETRY(::_close(fd_));
+    }
+    fd_ = -1;
 }
 
-} } // namespace utility::detail
+void Filedes::closeOnExec(bool value)
+{
+    // UNIMPLEMENTED
+    LOG(warn2) << "closeOnExec unimplemented on Windows.";
+    (void) value;
+}
+
+Filedes Filedes::dup() const
+{
+    if (fd_ < 0) { return { fd_, path_ }; }
+    const auto fd(::_dup(fd_));
+    if (fd == -1) {
+        std::system_error e(errno, std::system_category());
+        LOG(warn2) << "dup(" << fd_ << ") failed: "
+                   << e.code() << ", " << e.what() << ">";
+    }
+
+    return { fd, path_ };
+}
+
+bool Filedes::valid() const
+{
+    if (fd_ < 0) { return false; }
+    // TODO: what to do?
+    return true;
+}
+
+} // namespace utility

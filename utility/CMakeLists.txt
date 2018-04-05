@@ -42,7 +42,7 @@ else()
   message(STATUS "utility: compiling without magic support")
 endif()
 
-if(Boost_IOSTREAMS_FOUND)
+if(Boost_IOSTREAMS_FOUND AND NOT WIN32)
   message(STATUS "utility: compiling in boost iostreams support")
 
   list(APPEND utility_DEPENDS Boost_IOSTREAMS)
@@ -61,7 +61,7 @@ define_module(LIBRARY utility=${utility_VERSION}
 
 set(utility_SOURCES
   duration.hpp
-  time.hpp time.cpp
+  time.hpp # implementation is system dependent
   steady-clock.hpp
   gl.hpp
   has_member.hpp
@@ -72,7 +72,6 @@ set(utility_SOURCES
   config.hpp detail/config.hpp detail/config.cpp
   multivalue.hpp detail/multivalue.hpp
   scopedguard.hpp
-  process.hpp process.cpp detail/process.hpp detail/redirectfile.hpp
   interprocess.hpp
   runnable.hpp runnable.cpp
   iohelpers.hpp
@@ -86,17 +85,14 @@ set(utility_SOURCES
   raise.hpp
   expect.hpp
 
-  path.hpp path.cpp
-  filesystem.hpp filesystem.cpp
+  path.hpp # implementation is system-dependent
+  filesystem.hpp filesystem.cpp # some implementation is system-dependent
   detail/filesystem.hpp detail/filesystem.cpp
   tcpendpoint.hpp tcpendpoint-io.hpp tcpendpoint-io.cpp
   detail/iface.hpp
   meminfo.hpp
   cpuinfo.hpp cpuinfo.cpp
 
-  atfork.hpp atfork.cpp
-  lockfile.hpp lockfile.cpp
-  identity.hpp identity.cpp
   guarded-call.hpp
 
   naturalsort.hpp
@@ -112,8 +108,7 @@ set(utility_SOURCES
 
   algorithm.hpp
 
-  filedes.hpp filedes.cpp
-  tar.hpp tar.cpp
+  filedes.hpp # implementation is system dependent
 
   premain.hpp
 
@@ -124,29 +119,36 @@ set(utility_SOURCES
 
   typeinfo.hpp typeinfo.cpp
 
-  persona.hpp switchpersona.cpp
-
-  limits.hpp limits.cpp
-
   archive-loading.hpp
   )
 
-if(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
+# system-dependent stuff
+if(CMAKE_SYSTEM_NAME MATCHES Linux)
   message(STATUS "utility: adding linux-specific sources")
   list(APPEND utility_SOURCES
     detail/iface.linux.cpp
     detail/meminfo.linux.cpp
     detail/path.linux.cpp
+    detail/path.posix.cpp
     detail/rlimit.linux.cpp
     detail/filesystem.linux.cpp
     )
-elseif(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+elseif(CMAKE_SYSTEM_NAME MATCHES Darwin)
   message(STATUS "utility: adding darwin-specific sources")
   list(APPEND utility_SOURCES
     detail/iface.unsupported.cpp
+    detail/path.posix.cpp
     detail/path.unsupported.cpp
     detail/rlimit.unsupported.cpp
     detail/filesystem.linux.cpp
+    )
+elseif(WIN32)
+  message(STATUS "utility: adding darwin-specific sources")
+  list(APPEND utility_SOURCES
+    detail/iface.unsupported.cpp
+    detail/path.windows.cpp
+    detail/rlimit.unsupported.cpp
+    detail/filesystem.windows.cpp
     )
 else()
   message(STATUS "utility: adding sources for unsupported system")
@@ -155,6 +157,32 @@ else()
     detail/path.unsupported.cpp
     detail/rlimit.unsupported.cpp
     detail/filesystem.unsupported.cpp
+    )
+endif()
+
+# system-dependent stuff: posix/windows
+if(WIN32)
+
+  # windows
+  list(APPEND utility_SOURCES
+    detail/time.windows.cpp
+    detail/filedes.windows.cpp
+    )
+
+else()
+
+  # posix
+  list(APPEND utility_SOURCES
+    process.hpp process.cpp detail/process.hpp detail/redirectfile.hpp
+    atfork.hpp atfork.cpp
+    lockfile.hpp lockfile.cpp
+    identity.hpp identity.cpp
+    tar.hpp tar.cpp
+    persona.hpp switchpersona.cpp
+    limits.hpp limits.cpp
+
+    detail/time.posix.cpp
+    detail/filedes.posix.cpp
     )
 endif()
 

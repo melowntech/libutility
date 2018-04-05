@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017 Melown Technologies SE
+ * Copyright (c) 2018 Melown Technologies SE
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -23,32 +23,68 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  */
-#ifndef utility_tcpendpoint_hpp_included_
-#define utility_tcpendpoint_hpp_included_
 
-#ifdef _WIN32
-#  include <SDKDDKVer.h>
+#ifndef WIN32_LEAN_AND_MEAN
+#  define WIN32_LEAN_AND_MEAN
 #endif
+#include <Windows.h>
 
-#include <boost/asio/ip/tcp.hpp>
+#include <time.h>
+
+#include <cstdio>
+
+#include "../time.hpp"
 
 namespace utility {
 
-struct TcpEndpoint {
-    TcpEndpoint() = default;
+std::string formatDateTime(const std::time_t t, bool gmt)
+{
+    struct tm tm;
 
-    TcpEndpoint(unsigned short portNum)
-        : value(boost::asio::ip::tcp::v4(), portNum) {}
+    if (gmt) {
+        ::gmtime_s(&tm, &t);
+    } else {
+        ::localtime_s(&tm, &t);
+    }
 
-    TcpEndpoint(const std::string &def);
+    char buf[128];
+    ::strftime(buf, sizeof(buf) - 1, "%Y-%m-%d %T", &tm);
+    return buf;
+}
 
-    TcpEndpoint(const boost::asio::ip::tcp::endpoint &value) : value(value) {}
+namespace {
+const std::int64_t unixTimeStart(0x019DB1DED53E8000); // epoch start
+const std::int64_t ticksPerSecond = 10000000; // a tick is 100ns}
+const std::int64_t ticksPerMicrosecond = 10; // a tick is 100ns}
+} // namespace
 
-    operator const boost::asio::ip::tcp::endpoint&() { return value; }
+std::pair<std::uint64_t, std::uint64_t> currentTime()
+{
+    FILETIME now;
+    ::GetSystemTimeAsFileTime(&now);
 
-    boost::asio::ip::tcp::endpoint value;
-};
+    LARGE_INTEGER li;
+    li.LowPart  = now.dwLowDateTime;
+    li.HighPart = now.dwHighDateTime;
+
+    const auto diff(li.QuadPart - unixTimeStart);
+
+    return { diff / ticksPerSecond
+            , (diff % ticksPerSecond) / ticksPerMicrosecond };
+}
+
+std::uint64_t usecFromEpoch()
+{
+    FILETIME now;
+    ::GetSystemTimeAsFileTime(&now);
+
+    LARGE_INTEGER li;
+    li.LowPart  = now.dwLowDateTime;
+    li.HighPart = now.dwHighDateTime;
+    const auto diff(li.QuadPart - unixTimeStart);
+
+    return diff / ticksPerMicrosecond;
+}
 
 } // namespace utility
 
-#endif // utility_tcpendpoint_hpp_included_
