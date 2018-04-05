@@ -46,7 +46,7 @@
 #    define UTILITY_FINAL final
 #endif
 
-#if defined(__GNUC__) && not defined(__clang__)
+#if defined(__GNUC__) && ! defined(__clang__)
 #   define UTILITY_FUNCTION_ERROR(message) \
         __attribute__((error(message)))
 #elif defined(__clang__)
@@ -64,14 +64,14 @@
 #    define UTILITY_THREAD_LOCAL thread_local
 #endif
 
-#if defined(__GNUC__) && not defined(__clang__)
+#if defined(__GNUC__) && ! defined(__clang__)
 #    define UTILITY_INIT_PRIORITY(PRIORITY) \
     __attribute__ ((init_priority (PRIORITY)))
 #else
 #    define UTILITY_INIT_PRIORITY(PRIORITY)
 #endif
 
-#if defined(__GNUC__) && not defined(__clang__)
+#if defined(__GNUC__) && ! defined(__clang__)
 #    define UTILITY_POSSIBLY_UNUSED             \
     __attribute__ ((unused))
 #elif __clang__

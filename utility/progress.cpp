@@ -59,8 +59,8 @@ void Progress::reportRational(const std::string &name)
         return;
     }
 
-    int numLen(log(total_) / log(10.0));
-    
+    auto numLen(static_cast<int>(log(total_) / log(10.0)));
+
     LOG(info3)
         << name << "progress: " << std::setw(numLen + 1) << std::setfill(' ')
         << value_ << " / " << total_ << ".";
