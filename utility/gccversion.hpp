@@ -51,7 +51,10 @@
         __attribute__((error(message)))
 #elif defined(__clang__)
 #   define UTILITY_FUNCTION_ERROR(message)
-    // todo
+    // TODO?
+#elif defined(_WIN32)
+#   define UTILITY_FUNCTION_ERROR(message)
+    // TODO?
 #else
 #   define UTILITY_FUNCTION_ERROR(message) \
         ; static_assert(false, "error message allowed only in GCC")
