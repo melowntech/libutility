@@ -28,6 +28,9 @@
 
 #include <string>
 
+#ifdef _WIN32
+#  include <SDKDDKVer.h>
+#endif
 #include <boost/asio/ip/tcp.hpp>
 
 namespace utility { namespace detail {
