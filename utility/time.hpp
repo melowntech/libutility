@@ -60,6 +60,18 @@ std::pair<std::uint64_t, std::uint64_t> currentTime();
 
 std::uint64_t usecFromEpoch();
 
+std::time_t windowsFileTime2Unix(std::uint64_t value);
+
+// implementation
+
+inline std::time_t windowsFileTime2Unix(std::uint64_t value)
+{
+    const std::int64_t unixTimeStart(0x019DB1DED53E8000); // epoch start
+    const std::int64_t ticksPerSecond = 10000000; // a tick is 100ns}
+
+    return std::time_t((value - unixTimeStart) / ticksPerSecond);
+}
+
 } // namespace utility
 
 #endif // utility_time_hpp_included_

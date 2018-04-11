@@ -100,6 +100,8 @@ struct FileStat {
     static FileStat from(const boost::filesystem::path &path);
     static FileStat from(const boost::filesystem::path &path
                          , std::nothrow_t);
+    static FileStat from(int fd);
+    static FileStat from(int fd, std::nothrow_t);
 };
 
 // impelemtation

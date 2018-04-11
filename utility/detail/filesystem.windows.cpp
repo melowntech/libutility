@@ -25,12 +25,15 @@
  */
 
 #include <io.h>
+#include <sys/types.h>
+#include <sys/stat.h>
 
 #include <system_error>
 
 #include "dbglog/dbglog.hpp"
 
 #include "../filesystem.hpp"
+#include "../raise.hpp"
 
 namespace utility {
 
@@ -39,9 +42,10 @@ FileId FileId::from(const boost::filesystem::path &path)
     struct ::_stat s;
 
     if (-1 == ::_stat(path.string().c_str(), &s)) {
-        std::system_error e(errno, std::system_category());
-        LOG(err1) << "Unable to stat file " << path << ": "
-                  << e.code() << ", " << e.what() << ">.";
+        std::system_error e
+            (errno, std::system_category()
+             , utility::formatError("Cannot stat file %s.", path));
+        LOG(err1) << e.what();
         throw e;
     }
 
@@ -53,9 +57,10 @@ FileStat FileStat::from(const boost::filesystem::path &path)
     struct ::_stat s;
 
     if (-1 == ::_stat(path.string().c_str(), &s)) {
-        std::system_error e(errno, std::system_category());
-        LOG(err1) << "Unable to stat file " << path << ": "
-                  << e.code() << ", " << e.what() << ">.";
+        std::system_error e
+            (errno, std::system_category()
+             , utility::formatError("Cannot stat file %s.", path));
+        LOG(err1) << e.what();
         throw e;
     }
 
@@ -67,9 +72,32 @@ FileStat FileStat::from(const boost::filesystem::path &path, std::nothrow_t)
     struct ::_stat s;
 
     if (-1 == ::_stat(path.string().c_str(), &s)) {
-        std::system_error e(errno, std::system_category());
-        LOG(warn1) << "Unable to stat file " << path << ": "
-                   << e.code() << ", " << e.what() << ">.";
+        return FileStat(-1, 0, FileId(0, 0));
+    }
+
+    return FileStat(s.st_mtime, s.st_size, FileId(s.st_dev, s.st_ino));
+}
+
+FileStat FileStat::from(int fd)
+{
+    struct ::_stat s;
+
+    if (-1 == ::_fstat(fd, &s)) {
+        std::system_error e
+            (errno, std::system_category()
+             , utility::formatError("Cannot stat fd %d.", fd));
+        LOG(err1) << e.what();
+        throw e;
+    }
+
+    return FileStat(s.st_mtime, s.st_size, FileId(s.st_dev, s.st_ino));
+}
+
+FileStat FileStat::from(int fd, std::nothrow_t)
+{
+    struct ::_stat s;
+
+    if (-1 == ::_fstat(fd, &s)) {
         return FileStat(-1, 0, FileId(0, 0));
     }
 
@@ -80,9 +108,10 @@ std::time_t lastModified(const boost::filesystem::path &path)
 {
     struct ::_stat buf;
     if (-1 == ::_stat(path.string().c_str(), &buf)) {
-        std::system_error e(errno, std::system_category());
-        LOG(err3) << "Cannot stat file " << path << ": <"
-                  << e.code() << ", " << e.what() << ">.";
+        std::system_error e
+            (errno, std::system_category()
+             , utility::formatError("Cannot stat file %s.", path));
+        LOG(err1) << e.what();
         throw e;
     }
     return buf.st_mtime;
@@ -92,9 +121,10 @@ std::size_t fileSize(const boost::filesystem::path &path)
 {
     struct ::_stat buf;
     if (-1 == ::_stat(path.string().c_str(), &buf)) {
-        std::system_error e(errno, std::system_category());
-        LOG(err3) << "Cannot stat file " << path << ": <"
-                  << e.code() << ", " << e.what() << ">.";
+        std::system_error e
+            (errno, std::system_category()
+             , utility::formatError("Cannot stat file %s.", path));
+        LOG(err1) << e.what();
         throw e;
     }
     return buf.st_size;
