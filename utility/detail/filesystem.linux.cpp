@@ -33,6 +33,7 @@
 #include "dbglog/dbglog.hpp"
 
 #include "../filesystem.hpp"
+#include "../raise.hpp"
 
 namespace utility {
 
@@ -43,7 +44,7 @@ FileId FileId::from(const boost::filesystem::path &path)
     if (-1 == ::stat(path.c_str(), &s)) {
         std::system_error e
             (errno, std::system_category()
-             , utility::formatError("Cannot stat file %s.", path));
+             , formatError("Cannot stat file %s.", path));
         LOG(err1) << e.what();
         throw e;
     }
@@ -58,7 +59,7 @@ FileStat FileStat::from(const boost::filesystem::path &path)
     if (-1 == ::stat(path.c_str(), &s)) {
         std::system_error e
             (errno, std::system_category()
-             , utility::formatError("Cannot stat file %s.", path));
+             , formatError("Cannot stat file %s.", path));
         LOG(err1) << e.what();
         throw e;
     }
@@ -84,7 +85,7 @@ FileStat FileStat::from(int fd)
     if (-1 == ::fstat(fd, &s)) {
         std::system_error e
             (errno, std::system_category()
-             , utility::formatError("Cannot stat fd %d.", fd));
+             , formatError("Cannot stat fd %d.", fd));
         LOG(err1) << e.what();
         throw e;
     }
@@ -92,7 +93,7 @@ FileStat FileStat::from(int fd)
     return FileStat(s.st_mtime, s.st_size, FileId(s.st_dev, s.st_ino));
 }
 
-FileStat FileStat::from(const boost::filesystem::path &path, std::nothrow_t)
+FileStat FileStat::from(int fd, std::nothrow_t)
 {
     struct ::stat s;
 

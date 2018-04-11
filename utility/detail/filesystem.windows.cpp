@@ -44,7 +44,7 @@ FileId FileId::from(const boost::filesystem::path &path)
     if (-1 == ::_stat(path.string().c_str(), &s)) {
         std::system_error e
             (errno, std::system_category()
-             , utility::formatError("Cannot stat file %s.", path));
+             , formatError("Cannot stat file %s.", path));
         LOG(err1) << e.what();
         throw e;
     }
@@ -59,7 +59,7 @@ FileStat FileStat::from(const boost::filesystem::path &path)
     if (-1 == ::_stat(path.string().c_str(), &s)) {
         std::system_error e
             (errno, std::system_category()
-             , utility::formatError("Cannot stat file %s.", path));
+             , formatError("Cannot stat file %s.", path));
         LOG(err1) << e.what();
         throw e;
     }
@@ -85,7 +85,7 @@ FileStat FileStat::from(int fd)
     if (-1 == ::_fstat(fd, &s)) {
         std::system_error e
             (errno, std::system_category()
-             , utility::formatError("Cannot stat fd %d.", fd));
+             , formatError("Cannot stat fd %d.", fd));
         LOG(err1) << e.what();
         throw e;
     }
@@ -110,7 +110,7 @@ std::time_t lastModified(const boost::filesystem::path &path)
     if (-1 == ::_stat(path.string().c_str(), &buf)) {
         std::system_error e
             (errno, std::system_category()
-             , utility::formatError("Cannot stat file %s.", path));
+             , formatError("Cannot stat file %s.", path));
         LOG(err1) << e.what();
         throw e;
     }
@@ -123,7 +123,7 @@ std::size_t fileSize(const boost::filesystem::path &path)
     if (-1 == ::_stat(path.string().c_str(), &buf)) {
         std::system_error e
             (errno, std::system_category()
-             , utility::formatError("Cannot stat file %s.", path));
+             , formatError("Cannot stat file %s.", path));
         LOG(err1) << e.what();
         throw e;
     }
