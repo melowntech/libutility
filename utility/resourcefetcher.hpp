@@ -59,6 +59,7 @@ public:
         typedef std::vector<std::pair<std::string, std::string>> Options;
 
         Query(Query&&) = default;
+        Query& operator=(Query&&) = default;
         Query(const Query&) = default;
 
         Query()
@@ -144,6 +145,7 @@ public:
         MultiQuery(Query query) { queries_.push_back(std::move(query)); }
         MultiQuery(Query::list query) : queries_(std::move(query)) {}
         MultiQuery(MultiQuery&&) = default;
+        MultiQuery& operator=(MultiQuery&&) = default;
 
         Query& add(Query query) {
             queries_.push_back(std::move(query));
