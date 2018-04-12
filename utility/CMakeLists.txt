@@ -143,7 +143,7 @@ elseif(CMAKE_SYSTEM_NAME MATCHES Darwin)
     detail/filesystem.linux.cpp
     )
 elseif(WIN32)
-  message(STATUS "utility: adding darwin-specific sources")
+  message(STATUS "utility: adding windows-specific sources")
   list(APPEND utility_SOURCES
     detail/iface.unsupported.cpp
     detail/path.windows.cpp
