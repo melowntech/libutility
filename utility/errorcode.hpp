@@ -54,12 +54,15 @@ inline void throwErrorCode(const std::error_code &ec) noexcept(false)
     if (cat == std::system_category()) {
         throw std::system_error(ec);
     }
-    if (cat == std::future_category()) {
-        throw std::future_error(ec);
-    }
     if (cat == httpCodeCategory()) {
         throw HttpError(ec);
     }
+
+#if __cplusplus >= 201703L
+    if (cat == std::future_category()) {
+        throw std::future_error(ec);
+    }
+#endif
 
     // unknown category, use system error
     throw std::system_error(ec);
@@ -72,12 +75,15 @@ inline void throwErrorCode(const std::error_code &ec, std::string message)
     if (cat == std::system_category()) {
         throw std::system_error(ec, std::move(message));
     }
-    if (cat == std::future_category()) {
-        throw std::future_error(ec);
-    }
     if (cat == httpCodeCategory()) {
         throw HttpError(ec, std::move(message));
     }
+
+#if __cplusplus >= 201703L
+    if (cat == std::future_category()) {
+        throw std::future_error(ec);
+    }
+#endif
 
     // unknown category, use system error
     throw std::system_error(ec, std::move(message));
