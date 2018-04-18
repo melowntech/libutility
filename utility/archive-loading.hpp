@@ -21,6 +21,15 @@ bool checkMagic(std::istream &f, const char (&expectedMagic)[size])
     return !std::memcmp(magic, expectedMagic, size);
 }
 
+template <std::size_t size>
+bool checkMagic(std::istream &f, const std::array<char, size> &expectedMagic)
+{
+    char magic[size];
+    binaryio::read(f, magic);
+
+    return !std::memcmp(magic, expectedMagic.data(), size);
+}
+
 template <typename BadFileFormat>
 std::uint16_t
 checkVersion(std::istream &f, const boost::filesystem::path &filename
