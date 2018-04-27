@@ -85,4 +85,19 @@
 #    define UTILITY_POSSIBLY_UNUSED
 #endif
 
+#if __cplusplus > 201703L
+#    define UTILITY_FALLTHROUGH                 \
+    [[fallthrough]]
+#elif defined(__GNUC__)
+#    if defined(__clang__)
+#        define UTILITY_FALLTHROUGH                 \
+    [[clang:fallthrough]]
+#    else
+#        define UTILITY_FALLTHROUGH                 \
+    __attribute__((fallthrough))
+#    endif
+#else
+#    define UTILITY_FALLTHROUGH
+#endif
+
 #endif // SHARED_UTILITY_GCCVERSION_HPP_INCLUDED_
