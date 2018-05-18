@@ -192,6 +192,12 @@
             return boost::algorithm::iequals(l, r);                     \
         });
 
+#define UTILITY_DETAIL_value_str(value)                                 \
+    BOOST_PP_STRINGIZE(BOOST_PP_SEQ_ELEM(0, value))
+
+#define UTILITY_DETAIL_comma_value_str(r,ignore,value)                  \
+    , UTILITY_DETAIL_value_str(value)
+
 #define UTILITY_GENERATE_ENUM_IO_IMPL(Type, seq, ci)                    \
     template <typename E, typename T>                                   \
     std::basic_ostream<E, T>&                                           \
@@ -234,6 +240,18 @@
             UTILITY_DETAIL_value(Type, BOOST_PP_SEQ_HEAD(seq))          \
             BOOST_PP_SEQ_FOR_EACH(UTILITY_DETAIL_comma_value            \
                                   , Type, BOOST_PP_SEQ_TAIL(seq))       \
+        }};                                                             \
+    }                                                                   \
+                                                                        \
+    std::array<const char*, BOOST_PP_SEQ_SIZE(seq)>                     \
+    enumerationValuesStringified(Type) UTILITY_POSSIBLY_UNUSED;         \
+    inline std::array<const char*, BOOST_PP_SEQ_SIZE(seq)>              \
+    enumerationValuesStringified(Type)                                  \
+    {                                                                   \
+        return {{                                                       \
+            UTILITY_DETAIL_value_str(BOOST_PP_SEQ_HEAD(seq))            \
+            BOOST_PP_SEQ_FOR_EACH(UTILITY_DETAIL_comma_value_str        \
+                                  , _, BOOST_PP_SEQ_TAIL(seq))          \
         }};                                                             \
     }                                                                   \
                                                                         \
