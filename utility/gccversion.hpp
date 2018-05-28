@@ -89,7 +89,7 @@
 #    define UTILITY_FALLTHROUGH      [[fallthrough]]
 #elif defined(__GNUC__)
 #    if defined(__clang__)
-#        define UTILITY_FALLTHROUGH  [[clang:fallthrough]]
+#        define UTILITY_FALLTHROUGH  [[clang::fallthrough]]
 #    elif (GCC_VERSION >= 70000)
 #        define UTILITY_FALLTHROUGH  __attribute__((fallthrough))
 #    else
