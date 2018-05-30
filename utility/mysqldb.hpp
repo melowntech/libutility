@@ -126,10 +126,21 @@ public:
 
     static Parameters
     fromConfig(const boost::program_options::variables_map &vars
-               , boost::filesystem::path root = boost::filesystem::path()
+               , const boost::filesystem::path &root
+               = boost::filesystem::path()
+               , boost::filesystem::path *path = nullptr);
+
+    static Parameters
+    fromConfig(const boost::filesystem::path &configPath
+               , const boost::filesystem::path &root
+               = boost::filesystem::path()
                , boost::filesystem::path *path = nullptr);
 
     static void configHelp(std::ostream &out);
+
+    /** List of initial SQL commands.
+     */
+    static std::vector<std::string> initCommands();
 
 private:
     const Parameters params_;

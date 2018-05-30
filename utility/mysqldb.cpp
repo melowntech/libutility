@@ -75,6 +75,15 @@ void Db::Parameters::configuration(const std::string &section
         ;
 }
 
+std::vector<std::string> Db::initCommands()
+{
+    std::vector<std::string> init;
+    init.push_back("SET NAMES utf8");
+    init.push_back("SET sql_mode='STRICT_TRANS_TABLES'");
+    init.push_back("SET AUTOCOMMIT=0");
+    return init;
+}
+
 Db::Db(const Parameters &params)
     : params_(params)
     , conn_()
@@ -103,9 +112,9 @@ Db::Db(const Parameters &params)
                << "> at <" << params_.host << "> as <"
                << params_.user << ">.";
 
-    conn_.query("SET NAMES utf8").exec();
-    conn_.query("SET sql_mode='STRICT_TRANS_TABLES'").exec();
-    conn_.query("SET AUTOCOMMIT=0").exec();
+    for (const auto &cmd : initCommands()) {
+        conn_.query(cmd).exec();
+    }
 }
 
 Db::~Db()
@@ -132,19 +141,24 @@ void Db::configHelp(std::ostream &out)
     out << config;
 }
 
-Db::Parameters Db::fromConfig(const po::variables_map &vars, fs::path root
+Db::Parameters Db::fromConfig(const fs::path &configPath, const fs::path &root
                               , fs::path *outPath)
 {
+    auto path(fs::absolute(configPath, root));
+    if (outPath) { *outPath = path; }
+
     // read db configuration
     Db::Parameters dbconf;
-    fs::path path(vars["dbconf"].as<fs::path>());
-    if (!path.is_absolute()) {
-        path = absolute(path, root);
-    }
-
-    if (outPath) { *outPath = path; }
     utility::readConfig(path, dbconf, "db.");
     return dbconf;
+}
+
+Db::Parameters Db::fromConfig(const po::variables_map &vars
+                              , const fs::path &root
+                              , fs::path *outPath)
+{
+    // load db configuration from vars
+    return fromConfig(vars["dbconf"].as<fs::path>(), root, outPath);
 }
 
 bool isRestartable(const mysqlpp::BadQuery &e)
