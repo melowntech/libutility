@@ -56,6 +56,7 @@ namespace bp = boost::python;
 namespace utility { namespace py {
 
 bp::object mysqlModule;
+bp::object mysql_cursorsModule;
 
 const utility::mysql::Db::Parameters
 Parameters_fromConfig(const fs::path &path
@@ -131,6 +132,20 @@ public:
 
     bp::object conn() { return conn_; }
 
+    bp::object cursor() {
+        return conn_.attr("cursor")();
+    }
+
+    bp::object dictCursor() {
+        if (!mysql_cursorsModule) {
+            LOGTHROW(err1, std::runtime_error)
+                << "MySQLdb.cursors module not found";
+        }
+
+        return conn_.attr("cursor")
+            (bp::object(mysql_cursorsModule.attr("DictCursor")));
+    }
+
 private:
     Parameters params_;
     bp::object conn_;
@@ -153,6 +168,8 @@ BOOST_PYTHON_MODULE(melown_utility_mysql)
         .def("configHelp", &py::Parameters_configHelp1)
         .def("params", &py::Db::params, InternalRef)
         .def("conn", &py::Db::conn)
+        .def("cursor", &py::Db::cursor)
+        .def("dictCursor", &py::Db::dictCursor)
         ;
 
     {
@@ -175,6 +192,7 @@ BOOST_PYTHON_MODULE(melown_utility_mysql)
 
     try {
         py::mysqlModule = import("MySQLdb");
+        py::mysql_cursorsModule = import("MySQLdb.cursors");
     } catch (error_already_set) {}
 }
 
