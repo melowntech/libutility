@@ -669,10 +669,56 @@ fs::path sanitize(std::string original, bool enabled)
     return Uri::joinAndRemoveDotSegments("/", original);
 }
 
+template <typename Stream>
+int findCentralDirectory(Stream &f, std::size_t fileLength)
+{
+    // read at most 1 KB block from the end of file
+    auto bsize = (fileLength > 1024) ? 1024 : fileLength;
+    f.seekg(-bsize, std::ios_base::end);
+
+    // read block
+    std::vector<char> block(bsize, 0);
+    f.read(&block[0], bsize);
+
+    int off = -1;
+    for (std::size_t i(sizeof(END_OF_CENTRAL_DIRECTORY_SIGNATURE));
+         i < bsize + 1; ++i)
+    {
+        // real index in the file
+        auto ii(bsize - i);
+        if (!std::memcmp(&END_OF_CENTRAL_DIRECTORY_SIGNATURE, &block[ii]
+                         , sizeof(END_OF_CENTRAL_DIRECTORY_SIGNATURE)))
+        {
+            off = i;
+            break;
+        }
+    }
+
+    return off;
+}
+
 } // namespace detail
 
 // pull in everything from detail namespace above
 using namespace detail;
+
+bool Reader::check(const boost::filesystem::path &path)
+{
+    try {
+        Filedes fd(openFile(path));
+        const auto length(fileSize(fd));
+
+        boost::iostreams::stream<utility::io::SubStreamDevice> f
+            (utility::io::SubStreamDevice
+             (path, utility::io::SubStreamDevice::Filedes
+              { int(fd), std::size_t(0), length}), 512);
+        f.exceptions(std::ios::badbit | std::ios::failbit);
+
+        return (findCentralDirectory(f, length) >= 0);
+    } catch (...) {}
+
+    return false;
+}
 
 Reader::Reader(const fs::path &path, std::size_t limit, bool sanitizePaths)
     : path_(path), fd_(openFile(path))
@@ -685,27 +731,7 @@ Reader::Reader(const fs::path &path, std::size_t limit, bool sanitizePaths)
               { int(fd_), std::size_t(0), fileLength_}), 512);
         f.exceptions(std::ios::badbit | std::ios::failbit);
 
-        // read at most 1 KB block from the end of file
-        auto bsize = (fileLength_ > 1024) ? 1024 : fileLength_;
-        f.seekg(-bsize, std::ios_base::end);
-
-        // read block
-        std::vector<char> block(bsize, 0);
-        f.read(&block[0], bsize);
-
-        int off = -1;
-        for (std::size_t i(sizeof(END_OF_CENTRAL_DIRECTORY_SIGNATURE));
-             i < bsize + 1; ++i)
-        {
-            // real index in the file
-            auto ii(bsize - i);
-            if (!std::memcmp(&END_OF_CENTRAL_DIRECTORY_SIGNATURE, &block[ii]
-                             , sizeof(END_OF_CENTRAL_DIRECTORY_SIGNATURE)))
-            {
-                off = i;
-                break;
-            }
-        }
+        auto off(findCentralDirectory(f, fileLength_));
 
         if (off < 0) {
             LOGTHROW(err2, Error)

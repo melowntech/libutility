@@ -140,6 +140,8 @@ public:
     PluggedFile plug(std::size_t index
                      , boost::iostreams::filtering_istream &fis) const;
 
+    static bool check(const boost::filesystem::path &path);
+
 private:
     boost::filesystem::path path_;
 
