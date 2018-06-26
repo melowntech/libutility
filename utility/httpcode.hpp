@@ -55,6 +55,7 @@ enum class HttpCode {
     , Forbidden = 403
     , NotFound = 404
     , NotAllowed = 405
+    , UnprocessableEntity = 422
 
     , InternalServerError = 500
     , NotImplemented = 501
@@ -88,18 +89,30 @@ inline std::error_condition make_http_error_condition(int code) {
 
 class HttpError : public std::runtime_error {
 public:
-    explicit HttpError(std::error_code code)
+    explicit HttpError(const std::error_code &code)
         : std::runtime_error(format("HTTP error <%s>", code.message()))
         , code_(code)
     {}
-    HttpError(std::error_code code, const std::string &message)
+
+    HttpError(const std::error_code &code, const std::string &message)
         : std::runtime_error(message), code_(code)
-    { }
+    {}
+
+    HttpError(HttpCode code, const std::string &message)
+        : std::runtime_error(message), code_(make_error_code(code))
+    {}
 
     const std::error_code& code() const noexcept  { return code_; }
 
 private:
     std::error_code code_;
+};
+
+template <HttpCode Code>
+struct HttpErrorWithCode : HttpError {
+    explicit HttpErrorWithCode(const std::string &message)
+        : HttpError(Code, message)
+    {}
 };
 
 } // namespace utility

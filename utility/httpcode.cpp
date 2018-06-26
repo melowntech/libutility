@@ -55,6 +55,7 @@ struct HttpErrorCategory : public std::error_category {
         case HttpCode::Forbidden: return "Forbidden";
         case HttpCode::NotFound: return "Not Found";
         case HttpCode::NotAllowed: return "Not Allowed";
+        case HttpCode::UnprocessableEntity: return "Unprocessable Entity";
 
         case HttpCode::InternalServerError: return "Internal Server Error";
         case HttpCode::NotImplemented: return "Not Implemented";

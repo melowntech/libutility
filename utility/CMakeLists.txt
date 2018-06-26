@@ -116,6 +116,7 @@ set(utility_SOURCES
 
   resourcefetcher.hpp
   httpcode.hpp httpcode.cpp
+  httpquery.hpp httpquery.cpp
 
   typeinfo.hpp typeinfo.cpp
 
