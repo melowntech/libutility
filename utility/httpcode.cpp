@@ -26,9 +26,9 @@
 /** Generic HTTP code-related stuff
  */
 
-#include <boost/format.hpp>
-
 #include "./httpcode.hpp"
+
+#include "./format.hpp"
 
 namespace utility {
 
@@ -65,13 +65,26 @@ struct HttpErrorCategory : public std::error_category {
 
         default: break;
         }
-        return str(boost::format("HTTP status=%d") % c);
+        return format("HTTP status=%d", c);
     }
 };
 
 HttpErrorCategory httpErrorCategoryInstance;
 
 } // namespace
+
+HttpError::HttpError(const std::error_code &code)
+    : std::runtime_error(format("HTTP error <%s>", code.message()))
+    , code_(code)
+{}
+
+HttpError::HttpError(const std::error_code &code, const std::string &message)
+    : std::runtime_error(message), code_(code)
+{}
+
+HttpError::HttpError(HttpCode code, const std::string &message)
+    : std::runtime_error(message), code_(make_error_code(code))
+{}
 
 const std::error_category& httpCodeCategory()
 {
