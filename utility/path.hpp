@@ -39,6 +39,8 @@
 #include <boost/algorithm/string/case_conv.hpp>
 #include <boost/optional.hpp>
 
+#include "utility/gccversion.hpp"
+
 #include "detail/path.hpp"
 
 namespace utility {
@@ -181,6 +183,14 @@ boost::optional<boost::filesystem::path> exePath();
 /** Returns home directory.
  */
 boost::filesystem::path homeDir();
+
+boost::filesystem::path sanitizePath(const boost::filesystem::path &path)
+#ifndef UTILITY_HAS_ICU
+    UTILITY_FUNCTION_ERROR("Path sanitization is available only when compiled "
+                           "with libicu.")
+#endif
+    ;
+
 
 } // namespace utility
 
