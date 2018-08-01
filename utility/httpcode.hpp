@@ -30,9 +30,6 @@
 #define utility_httpcode_hpp_included_
 
 #include <system_error>
-#include <exception>
-
-#include "./format.hpp"
 
 namespace utility {
 
@@ -67,6 +64,23 @@ enum class HttpCode {
     , RequestAborted = 499
 };
 
+} // namespace utility
+
+namespace std {
+
+/** Specialization of is-error-code-enum
+ */
+template<>
+struct is_error_code_enum< ::utility::HttpCode> : public true_type {};
+
+} // namespace std
+
+// now, when we have specialized above template so we can pull all stuff here
+
+#include <exception>
+
+namespace utility {
+
 /** Statically-allocated error-category
  */
 const std::error_category& httpCodeCategory();
@@ -89,18 +103,11 @@ inline std::error_condition make_http_error_condition(int code) {
 
 class HttpError : public std::runtime_error {
 public:
-    explicit HttpError(const std::error_code &code)
-        : std::runtime_error(format("HTTP error <%s>", code.message()))
-        , code_(code)
-    {}
+    explicit HttpError(const std::error_code &code);
 
-    HttpError(const std::error_code &code, const std::string &message)
-        : std::runtime_error(message), code_(code)
-    {}
+    HttpError(const std::error_code &code, const std::string &message);
 
-    HttpError(HttpCode code, const std::string &message)
-        : std::runtime_error(message), code_(make_error_code(code))
-    {}
+    HttpError(HttpCode code, const std::string &message);
 
     const std::error_code& code() const noexcept  { return code_; }
 
@@ -116,14 +123,5 @@ struct HttpErrorWithCode : HttpError {
 };
 
 } // namespace utility
-
-namespace std {
-
-/** Specialization.
- */
-template<>
-struct is_error_code_enum< ::utility::HttpCode> : public true_type {};
-
-} // namespace std
 
 #endif // utility_httpcode_hpp_included_
