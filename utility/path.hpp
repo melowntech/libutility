@@ -23,6 +23,7 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  */
+
 /**
  * @file detail/path.hpp
  * @author Vaclav Blazek <vaclav.blazek@citationtech.net>
@@ -191,6 +192,11 @@ boost::filesystem::path sanitizePath(const boost::filesystem::path &path)
 #endif
     ;
 
+// Calls either path.lexically_relative(base) or uses own implementation based
+// on Boost version
+boost::filesystem::path
+lexically_relative(const boost::filesystem::path &path
+                   , const boost::filesystem::path &base);
 
 } // namespace utility
 

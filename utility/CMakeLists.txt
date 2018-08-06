@@ -98,7 +98,7 @@ set(utility_SOURCES
   raise.hpp
   expect.hpp
 
-  path.hpp # implementation is system-dependent
+  path.hpp path.cpp # implementation is system-dependent
   filesystem.hpp filesystem.cpp # some implementation is system-dependent
   detail/filesystem.hpp detail/filesystem.cpp
   tcpendpoint.hpp tcpendpoint-io.hpp tcpendpoint-io.cpp
