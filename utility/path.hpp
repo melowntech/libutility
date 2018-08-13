@@ -185,9 +185,46 @@ boost::optional<boost::filesystem::path> exePath();
  */
 boost::filesystem::path homeDir();
 
-boost::filesystem::path sanitizePath(const boost::filesystem::path &path)
+/** Path/id sanitizer options.
+ */
+struct SanitizerOptions {
+    /** Converts any script into Latin.
+     */
+    bool latinize;
+
+    /** Convert result to lower case.
+     */
+    bool lowercase;
+
+    /** Replace sequence of non-alphanum characters with dash
+     */
+    bool dashNonAlphanum;
+
+    /** Removes accents.
+     */
+    bool removeAccents;
+
+    SanitizerOptions(bool lowercase = false)
+        : latinize(true)
+        , lowercase(lowercase)
+        , dashNonAlphanum(true)
+        , removeAccents(true)
+    {}
+};
+
+boost::filesystem::path
+sanitizePath(const boost::filesystem::path &path
+             , const SanitizerOptions &options = SanitizerOptions())
 #ifndef UTILITY_HAS_ICU
     UTILITY_FUNCTION_ERROR("Path sanitization is available only when compiled "
+                           "with libicu.")
+#endif
+    ;
+
+std::string sanitizeId(const std::string &id
+                       , const SanitizerOptions &options = SanitizerOptions())
+#ifndef UTILITY_HAS_ICU
+    UTILITY_FUNCTION_ERROR("Id sanitization is available only when compiled "
                            "with libicu.")
 #endif
     ;

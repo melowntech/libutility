@@ -28,31 +28,64 @@
 #include <unicode/unistr.h>
 #include <unicode/ucnv.h>
 
+#include <boost/algorithm/string/trim.hpp>
+#include <boost/algorithm/string/predicate.hpp>
+
 #include "dbglog/dbglog.hpp"
 
 #include "./path.hpp"
+
+namespace ba = boost::algorithm;
 
 namespace utility {
 
 namespace {
 
-std::unique_ptr<icu::Transliterator> createSanitizer()
+std::string buildRules(const SanitizerOptions &options) {
+    // common header
+    std::string rules;
+
+    if (options.latinize) {
+        rules.append
+            (R"RAW(:: ANY-Latin ;     # convert everything to latin script
+)RAW");
+    }
+
+    if (options.dashNonAlphanum) {
+        rules.append(R"RAW([^[:L:][:N:]]+ > '-' ;  # replace every non-letter sequence with dash
+)RAW");
+    }
+
+    if (options.lowercase) {
+        rules.append(R"RAW(:: Lower ;         # make lowercase
+)RAW");
+    }
+
+    if (options.removeAccents) {
+        // common footer
+        rules.append
+            (R"RAW(:: NFD ;           # canonical decomposition (á -> a´)
+:: [:M:] Remove ;  # remove all accent marks
+)RAW");
+    }
+
+    return rules;
+}
+
+std::unique_ptr<icu::Transliterator>
+createSanitizer(const SanitizerOptions &options)
 {
     const std::string id("utility-path-sanitizer");
 
-    // register transliterator
-    const char *rules(R"RAW(
-:: ANY-Latin ;     # convert everything to latin script
-[^[:L:][:N:]]+ > '-' ;  # replace every non-letter sequence with dash
-:: NFD ;           # canonical decomposition (á -> a´)
-:: [:M:] Remove ;  # remove all accent marks
-)RAW");
+    const auto rules(buildRules(options));
 
+    // register transliterator
     UErrorCode status(U_ZERO_ERROR);
     UParseError parseError;
     std::unique_ptr<icu::Transliterator>
         normalizer(icu::Transliterator::createFromRules
-                   (id.c_str(), rules, UTRANS_FORWARD, parseError, status));
+                   (id.c_str(), rules.c_str()
+                   , UTRANS_FORWARD, parseError, status));
     if (U_FAILURE(status)) {
         std::string preContext;
         icu::UnicodeString(parseError.preContext, U_PARSE_CONTEXT_LEN)
@@ -74,13 +107,23 @@ std::unique_ptr<icu::Transliterator> createSanitizer()
     return normalizer;
 }
 
+std::string strip(const std::string &string)
+{
+    switch (string.size()) {
+    case 0: case 1: return string;
+    }
+
+    return ba::trim_copy_if(string, ba::is_any_of("-"));
+}
+
 } // namespace
 
-boost::filesystem::path sanitizePath(const boost::filesystem::path &path)
+boost::filesystem::path sanitizePath(const boost::filesystem::path &path
+                                     , const SanitizerOptions &options)
 {
     boost::filesystem::path out;
 
-    auto normalizer(createSanitizer());
+    auto normalizer(createSanitizer(options));
 
     for (const auto &part : path) {
         if ((part == ".") || (part == "..")) {
@@ -93,10 +136,21 @@ boost::filesystem::path sanitizePath(const boost::filesystem::path &path)
 
         std::string tPart;
         uPart.toUTF8String(tPart);
-        out /= tPart;
+        out /= strip(tPart);
     }
 
     return out;
+}
+
+std::string sanitizeId(const std::string &id, const SanitizerOptions &options)
+{
+    auto normalizer(createSanitizer(options));
+
+    auto uPart(icu::UnicodeString::fromUTF8(id));
+    normalizer->transliterate(uPart);
+
+    std::string tPart;
+    return strip(uPart.toUTF8String(tPart));
 }
 
 } // namespace utility
