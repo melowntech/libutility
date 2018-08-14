@@ -51,6 +51,12 @@ std::string buildRules(const SanitizerOptions &options) {
 )RAW");
     }
 
+    if (options.singleSpace) {
+        rules.append
+            (R"RAW([[:Zs:]]+ > ' ' ;   # space separator sequence replaced with single space
+)RAW");
+    }
+
     if (options.dashNonAlphanum) {
         rules.append(R"RAW([^[:L:][:N:]]+ > '-' ;  # replace every non-letter sequence with dash
 )RAW");

@@ -204,11 +204,16 @@ struct SanitizerOptions {
      */
     bool removeAccents;
 
+    /** Replace all space separators by single space.
+     */
+    bool singleSpace;
+
     SanitizerOptions(bool lowercase = false)
         : latinize(true)
         , lowercase(lowercase)
         , dashNonAlphanum(true)
         , removeAccents(true)
+        , singleSpace(false)
     {}
 };
 
