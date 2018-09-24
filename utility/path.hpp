@@ -23,6 +23,7 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  */
+
 /**
  * @file detail/path.hpp
  * @author Vaclav Blazek <vaclav.blazek@citationtech.net>
@@ -38,6 +39,8 @@
 #include <boost/filesystem/path.hpp>
 #include <boost/algorithm/string/case_conv.hpp>
 #include <boost/optional.hpp>
+
+#include "utility/gccversion.hpp"
 
 #include "detail/path.hpp"
 
@@ -181,6 +184,61 @@ boost::optional<boost::filesystem::path> exePath();
 /** Returns home directory.
  */
 boost::filesystem::path homeDir();
+
+/** Path/id sanitizer options.
+ */
+struct SanitizerOptions {
+    /** Converts any script into Latin.
+     */
+    bool latinize;
+
+    /** Convert result to lower case.
+     */
+    bool lowercase;
+
+    /** Replace sequence of non-alphanum characters with dash
+     */
+    bool dashNonAlphanum;
+
+    /** Removes accents.
+     */
+    bool removeAccents;
+
+    /** Replace all space separators by single space.
+     */
+    bool singleSpace;
+
+    SanitizerOptions(bool lowercase = false)
+        : latinize(true)
+        , lowercase(lowercase)
+        , dashNonAlphanum(true)
+        , removeAccents(true)
+        , singleSpace(false)
+    {}
+};
+
+boost::filesystem::path
+sanitizePath(const boost::filesystem::path &path
+             , const SanitizerOptions &options = SanitizerOptions())
+#ifndef UTILITY_HAS_ICU
+    UTILITY_FUNCTION_ERROR("Path sanitization is available only when compiled "
+                           "with libicu.")
+#endif
+    ;
+
+std::string sanitizeId(const std::string &id
+                       , const SanitizerOptions &options = SanitizerOptions())
+#ifndef UTILITY_HAS_ICU
+    UTILITY_FUNCTION_ERROR("Id sanitization is available only when compiled "
+                           "with libicu.")
+#endif
+    ;
+
+// Calls either path.lexically_relative(base) or uses own implementation based
+// on Boost version
+boost::filesystem::path
+lexically_relative(const boost::filesystem::path &path
+                   , const boost::filesystem::path &base);
 
 } // namespace utility
 

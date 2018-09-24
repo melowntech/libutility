@@ -132,6 +132,16 @@ inline std::string concat(Args &&...args)
     return os.str();
 }
 
+/** Join given values with separatator and return result as a std::string.
+ */
+template <typename ...Args>
+inline std::string concatWithSeparator(const std::string &sep, Args &&...args)
+{
+    std::ostringstream os;
+    detail::concatWithSeparator(os, sep, std::forward<Args>(args)...);
+    return os.str();
+}
+
 template<typename T, int size>
 inline void write(std::ostream &os, const T(&v)[size]) {
     os.write(reinterpret_cast<const char*>(v), size * sizeof(T));
