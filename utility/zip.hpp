@@ -94,7 +94,7 @@ class Reader {
 public:
     /** Opens ZIP file.
      *
-     * If asked to paths are sanitizes:
+     * If asked to paths are sanitized:
      *     1) backslashes are converted to forward slashes (yes, there are
      *        such ZIP archvies...)
      *     2) multiple slashes are replaced with single slash
@@ -134,6 +134,8 @@ public:
 
     const Record::list& files() const { return records_; }
 
+    std::size_t find(const boost::filesystem::path &path) const;
+
     /** Plug decompressing stream for file at given index at the end of the
      *  filtering_istream.
      */
@@ -164,6 +166,9 @@ UTILITY_GENERATE_ENUM(Compression,
                       ((bzip2))
                       )
 
+struct EmbedFlag {};
+extern EmbedFlag Embed;
+
 /** Simple ZIP archive writer
  */
 class Writer {
@@ -174,6 +179,11 @@ public:
      * \param overwrite do not fail if file already exists when true
      */
     Writer(const boost::filesystem::path &path, bool overwrite = false);
+
+    /** Opens file with possibly existing data. Doesn't change any content, only
+     *  adds data.
+     */
+    Writer(const boost::filesystem::path &path, const EmbedFlag&);
 
     /** Destroys zip file. Warns on non-closed archive.
      */
