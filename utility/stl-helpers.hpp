@@ -59,12 +59,12 @@ std::vector<T> flatten(const Containers &containers)
     std::vector<T> out;
 
     // make room for all output elements
-    out.resize(std::accumulate
-               (containers.begin(), containers.end(), std::size_t(0)
-                , [](std::size_t count, const Container &c)
-                {
-                    return count + c.size();
-                }));
+    out.reserve(std::accumulate
+                (containers.begin(), containers.end(), std::size_t(0)
+                 , [](std::size_t count, const Container &c)
+                 {
+                     return count + c.size();
+                 }));
 
     // join all the data into single vector
     for (const auto &c : containers) {
