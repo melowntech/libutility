@@ -29,6 +29,7 @@
 
 #include <vector>
 #include <utility>
+#include <numeric>
 
 namespace utility {
 
@@ -37,6 +38,40 @@ T& append(std::vector<T> &vector, Args &&...args)
 {
     vector.emplace_back(std::forward<Args>(args)...);
     return vector.back();
+}
+
+/** Joins containers of data convertible to T into a flat vector of T.
+ *
+ *  \param containers collection of containers of data convertible to T
+ *  \return std::vector<T> of all elements from containers
+ */
+template <typename T, typename Containers>
+std::vector<T> flatten(const Containers &containers);
+
+// inlines
+
+template <typename T, typename Containers>
+std::vector<T> flatten(const Containers &containers)
+{
+    // single container from container
+    typedef typename Containers::value_type Container;
+
+    std::vector<T> out;
+
+    // make room for all output elements
+    out.reserve(std::accumulate
+                (containers.begin(), containers.end(), std::size_t(0)
+                 , [](std::size_t count, const Container &c)
+                 {
+                     return count + c.size();
+                 }));
+
+    // join all the data into single vector
+    for (const auto &c : containers) {
+        out.insert(out.end(), c.begin(), c.end());
+    }
+
+    return out;
 }
 
 } // namespace utility

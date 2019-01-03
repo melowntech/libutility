@@ -58,8 +58,33 @@ template<typename CharT, typename Traits>
 inline std::basic_ostream<CharT, Traits>&
 operator<<(std::basic_ostream<CharT, Traits> &os, const TcpEndpoint &e)
 {
-    os << e.value;
-    return os;
+    return os << e.value;
+}
+
+struct TcpEndpointPrettyPrint {
+    const TcpEndpoint &endpoint;
+
+    TcpEndpointPrettyPrint(const TcpEndpoint &endpoint)
+        : endpoint(endpoint)
+    {}
+};
+
+template<typename CharT, typename Traits>
+inline std::basic_ostream<CharT, Traits>&
+operator<<(std::basic_ostream<CharT, Traits> &os
+           , const TcpEndpointPrettyPrint &e)
+{
+    const auto &value(e.endpoint.value);
+
+    if (value.address().is_loopback()) {
+        return os << "localhost:" << value.port();
+    }
+
+    if (value.address().is_unspecified()) {
+        return os << "localhost:" << value.port();
+    }
+
+    return os << value;
 }
 
 } // namespace utility

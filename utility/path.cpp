@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017 Melown Technologies SE
+ * Copyright (c) 2018 Melown Technologies SE
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -24,56 +24,70 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <system_error>
+#include <algorithm>
 
-#ifdef __linux__
-#  include <sched.h>
-#endif
+#include "./path.hpp"
 
-#include <boost/thread.hpp>
-
-#include "dbglog/dbglog.hpp"
-
-#include "./cpuinfo.hpp"
+namespace fs = boost::filesystem;
 
 namespace utility {
 
-namespace {
+#if BOOST_VERSION < 106100
 
-std::size_t boostThreadCpuCount()
+namespace detail {
+
+inline std::pair<fs::path::iterator, fs::path::iterator>
+mismatch(fs::path::iterator first1, fs::path::iterator last1
+         , fs::path::iterator first2, fs::path::iterator last2)
 {
-    // TODO: use sched_getaffinity instead
-    auto hc(boost::thread::hardware_concurrency());
-    if (!hc) { return 1; }
-    return hc;
-}
-
-} // namespace
-
-#ifdef __linux__
-
-std::size_t cpuCount()
-{
-    cpu_set_t set;
-    auto res(::sched_getaffinity(0, sizeof(set), &set));
-    if (res == -1) {
-        std::system_error e(errno, std::system_category());
-        LOG(warn1)
-            << "Unable to get CPU count using scheduler affinity ("
-            << e.code() << ", " << e.what()
-            << "), reverting to boost::thread.";
-        return boostThreadCpuCount();
+#if __cplusplus < 201402L
+    while ((first1 != last1) && (first2 != last2) && (*first1 == *first2)) {
+        ++first1; ++first2;
     }
-    return CPU_COUNT(&set);
+    return std::make_pair(first1, first2);
+
+#else
+
+    // simple as that
+    return std::mismatch(first1, last1, first2, last2);
+#endif
 }
 
-#else // __linux__
+} // namespace detail
 
-std::size_t cpuCount()
+fs::path lexically_relative(const fs::path &path, const fs::path &base)
 {
-    return boostThreadCpuCount();
+    auto mm(detail::mismatch
+            (path.begin(), path.end(), base.begin(), base.end()));
+
+    if ((mm.first == path.begin()) && (mm.second == base.begin())) {
+        return {};
+    }
+
+    if ((mm.first == path.end()) && (mm.second == base.end())) {
+        return ".";
+    }
+
+    fs::path tmp;
+    for (; mm.second != base.end(); ++mm.second) {
+      tmp /= "..";
+    }
+
+    for (; mm.first != path.end(); ++mm.first) {
+      tmp /= *mm.first;
+    }
+
+    return tmp;
 }
 
-#endif // __linux__
+#else
+
+// it cannot be simpler!
+fs::path lexically_relative(const fs::path &path, const fs::path &base)
+{
+    return path.lexically_relative(base);
+}
+
+#endif
 
 } // namespace utility

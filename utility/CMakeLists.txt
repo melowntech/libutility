@@ -1,5 +1,5 @@
 # bump version here
-set(utility_VERSION 1.25)
+set(utility_VERSION 1.26)
 
 set(utility_DEPENDS
   dbglog>=1.4
@@ -55,6 +55,19 @@ else()
   message(STATUS "utility: compiling without boost iostreams support")
 endif()
 
+if(ICU_FOUND)
+  message(STATUS "utility: compiling in ICU support")
+
+  list(APPEND utility_DEPENDS ICU)
+  list(APPEND utility_DEFINITIONS UTILITY_HAS_ICU=1)
+
+  set(utility_ICU_SOURCES
+    path.icu.cpp)
+
+else()
+  message(STATUS "utility: compiling without ICU support")
+endif()
+
 define_module(LIBRARY utility=${utility_VERSION}
   DEPENDS ${utility_DEPENDS}
   DEFINITIONS ${utility_DEFINITIONS})
@@ -85,7 +98,7 @@ set(utility_SOURCES
   raise.hpp
   expect.hpp
 
-  path.hpp # implementation is system-dependent
+  path.hpp path.cpp # implementation is system-dependent
   filesystem.hpp filesystem.cpp # some implementation is system-dependent
   detail/filesystem.hpp detail/filesystem.cpp
   tcpendpoint.hpp tcpendpoint-io.hpp tcpendpoint-io.cpp
@@ -194,6 +207,7 @@ add_library(utility STATIC
   ${utility_LIBPROC_SOURCES}
   ${utility_MAGIC_SOURCES}
   ${utility_IOSTREAMS_SOURCES}
+  ${utility_ICU_SOURCES}
   )
 buildsys_library(utility)
 target_link_libraries(utility ${MODULE_LIBRARIES})

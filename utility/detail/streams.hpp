@@ -309,6 +309,26 @@ void concat(std::ostream &os, T &&head, Args &&...args)
     concat(os, std::forward<Args>(args)...);
 }
 
+// terminators
+inline void concatWithSeparator(std::ostream&, const std::string&) {}
+inline void concatWithSeparatorOther(std::ostream&, const std::string&) {}
+
+template <typename T, typename ...Args>
+void concatWithSeparatorOther(std::ostream &os, const std::string &sep
+                              , T &&head, Args &&...args)
+{
+    os << sep << head;
+    concatWithSeparatorOther(os, sep, std::forward<Args>(args)...);
+}
+
+template <typename T, typename ...Args>
+void concatWithSeparator(std::ostream &os, const std::string &sep
+                         , T &&head, Args &&...args)
+{
+    os << head;
+    concatWithSeparatorOther(os, sep, std::forward<Args>(args)...);
+}
+
 
 } } // namespace utility::detail
 
