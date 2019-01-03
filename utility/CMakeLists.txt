@@ -121,6 +121,7 @@ set(utility_SOURCES
   typeinfo.hpp typeinfo.cpp
 
   archive-loading.hpp
+  implicit-value.hpp
   )
 
 # system-dependent stuff
