@@ -116,6 +116,8 @@ namespace bio = boost::iostreams;
 
 namespace utility { namespace zip {
 
+EmbedFlag Embed;
+
 namespace detail {
 
 constexpr std::uint32_t LOCAL_HEADER_SIGNATURE = 0x04034b50;
@@ -697,6 +699,86 @@ int findCentralDirectory(Stream &f, std::size_t fileLength)
     return off;
 }
 
+class CentralDirectoryReader {
+public:
+    CentralDirectoryReader(const Filedes &fd)
+        : path_(fd.path()), fileLength_(fileSize(fd))
+        , f_(utility::io::SubStreamDevice
+             (path_, utility::io::SubStreamDevice::Filedes
+              { int(fd), std::size_t(0), fileLength_}), 512)
+    {}
+
+    CentralDirectoryReader(const Filedes &fd, int fileLength)
+        : path_(fd.path()), fileLength_(fileLength)
+        , f_(utility::io::SubStreamDevice
+             (path_, utility::io::SubStreamDevice::Filedes
+              { int(fd), std::size_t(0), fileLength_}), 512)
+    {}
+
+    bool open(bool nothrow = false) {
+        f_.exceptions(std::ios::badbit | std::ios::failbit);
+
+        auto off(findCentralDirectory(f_, fileLength_));
+
+        if (off < 0) {
+            if (nothrow) { return false; }
+            LOGTHROW(err2, Error)
+                << "Cannot find end of central directory signature "
+                "in zip file " << path_ << ".";
+        }
+
+        f_.seekg(-off, std::ios_base::end);
+        eocd_ = EndOfCentralDirectoryRecord::read(f_);
+
+        if (eocd_.has64locator()) {
+            // seek to locator and read
+            f_.seekg(-off - EndOfCentralDirectory64Locator::size()
+                    , std::ios_base::end);
+            const auto locator(EndOfCentralDirectory64Locator::read(f_));
+            f_.seekg(locator.endOfCentralDirectoryOffset, std::ios_base::beg);
+            eocd_ = EndOfCentralDirectoryRecord::read64(f_);
+        }
+
+        return true;
+    }
+
+    template <typename Callback>
+    void read(const Callback &callback
+              , std::size_t limit = std::numeric_limits<std::size_t>::max())
+    {
+        const auto recordCount
+            ((eocd_.numberOfCentralDirectoryRecordsOnThisDisk > limit)
+             ? limit
+             : eocd_.numberOfCentralDirectoryRecordsOnThisDisk);
+
+        LOG(debug) << "Reading " << recordCount << " records out of "
+                   << eocd_.numberOfCentralDirectoryRecordsOnThisDisk
+                   << " from ZIP archive " << path_ << ".";
+
+        // seek to first central directory record
+        f_.seekg(eocd_.centralDirectoryOffset, std::ios_base::beg);
+
+        // read central directory
+        for (std::size_t i(0); i != recordCount; ++i) {
+            auto cdfh(CentralDirectoryFileHeader::read(f_));
+
+            if (cdfh.diskNumberStart != eocd_.numberOfThisDisk) {
+                LOGTHROW(err2, Error)
+                    << "Unsupported format in zip file " << path_
+                    << ": multiple discs encountered.";
+            }
+
+            callback(i, cdfh);
+        }
+    }
+
+private:
+    const fs::path path_;
+    const std::size_t fileLength_;
+    boost::iostreams::stream<utility::io::SubStreamDevice> f_;
+    EndOfCentralDirectoryRecord eocd_;
+};
+
 } // namespace detail
 
 // pull in everything from detail namespace above
@@ -725,64 +807,35 @@ Reader::Reader(const fs::path &path, std::size_t limit, bool sanitizePaths)
     , fileLength_(fileSize(fd_))
 {
     try {
-        boost::iostreams::stream<utility::io::SubStreamDevice> f
-            (utility::io::SubStreamDevice
-             (path_, utility::io::SubStreamDevice::Filedes
-              { int(fd_), std::size_t(0), fileLength_}), 512);
-        f.exceptions(std::ios::badbit | std::ios::failbit);
+        // open and read central directory
+        CentralDirectoryReader cdr(fd_, fileLength_);
+        cdr.open();
 
-        auto off(findCentralDirectory(f, fileLength_));
-
-        if (off < 0) {
-            LOGTHROW(err2, Error)
-                << "Cannot find end of central directory signature "
-                "in zip file " << path_ << ".";
-        }
-
-        f.seekg(-off, std::ios_base::end);
-        auto eocd(EndOfCentralDirectoryRecord::read(f));
-
-        if (eocd.has64locator()) {
-            // seek to locator and read
-            f.seekg(-off - EndOfCentralDirectory64Locator::size()
-                    , std::ios_base::end);
-            const auto locator(EndOfCentralDirectory64Locator::read(f));
-            f.seekg(locator.endOfCentralDirectoryOffset, std::ios_base::beg);
-            eocd = EndOfCentralDirectoryRecord::read64(f);
-        }
-
-        // seek to first central directory record
-        f.seekg(eocd.centralDirectoryOffset, std::ios_base::beg);
-
-        // apply limit
-        const auto recordCount
-            ((eocd.numberOfCentralDirectoryRecordsOnThisDisk > limit)
-             ? limit
-             : eocd.numberOfCentralDirectoryRecordsOnThisDisk);
-
-        LOG(debug) << "Reading " << recordCount << " records out of "
-                   << eocd.numberOfCentralDirectoryRecordsOnThisDisk
-                   << " from ZIP archive " << path << ".";
-
-        // read central directory
-        for (std::size_t i(0); i != recordCount; ++i)
+        cdr.read([&](int i, const CentralDirectoryFileHeader &cdfh) -> void
         {
-            auto cdfh(CentralDirectoryFileHeader::read(f));
-
-            if (cdfh.diskNumberStart != eocd.numberOfThisDisk) {
-                LOGTHROW(err2, Error)
-                    << "Unsupported format in zip file " << path_
-                    << ": multiple discs encountered.";
-            }
-
             records_.emplace_back(i, sanitize(cdfh.filename, sanitizePaths)
                                   , cdfh.fileOffset, cdfh.minimal());
-        }
+        }, limit);
     } catch (const std::ios_base::failure &e) {
         LOGTHROW(err2, Error)
             << "Cannot process the zip file " << path << ": " << e.what()
             << ".";
     }
+}
+
+std::size_t Reader::find(const boost::filesystem::path &path) const
+{
+    auto frecords(std::find_if(records_.begin(), records_.end()
+                               , [&](const Record &r) {
+                                   return r.path == path;
+                               }));
+    if (frecords == records_.end()) {
+        LOGTHROW(err2, Error)
+            << "File " << path << "not found in zip file "
+            << path_ << ".";
+    }
+
+    return (&*frecords - records_.data());
 }
 
 PluggedFile Reader::plug(std::size_t index
@@ -861,9 +914,9 @@ struct Writer::Detail : public std::enable_shared_from_this<Detail>
     typedef std::shared_ptr<Detail> pointer;
 
     Detail(const boost::filesystem::path &path, bool overwrite);
+    Detail(const boost::filesystem::path &path, const EmbedFlag&);
 
     ~Detail() {
-        // TODO: check for closed archive
         if (fd) {
             LOG(warn2) << "ZIP file " << fd.path() << " was not flushed. "
                        << "Use close() member function.";
@@ -952,18 +1005,36 @@ struct Writer::Detail : public std::enable_shared_from_this<Detail>
     CentralDirectoryFileHeader::list directory;
 };
 
-int openFlags(bool overwrite)
+namespace {
+
+enum class OpenMode {
+    failIfExists, overwrite, append
+};
+
+int openFlags(OpenMode mode)
 {
-    if (overwrite) {
+    switch (mode) {
+    case OpenMode::overwrite:
         return (O_WRONLY | O_CREAT | O_TRUNC);
+
+    case OpenMode::failIfExists:
+        return (O_WRONLY | O_CREAT | O_EXCL);
+
+    case OpenMode::append:
+        return (O_RDWR | O_CREAT);
     }
 
-    return (O_WRONLY | O_CREAT | O_EXCL);
+    throw; // never reached
 }
 
-Filedes openFile(const boost::filesystem::path &path, bool overwrite)
+OpenMode openMode(bool overwrite)
 {
-    Filedes fd(::open(path.c_str(), openFlags(overwrite)
+    return overwrite ? OpenMode::overwrite : OpenMode::failIfExists;
+}
+
+Filedes openFile(const boost::filesystem::path &path, OpenMode openMode)
+{
+    Filedes fd(::open(path.c_str(), openFlags(openMode)
                       , (S_IRUSR | S_IWUSR | S_IRGRP)), path);
 
     if (!fd) {
@@ -976,9 +1047,35 @@ Filedes openFile(const boost::filesystem::path &path, bool overwrite)
     return fd;
 }
 
+} // namespace
+
 Writer::Detail::Detail(const boost::filesystem::path &path, bool overwrite)
-    : fd(openFile(path, overwrite)), tx(-1)
+    : fd(openFile(path, openMode(overwrite))), tx(-1)
 {
+}
+
+Writer::Detail::Detail(const boost::filesystem::path &path, const EmbedFlag&)
+    : fd(openFile(path, OpenMode::append)), tx(-1)
+{
+    CentralDirectoryReader cdr(fd);
+    if (!cdr.open(true)) {
+        // not a ZIP, just append
+        seekEnd();
+        return;
+    }
+
+    try {
+        cdr.read([&](int, const CentralDirectoryFileHeader &cdfh) -> void
+        {
+            directory.push_back(cdfh);
+        });
+    } catch (const std::ios_base::failure &e) {
+        LOGTHROW(err2, Error)
+            << "Cannot process the zip file " << path << ": " << e.what()
+            << ".";
+    }
+
+    seekEnd();
 }
 
 CompressionMethod compressionMethod(Compression compression)
@@ -1335,7 +1432,20 @@ void Writer::Detail::commit(const FileEntry &fe)
         throw;
     }
 
-    directory.push_back(fh);
+    // try to find a record with the same path
+    auto fdirectory(std::find_if(directory.begin(), directory.end()
+                                 , [&](const CentralDirectoryFileHeader &h)
+                                 {
+                                     return (h.filename == fh.filename);
+                                 }));
+
+    if (fdirectory == directory.end()) {
+        // not found, append
+        directory.push_back(fh);
+    } else {
+        // found, replace
+        *fdirectory = fh;
+    }
 
     tx = -1;
 }
@@ -1416,6 +1526,11 @@ void Writer::Detail::close()
 Writer::Writer(const boost::filesystem::path &path, bool overwrite)
     : detail_(std::make_shared<Detail>(path, overwrite))
 {}
+
+Writer::Writer(const boost::filesystem::path &path, const EmbedFlag &embed)
+    : detail_(std::make_shared<Detail>(path, embed))
+{
+}
 
 Writer::~Writer() {}
 

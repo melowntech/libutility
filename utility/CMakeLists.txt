@@ -1,5 +1,5 @@
 # bump version here
-set(utility_VERSION 1.25)
+set(utility_VERSION 1.26)
 
 set(utility_DEPENDS
   dbglog>=1.4
@@ -134,6 +134,8 @@ set(utility_SOURCES
   typeinfo.hpp typeinfo.cpp
 
   archive-loading.hpp
+
+  implicit-value.hpp
 
   eventcounter.hpp eventcounter.cpp
   )

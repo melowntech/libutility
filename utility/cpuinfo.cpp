@@ -23,16 +23,57 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  */
+
+#include <system_error>
+
+#ifdef __linux__
+#  include <sched.h>
+#endif
+
 #include <boost/thread.hpp>
+
+#include "dbglog/dbglog.hpp"
+
+#include "./cpuinfo.hpp"
 
 namespace utility {
 
-std::size_t cpuCount()
+namespace {
+
+std::size_t boostThreadCpuCount()
 {
     // TODO: use sched_getaffinity instead
     auto hc(boost::thread::hardware_concurrency());
     if (!hc) { return 1; }
     return hc;
 }
+
+} // namespace
+
+#ifdef __linux__
+
+std::size_t cpuCount()
+{
+    cpu_set_t set;
+    auto res(::sched_getaffinity(0, sizeof(set), &set));
+    if (res == -1) {
+        std::system_error e(errno, std::system_category());
+        LOG(warn1)
+            << "Unable to get CPU count using scheduler affinity ("
+            << e.code() << ", " << e.what()
+            << "), reverting to boost::thread.";
+        return boostThreadCpuCount();
+    }
+    return CPU_COUNT(&set);
+}
+
+#else // __linux__
+
+std::size_t cpuCount()
+{
+    return boostThreadCpuCount();
+}
+
+#endif // __linux__
 
 } // namespace utility
