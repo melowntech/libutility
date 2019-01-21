@@ -134,6 +134,8 @@ set(utility_SOURCES
   typeinfo.hpp typeinfo.cpp
 
   archive-loading.hpp
+
+  eventcounter.hpp eventcounter.cpp
   )
 
 # system-dependent stuff
