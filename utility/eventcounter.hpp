@@ -62,6 +62,13 @@ public:
      */
     std::size_t max(std::size_t count) const;
 
+    /** Returns event average and maximum in given second window. Current slot
+     * is ignored.
+     *
+     *  If there is not enough slots the count is reduced.
+     */
+    std::tuple<double, std::size_t> averageAndMax(std::size_t count) const;
+
     typedef std::vector<std::size_t> Counts;
 
     /** Reports averages to output stream.
@@ -74,7 +81,17 @@ public:
     void max(std::ostream &os, const std::string &name
              , const Counts &counts = standardTimes) const;
 
+    /** Reports averages and maximums to output stream.
+     */
+    void averageAndMax(std::ostream &os, const std::string &name
+             , const Counts &counts = standardTimes) const;
+
 private:
+    /** Internal function.
+     */
+    template <typename F>
+    std::size_t processBlock(std::size_t count, const F &f) const;
+
     /** Event slot.
      */
     struct Slot {

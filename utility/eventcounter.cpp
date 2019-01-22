@@ -68,7 +68,8 @@ void EventCounter::eventMax(std::size_t count)
     }
 }
 
-double EventCounter::average(std::size_t count) const
+template <typename F>
+std::size_t EventCounter::processBlock(std::size_t count, const F &f) const
 {
     // limit to count to the number of slots, ignore current slot
     if ((count + 1) >= size_) {
@@ -80,9 +81,6 @@ double EventCounter::average(std::size_t count) const
     std::size_t index(start % size_);
 
     std::lock_guard<std::mutex> lock(mutex_);
-
-    // accumulate (skip slot for current time!)
-    double total(.0);
     {
         for (auto time(start); time < now; ++time, ++index) {
             // handle index overflow
@@ -90,42 +88,49 @@ double EventCounter::average(std::size_t count) const
 
             const auto &slot(slots_[index]);
             if (slot.when == time) {
-                total += slot.count;
+                f(slot.count);
             }
         }
     }
+
+    return count;
+}
+
+double EventCounter::average(std::size_t count) const
+{
+    double total(.0);
+
+    count = processBlock
+        (count, [&total](std::size_t value) { total += value; });
 
     return total / count;
 }
 
 std::size_t EventCounter::max(std::size_t count) const
 {
-    // limit to count to the number of slots, ignore current slot
-    if ((count + 1) >= size_) {
-        count = size_ - 1;
-    }
-
-    const auto now(std::time(nullptr));
-    std::time_t start(now - count - 1);
-    std::size_t index(start % size_);
-
-    std::lock_guard<std::mutex> lock(mutex_);
-
-    // get max (skip slot for current time!)
     std::size_t max(0);
-    {
-        for (auto time(start); time < now; ++time, ++index) {
-            // handle index overflow
-            if (index >= size_) { index = 0; }
 
-            const auto &slot(slots_[index]);
-            if (slot.when == time) {
-                max = std::max(max, slot.count);
-            }
-        }
-    }
+    processBlock
+        (count, [&max](std::size_t value) {
+            if (value > max) { max = value; }
+        });
 
     return max;
+}
+
+std::tuple<double, std::size_t> EventCounter::averageAndMax(std::size_t count)
+    const
+{
+    double total(.0);
+    std::size_t max(0);
+
+    count = processBlock
+        (count, [&total, &max](std::size_t value) {
+            total += value;
+            if (value > max) { max = value; }
+        });
+
+    return std::tuple<double, std::size_t>(total / count, max);
 }
 
 void EventCounter::average(std::ostream &os, const std::string &name
@@ -141,6 +146,16 @@ void EventCounter::max(std::ostream &os, const std::string &name
 {
     for (auto count : counts) {
         os << name << "max." << count << '=' << max(count) << '\n';
+    }
+}
+
+void EventCounter::averageAndMax(std::ostream &os, const std::string &name
+                                 , const Counts &counts) const
+{
+    for (auto count : counts) {
+        const auto am(averageAndMax(count));
+        os << name << "avg." << count << '=' << std::get<0>(am) << '\n';
+        os << name << "max." << count << '=' << std::get<1>(am) << '\n';
     }
 }
 
