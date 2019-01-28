@@ -102,6 +102,7 @@ set(utility_SOURCES
   filesystem.hpp filesystem.cpp # some implementation is system-dependent
   detail/filesystem.hpp detail/filesystem.cpp
   tcpendpoint.hpp tcpendpoint-io.hpp tcpendpoint-io.cpp
+  udpendpoint.hpp udpendpoint-io.hpp udpendpoint-io.cpp
   detail/iface.hpp
   meminfo.hpp
   cpuinfo.hpp cpuinfo.cpp

@@ -62,6 +62,13 @@ public:
      */
     std::size_t max(std::size_t count) const;
 
+    /** Returns event total (i.e. sum) in given second window. Current slot is
+     * ignored.
+     *
+     *  If there is not enough slots the count is reduced.
+     */
+    std::size_t total(std::size_t count) const;
+
     /** Returns event average and maximum in given second window. Current slot
      * is ignored.
      *
@@ -75,6 +82,11 @@ public:
      */
     void average(std::ostream &os, const std::string &name
                  , const Counts &counts = standardTimes) const;
+
+    /** Reports total values to output stream.
+     */
+    void total(std::ostream &os, const std::string &name
+               , const Counts &counts = standardTimes) const;
 
     /** Reports maximums to output stream.
      */

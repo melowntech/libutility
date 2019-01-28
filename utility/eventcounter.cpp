@@ -118,6 +118,16 @@ std::size_t EventCounter::max(std::size_t count) const
     return max;
 }
 
+std::size_t EventCounter::total(std::size_t count) const
+{
+    std::size_t total(.0);
+
+    count = processBlock
+        (count, [&total](std::size_t value) { total += value; });
+
+    return total;
+}
+
 std::tuple<double, std::size_t> EventCounter::averageAndMax(std::size_t count)
     const
 {
@@ -138,6 +148,14 @@ void EventCounter::average(std::ostream &os, const std::string &name
 {
     for (auto count : counts) {
         os << name << "avg." << count << '=' << average(count) << '\n';
+    }
+}
+
+void EventCounter::total(std::ostream &os, const std::string &name
+                           , const Counts &counts) const
+{
+    for (auto count : counts) {
+        os << name << "total." << count << '=' << total(count) << '\n';
     }
 }
 

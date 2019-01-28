@@ -38,10 +38,13 @@ namespace utility { namespace detail {
 
 namespace ip = boost::asio::ip;
 
-ip::tcp::endpoint
-tcpEndpointForIface(const ip::tcp &protocol
-                    , const std::string &iface
-                    , unsigned short portNum)
+namespace {
+
+template <typename Endpoint, typename Protocol>
+Endpoint
+endpointForIface(const Protocol &protocol
+                 , const std::string &iface
+                 , unsigned short portNum)
 {
     int family;
     switch (protocol.family()) {
@@ -87,6 +90,24 @@ tcpEndpointForIface(const ip::tcp &protocol
     } }
 
     throw std::runtime_error("Unsupported protocol family.");
+}
+
+} // namespace
+
+ip::tcp::endpoint
+tcpEndpointForIface(const ip::tcp &protocol
+                    , const std::string &iface
+                    , unsigned short portNum)
+{
+    return endpointForIface<ip::tcp::endpoint>(protocol, iface, portNum);
+}
+
+ip::udp::endpoint
+udpEndpointForIface(const ip::udp &protocol
+                    , const std::string &iface
+                    , unsigned short portNum)
+{
+    return endpointForIface<ip::udp::endpoint>(protocol, iface, portNum);
 }
 
 } } // namespace utility::detail

@@ -23,30 +23,33 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  */
-#ifndef utility_detail_iface_hpp_included_
-#define utility_detail_iface_hpp_included_
 
-#include <string>
+#ifndef utility_udpendpoint_hpp_included_
+#define utility_udpendpoint_hpp_included_
 
 #ifdef _WIN32
 #  include <SDKDDKVer.h>
 #endif
 
-#include <boost/asio/ip/tcp.hpp>
 #include <boost/asio/ip/udp.hpp>
 
-namespace utility { namespace detail {
+namespace utility {
 
-boost::asio::ip::tcp::endpoint
-tcpEndpointForIface(const boost::asio::ip::tcp &protocol
-                    , const std::string &iface
-                    , unsigned short portNum);
+struct UdpEndpoint {
+    UdpEndpoint() = default;
 
-boost::asio::ip::udp::endpoint
-udpEndpointForIface(const boost::asio::ip::udp &protocol
-                    , const std::string &iface
-                    , unsigned short portNum);
+    UdpEndpoint(unsigned short portNum)
+        : value(boost::asio::ip::udp::v4(), portNum) {}
 
-} } // namespace utility::detail
+    UdpEndpoint(const std::string &def);
 
-#endif // utility_detail_iface_hpp_included_
+    UdpEndpoint(const boost::asio::ip::udp::endpoint &value) : value(value) {}
+
+    operator const boost::asio::ip::udp::endpoint&() { return value; }
+
+    boost::asio::ip::udp::endpoint value;
+};
+
+} // namespace utility
+
+#endif // utility_udpendpoint_hpp_included_
