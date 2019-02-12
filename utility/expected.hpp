@@ -80,9 +80,9 @@ struct ExpectedTraits<std::shared_ptr<T>> {
     typedef std::shared_ptr<T> value_type;
     typedef value_type& reference;
     typedef const value_type& const_reference;
-    typedef T* pointer;
+    typedef value_type pointer;
     // shared_ptr mimics pointer -> no const
-    typedef T* const_pointer;
+    typedef value_type const_pointer;
 
     typedef value_type ValueHolder;
 
@@ -91,9 +91,9 @@ struct ExpectedTraits<std::shared_ptr<T>> {
         return value;
     }
 
-    pointer asPointer(ValueHolder &value) { return value.get(); }
+    pointer asPointer(ValueHolder &value) { return value; }
     const_pointer asPointer(const ValueHolder &value) const {
-        return value.get();
+        return value;
     }
 
     template <typename ...Args>
