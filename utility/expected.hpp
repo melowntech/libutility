@@ -47,6 +47,8 @@ namespace utility {
 
 struct ExpectedInPlace {};
 
+struct ExpectedAsSink {};
+
 template <typename T>
 struct ExpectedTraits {
     typedef T value_type;
@@ -56,16 +58,21 @@ struct ExpectedTraits {
     typedef const value_type* const_pointer;
 
     typedef boost::optional<T> ValueHolder;
+    typedef pointer GetPointer;
+    typedef const_pointer ConstGetPointer;
 
     reference asReference(ValueHolder &value) { return *value; }
     const_reference asReference(const ValueHolder &value) const {
         return *value;
     }
 
-    reference asPointer(ValueHolder &value) { return &*value; }
-    const_reference asPointer(const ValueHolder &value) const {
+    GetPointer getPointer(ValueHolder &value) { return &*value; }
+    ConstGetPointer getPointer(const ValueHolder &value) const {
         return &*value;
     }
+
+    ConstGetPointer NoConstGetPointer() const { return nullptr; }
+    GetPointer NoGetPointer() { return nullptr; }
 
     template <typename ...Args>
     auto inplace(Args &&...args)
@@ -83,24 +90,34 @@ struct ExpectedTraits<std::shared_ptr<T>> {
     typedef value_type pointer;
     // shared_ptr mimics pointer -> no const
     typedef value_type const_pointer;
-
     typedef value_type ValueHolder;
+    typedef reference GetPointer;
+    typedef const_reference ConstGetPointer;
 
     reference asReference(ValueHolder &value) { return value; }
     const_reference asReference(const ValueHolder &value) const {
         return value;
     }
 
-    pointer asPointer(ValueHolder &value) { return value; }
-    const_pointer asPointer(const ValueHolder &value) const {
+    GetPointer getPointer(ValueHolder &value) { return value; }
+    ConstGetPointer getPointer(const ValueHolder &value) const {
         return value;
     }
+
+    ConstGetPointer NoConstGetPointer() const { return nullptr_; }
+    GetPointer NoGetPointer() { return nullptr_; }
 
     template <typename ...Args>
     value_type inplace(Args &&...args)
     {
         return std::make_shared<T>(std::forward<Args>(args)...);
     }
+
+private:
+    /** Dummy empty shared pointer that is used as a reference to empty shared
+     *  pointer.
+     */
+    value_type nullptr_;
 };
 
 /** Wrapper arround expected value or exception or error_code. Can be used in
@@ -116,6 +133,9 @@ public:
     typedef typename Traits::const_reference const_reference;
     typedef typename Traits::pointer pointer;
     typedef typename Traits::const_pointer const_pointer;
+
+    typedef typename Traits::GetPointer GetPointer;
+    typedef typename Traits::ConstGetPointer ConstGetPointer;
 
     Expected() : value_() {}
     Expected(const value_type &value) : value_(value) {}
@@ -162,17 +182,35 @@ public:
     template <typename ErrorSink>
     bool forwardError(ErrorSink &sink) const;
 
-    /** Combines forwardError(sink) and get().
-     *  Returns nullptr if exception is set.
+    /** If exception or error code is set then sink(*this) is called and true is
+     *  returned. Otherwise returns false.
      */
     template <typename ErrorSink>
-    const_pointer get(ErrorSink &sink) const;
+    bool forwardError(ErrorSink &sink, const ExpectedAsSink&) const;
 
     /** Combines forwardError(sink) and get().
      *  Returns nullptr if exception is set.
      */
     template <typename ErrorSink>
-    pointer get(ErrorSink &sink);
+    ConstGetPointer get(ErrorSink &sink) const;
+
+    /** Combines forwardError(sink) and get().
+     *  Returns nullptr if exception is set.
+     */
+    template <typename ErrorSink>
+    GetPointer get(ErrorSink &sink);
+
+    /** Combines forwardError(sink, ExpectedAsSink) and get().
+     *  Returns nullptr if exception is set.
+     */
+    template <typename ErrorSink>
+    ConstGetPointer get(ErrorSink &sink, const ExpectedAsSink&) const;
+
+    /** Combines forwardError(sink, ExpectedAsSink) and get().
+     *  Returns nullptr if exception is set.
+     */
+    template <typename ErrorSink>
+    GetPointer get(ErrorSink &sink, const ExpectedAsSink&);
 
     /** Calls sink(exc) if set or copies value into out.
      *  Returns true if value was set.
@@ -256,34 +294,68 @@ typename Expected<T, Traits>::reference Expected<T, Traits>::get() {
 
 template <typename T, typename Traits>
 template <typename ErrorSink>
-typename Expected<T, Traits>::const_pointer Expected<T, Traits>::get(ErrorSink &sink) const
+typename Expected<T, Traits>::ConstGetPointer
+Expected<T, Traits>::get(ErrorSink &sink) const
 {
-    if (exc_) { sink(exc_); return nullptr; }
-    if (ec_) { sink(ec_); return nullptr; }
+    if (exc_) { sink(exc_); return Traits::NoConstGetPointer(); }
+    if (ec_) { sink(ec_); return Traits::NoConstGetPointer(); }
 
     if (!value_) {
         sink(std::make_exception_ptr
              (std::logic_error("Expected value unset")));
-        return nullptr;
+        return Traits::NoConstGetPointer();
     }
 
-    return Traits::asPointer(value_);
+    return Traits::getPointer(value_);
 }
 
 template <typename T, typename Traits>
 template <typename ErrorSink>
-typename Expected<T, Traits>::pointer Expected<T, Traits>::get(ErrorSink &sink)
+typename Expected<T, Traits>::GetPointer
+Expected<T, Traits>::get(ErrorSink &sink)
 {
-    if (exc_) { sink(exc_); return nullptr; }
-    if (ec_) { sink(ec_); return nullptr; }
+    if (exc_) { sink(exc_); return Traits::NoGetPointer(); }
+    if (ec_) { sink(ec_); return Traits::NoGetPointer(); }
 
     if (!value_) {
         sink(std::make_exception_ptr
              (std::logic_error("Expected value unset")));
-        return nullptr;
+        return Traits::NoGetPointer();
     }
 
-    return Traits::asPointer(value_);
+    return Traits::getPointer(value_);
+}
+
+template <typename T, typename Traits>
+template <typename ErrorSink>
+typename Expected<T, Traits>::ConstGetPointer
+Expected<T, Traits>::get(ErrorSink &sink, const ExpectedAsSink&) const
+{
+    if (exc_ || ec_) { sink(*this); return Traits::NoConstGetPointer(); }
+
+    if (!value_) {
+        sink(std::make_exception_ptr
+             (std::logic_error("Expected value unset")));
+        return Traits::NoConstGetPointer();
+    }
+
+    return Traits::getPointer(value_);
+}
+
+template <typename T, typename Traits>
+template <typename ErrorSink>
+typename Expected<T, Traits>::GetPointer
+Expected<T, Traits>::get(ErrorSink &sink, const ExpectedAsSink&)
+{
+    if (exc_ || ec_) { sink(*this); return Traits::NoGetPointer(); }
+
+    if (!value_) {
+        sink(std::make_exception_ptr
+             (std::logic_error("Expected value unset")));
+        return Traits::NoGetPointer();
+    }
+
+    return Traits::getPointer(value_);
 }
 
 template <typename T, typename Traits>
@@ -326,6 +398,22 @@ bool Expected<T, Traits>::forwardError(ErrorSink &sink) const
 {
     if (exc_) { sink(exc_); return true; }
     if (ec_) { sink(ec_); return true; }
+
+    if (!value_) {
+        sink(std::make_exception_ptr
+             (std::logic_error("Expected value unset")));
+        return true;
+    }
+
+    return false;
+}
+
+template <typename T, typename Traits>
+template <typename ErrorSink>
+bool Expected<T, Traits>::forwardError(ErrorSink &sink, const ExpectedAsSink&)
+    const
+{
+    if (exc_ || ec_) { sink(*this); return true; }
 
     if (!value_) {
         sink(std::make_exception_ptr
