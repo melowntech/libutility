@@ -32,6 +32,7 @@
 #include <exception>
 #include <system_error>
 #include <future>
+#include <memory>
 
 #include "./uri.hpp"
 #include "./supplement.hpp"
@@ -44,6 +45,8 @@ namespace utility {
 class ResourceFetcher
 {
 public:
+    typedef std::shared_ptr<ResourceFetcher> pointer;
+
     /** Query with a reply.
      */
     class Query : public utility::Supplement<Query> {
