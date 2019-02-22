@@ -68,7 +68,9 @@ public:
 
         Query()
             : empty_(true), followRedirects_(true), reuse_(true), timeout_(-1)
+            , delay_()
         {}
+
         Query(const std::string &location, bool followRedirects = true);
 
 
@@ -85,6 +87,15 @@ public:
          *  timeout.
          */
         Query& timeout(long timeout) { timeout_ = timeout; return *this; }
+
+        /** Delay before query is performed. Zero means no delay. Delay is NOT
+         *  accounted to timeout.
+         */
+        unsigned long delay() const { return delay_; }
+        /** Delay before query is performed. Zero means no delay. Delay is NOT
+         *  accounted to timeout.
+         */
+        Query& delay(unsigned long delay) { delay_ = delay; return *this; }
 
         /** Add options. Option is protocol dependent. For HTTP, option =
          *  header.
@@ -138,6 +149,7 @@ public:
         bool reuse_;
 
         long timeout_;
+        unsigned long delay_;
 
         Options options_;
     };
