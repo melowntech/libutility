@@ -248,7 +248,7 @@ inline ResourceFetcher::Query::Query(const std::string &location
                                      , bool followRedirects)
     : empty_(false), location_(location), exc_(), ec_()
     , followRedirects_(followRedirects)
-    , reuse_(true), timeout_(-1)
+    , reuse_(true), timeout_(-1), delay_()
 {}
 
 inline void ResourceFetcher::Query::assign(const std::string &location
