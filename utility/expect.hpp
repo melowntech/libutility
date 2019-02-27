@@ -37,7 +37,7 @@
 
 #include <stdexcept>
 
-#include "./raise.hpp"
+#include "raise.hpp"
 
 namespace utility {
 

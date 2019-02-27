@@ -62,7 +62,7 @@
 #include <boost/preprocessor/stringize.hpp>
 #include <boost/algorithm/string/predicate.hpp>
 
-#include "./gccversion.hpp"
+#include "gccversion.hpp"
 
 #define UTILITY_DETAIL_fromEnum_element1(r,Type,value)              \
     case Type::BOOST_PP_SEQ_ELEM(0, value):                         \

@@ -28,7 +28,7 @@
 #include <boost/algorithm/string/predicate.hpp>
 #include <boost/algorithm/string/classification.hpp>
 
-#include "./httpquery.hpp"
+#include "httpquery.hpp"
 
 namespace ba = boost::algorithm;
 

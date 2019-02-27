@@ -37,7 +37,7 @@
 
 #include "dbglog/dbglog.hpp"
 
-#include "./uri.hpp"
+#include "uri.hpp"
 
 namespace fs = boost::filesystem;
 namespace ba = boost::algorithm;

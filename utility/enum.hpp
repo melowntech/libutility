@@ -34,7 +34,7 @@
 #include <type_traits>
 #include <cstdint>
 
-#include "./gccversion.hpp"
+#include "gccversion.hpp"
 
 namespace utility {
 #if GCC_VERSION && (GCC_VERSION >= 40700)

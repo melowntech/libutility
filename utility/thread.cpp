@@ -30,7 +30,7 @@
 
 #include "dbglog/dbglog.hpp"
 
-#include "./thread.hpp"
+#include "thread.hpp"
 
 namespace utility { namespace thread {
 

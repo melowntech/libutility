@@ -30,7 +30,7 @@
 
 #include <boost/format.hpp>
 
-#include "./format.hpp"
+#include "format.hpp"
 
 namespace utility {
 

@@ -26,7 +26,7 @@
 
 #include <algorithm>
 
-#include "./path.hpp"
+#include "path.hpp"
 
 namespace fs = boost::filesystem;
 

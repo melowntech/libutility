@@ -30,7 +30,7 @@
 
 #include "dbglog/dbglog.hpp"
 
-#include "./progress.hpp"
+#include "progress.hpp"
 
 namespace utility {
 

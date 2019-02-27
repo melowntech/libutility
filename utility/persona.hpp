@@ -26,7 +26,7 @@
 #ifndef utility_persona_hpp_included_
 #define utility_persona_hpp_included_
 
-#include "./identity.hpp"
+#include "identity.hpp"
 
 namespace utility {
 

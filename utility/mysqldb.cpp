@@ -30,9 +30,9 @@
 #include <boost/filesystem.hpp>
 
 #include "dbglog/dbglog.hpp"
-#include "./config.hpp"
+#include "config.hpp"
 
-#include "./mysqldb.hpp"
+#include "mysqldb.hpp"
 
 namespace po = boost::program_options;
 namespace fs = boost::filesystem;

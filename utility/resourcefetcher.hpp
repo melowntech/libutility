@@ -34,9 +34,9 @@
 #include <future>
 #include <memory>
 
-#include "./uri.hpp"
-#include "./supplement.hpp"
-#include "./errorcode.hpp"
+#include "uri.hpp"
+#include "supplement.hpp"
+#include "errorcode.hpp"
 
 namespace utility {
 

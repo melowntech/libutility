@@ -43,9 +43,9 @@
 #include <boost/filesystem/path.hpp>
 #include <boost/iostreams/filtering_stream.hpp>
 
-#include "./filedes.hpp"
-#include "./substream.hpp"
-#include "./enum-io.hpp"
+#include "filedes.hpp"
+#include "substream.hpp"
+#include "enum-io.hpp"
 
 namespace utility { namespace zip {
 

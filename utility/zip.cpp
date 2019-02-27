@@ -42,13 +42,13 @@
 
 #include "dbglog/dbglog.hpp"
 
-#include "./binaryio.hpp"
-#include "./zip.hpp"
-#include "./enum-io.hpp"
-#include "./uri.hpp"
-#include "./filedes.hpp"
-#include "./scopedguard.hpp"
-#include "./typeinfo.hpp"
+#include "binaryio.hpp"
+#include "zip.hpp"
+#include "enum-io.hpp"
+#include "uri.hpp"
+#include "filedes.hpp"
+#include "scopedguard.hpp"
+#include "typeinfo.hpp"
 
 /*
 Format documentation (Library of Congress preserved version):

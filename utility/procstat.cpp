@@ -31,7 +31,7 @@
 
 #include <proc/readproc.h>
 
-#include "./procstat.hpp"
+#include "procstat.hpp"
 
 #include "dbglog/dbglog.hpp"
 

@@ -33,8 +33,8 @@
 
 #include "dbglog/dbglog.hpp"
 
-#include "./filesystem.hpp"
-#include "./streams.hpp"
+#include "filesystem.hpp"
+#include "streams.hpp"
 
 namespace fs = boost::filesystem;
 

@@ -26,7 +26,7 @@
 
 #include "dbglog/dbglog.hpp"
 
-#include "./eventcounter.hpp"
+#include "eventcounter.hpp"
 
 namespace utility {
 

@@ -37,7 +37,7 @@
 
 #include "dbglog/dbglog.hpp"
 
-#include "./typeinfo.hpp"
+#include "typeinfo.hpp"
 
 namespace utility {
 

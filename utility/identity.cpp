@@ -32,7 +32,7 @@
 
 #include "dbglog/dbglog.hpp"
 
-#include "./identity.hpp"
+#include "identity.hpp"
 
 namespace utility {
 

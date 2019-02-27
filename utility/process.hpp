@@ -35,7 +35,7 @@
 #include <boost/filesystem/path.hpp>
 #include <boost/optional.hpp>
 
-#include "./detail/redirectfile.hpp"
+#include "detail/redirectfile.hpp"
 
 namespace utility {
 
@@ -152,7 +152,7 @@ bool checkTermination(::pid_t expectedPid);
 
 } // namespace utility
 
-#include "./detail/process.hpp"
+#include "detail/process.hpp"
 
 // implementation
 

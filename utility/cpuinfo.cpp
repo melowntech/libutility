@@ -34,7 +34,7 @@
 
 #include "dbglog/dbglog.hpp"
 
-#include "./cpuinfo.hpp"
+#include "cpuinfo.hpp"
 
 namespace utility {
 

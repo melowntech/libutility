@@ -27,8 +27,8 @@
 
 #include <system_error>
 
-#include "./raise.hpp"
-#include "./substream.hpp"
+#include "raise.hpp"
+#include "substream.hpp"
 
 namespace utility { namespace io {
 

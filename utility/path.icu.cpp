@@ -33,7 +33,7 @@
 
 #include "dbglog/dbglog.hpp"
 
-#include "./path.hpp"
+#include "path.hpp"
 
 namespace ba = boost::algorithm;
 

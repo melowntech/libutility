@@ -26,9 +26,9 @@
 /** Generic HTTP code-related stuff
  */
 
-#include "./httpcode.hpp"
+#include "httpcode.hpp"
 
-#include "./format.hpp"
+#include "format.hpp"
 
 namespace utility {
 

@@ -33,7 +33,7 @@
 
 #include "dbglog/dbglog.hpp"
 
-#include "./persona.hpp"
+#include "persona.hpp"
 
 namespace utility {
 

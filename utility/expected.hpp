@@ -41,7 +41,7 @@
 #include <boost/optional.hpp>
 #include <boost/utility/in_place_factory.hpp>
 
-#include "./errorcode.hpp"
+#include "errorcode.hpp"
 
 namespace utility {
 
