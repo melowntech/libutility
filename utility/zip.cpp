@@ -708,7 +708,7 @@ public:
               { int(fd), std::size_t(0), fileLength_}), 512)
     {}
 
-    CentralDirectoryReader(const Filedes &fd, int fileLength)
+    CentralDirectoryReader(const Filedes &fd, std::size_t fileLength)
         : path_(fd.path()), fileLength_(fileLength)
         , f_(utility::io::SubStreamDevice
              (path_, utility::io::SubStreamDevice::Filedes
