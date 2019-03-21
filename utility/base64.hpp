@@ -69,9 +69,7 @@
 
 #include <string>
 
-namespace utility { namespace base64 {
-
-namespace detail {
+namespace utility { namespace base64 { namespace detail {
 
 static const std::string base64_chars =
              "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
@@ -179,20 +177,18 @@ inline std::string encode(const std::string &data, unsigned int wrap = 0)
                   (data.data()), data.size(), wrap);
 }
 
-inline std::string decode(std::string const& encoded_string) {
-    size_t in_len = encoded_string.size();
+inline std::string decode(std::string::const_iterator it
+                          , const std::string::const_iterator &end)
+{
     int i = 0;
     int j = 0;
-    int in_ = 0;
     unsigned char char_array_4[4], char_array_3[3];
     std::string ret;
 
-    for (; in_len && ( encoded_string[in_] != '='); ++in_, --in_len) {
-        auto c(encoded_string[in_]);
-        if (c == '\n') {
-            // skip newline
-            continue;
-        }
+    for (; it != end; ++it) {
+        auto c(*it);
+        if (c == '=') { break; }
+        if ((c == '\n') || (c == '\r')) { continue; }
 
         if (!detail::is_base64(c)) {
             // fail on invalid char
@@ -236,6 +232,10 @@ inline std::string decode(std::string const& encoded_string) {
     }
 
     return ret;
+}
+
+inline std::string decode(std::string const& encoded_string) {
+    return decode(encoded_string.begin(), encoded_string.end());
 }
 
 } } // namespace utility::base64
