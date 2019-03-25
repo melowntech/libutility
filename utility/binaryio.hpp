@@ -52,8 +52,8 @@ void write(std::ostream &os, const T &v)
     os.write(reinterpret_cast<const char*>(&v), sizeof(T));
 }
 
-template <typename T>
-void write(std::ostream &os, const std::vector<T> &v) {
+template <typename T, typename Allocator>
+void write(std::ostream &os, const std::vector<T, Allocator> &v) {
     write(os, v.data(), v.size());
 }
 
@@ -78,8 +78,8 @@ void read(std::istream &is, T &v)
     is.read(reinterpret_cast<char*>(&v), sizeof(T));
 }
 
-template <typename T>
-void read(std::istream &is, std::vector<T> &v) {
+template <typename T, typename Allocator>
+void read(std::istream &is, std::vector<T, Allocator> &v) {
     read(is, v.data(), v.size());
 }
 
