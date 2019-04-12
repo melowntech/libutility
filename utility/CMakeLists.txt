@@ -1,5 +1,5 @@
 # bump version here
-set(utility_VERSION 1.30)
+set(utility_VERSION 1.31)
 
 set(utility_DEPENDS
   dbglog>=1.4
@@ -139,6 +139,9 @@ set(utility_SOURCES
   implicit-value.hpp
 
   eventcounter.hpp eventcounter.cpp
+
+  gccversion.hpp
+  cppversion.hpp
   )
 
 # system-dependent stuff
