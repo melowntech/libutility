@@ -500,6 +500,32 @@ inline std::string hash_hex(const std::string& input)
     return hex;
 }
 
+class Md5Sum {
+public:
+    Md5Sum() {
+        detail::init(&state_);
+    }
+
+    void append(const char *buf, std::size_t size) {
+        detail::append(&state_, (const detail::byte_t*) buf, size);
+    }
+
+    std::string hash() {
+        char digest[16];
+        detail::finish(&state_, (detail::byte_t*) digest);
+
+        std::string hex;
+        for (size_t i = 0; i < 16; i++) {
+            hex.push_back(detail::hexval[((digest[i] >> 4) & 0xF)]);
+            hex.push_back(detail::hexval[(digest[i]) & 0x0F]);
+        }
+        return hex;
+    }
+
+private:
+    detail::state_t state_;
+};
+
 } } // namespace utility::md5
 
 #endif // shared_utility_md5_hpp_included_
