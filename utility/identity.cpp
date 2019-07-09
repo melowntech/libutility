@@ -54,7 +54,7 @@ Identity NamedIdentity::resolve()
     Identity p;
     try {
         p.uid = boost::lexical_cast< ::uid_t>(username);
-    } catch (boost::bad_lexical_cast) {
+    } catch (const boost::bad_lexical_cast&) {
         auto pwd(::getpwnam(username.c_str()));
         if (!pwd) {
             LOGTHROW(err1, std::runtime_error)
@@ -66,7 +66,7 @@ Identity NamedIdentity::resolve()
 
     try {
         p.gid = boost::lexical_cast< ::gid_t>(groupname);
-    } catch (boost::bad_lexical_cast) {
+    } catch (const boost::bad_lexical_cast&) {
         auto gr(::getgrnam(groupname.c_str()));
         if (!gr) {
             LOGTHROW(err1, std::runtime_error)
