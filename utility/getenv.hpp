@@ -23,60 +23,37 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  */
+/**
+ *  @file utility/getenv.hpp
+ *  @author Tomas Maly
+ *
+ *  getenv wrapper that returns nullptr on platforms without environment
+ */
+
+#ifndef getenv_hpp_included_
+#define getenv_hpp_included_
 
 #include <cstdlib>
-#include <cerrno>
-#include <system_error>
+
+#ifdef _WIN32
 #include <winapifamily.h>
-
-#include <boost/filesystem.hpp>
-
-#include "dbglog/dbglog.hpp"
-
-#include "path.hpp"
-
-namespace fs = boost::filesystem;
+#endif // _WIN32
 
 namespace utility {
 
-bool match(const std::string&, const boost::filesystem::path&, int)
+#if !WINAPI_PARTITION_DESKTOP
+
+inline char *getenv(const char *)
 {
-    LOGTHROW(err3, std::runtime_error)
-        << "utility::match unavailable on Windows. TODO: implement me.";
-    return false;
+    return nullptr;
 }
 
-boost::filesystem::path homeDir()
-{
-    // measure
-    size_t size;
-    if (auto err = ::getenv_s(&size, nullptr, 0, "USERPROFILE")) {
-        std::system_error e(err, std::system_category());
-        LOG(err3) << "Cannot determine home directory (getenv_s failed): <"
-                  << e.code() << ", " << e.what() << ">.";
-        throw e;
-    }
-
-    std::vector<char> buf(size, 0);
-    ::getenv_s(&size, buf.data(), size, "USERPROFILE");
-    return buf.data();
-}
-
-boost::optional<boost::filesystem::path> exePath()
-{
-#if WINAPI_PARTITION_DESKTOP
-    std::vector<char> buf(MAX_PATH + 1);
-    if (!::GetModuleFileName(nullptr, buf.data(), DWORD(buf.size()))) {
-        std::system_error e(::GetLastError(), std::generic_category());
-        LOG(err3)
-            << "Cannot determine exe file path "
-            "(GetModuleFileName failed): <"
-            << e.code() << ", " << e.what() << ">.";
-    }
-    return buf;
 #else
-    return {};
+
+using ::std::getenv;
+
 #endif
+
 }
 
-} // namespace utility
+#endif // getenv_hpp_included_

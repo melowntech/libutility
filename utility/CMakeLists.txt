@@ -142,6 +142,8 @@ set(utility_SOURCES
 
   gccversion.hpp
   cppversion.hpp
+
+  getenv.hpp
   )
 
 # system-dependent stuff
