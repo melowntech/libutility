@@ -104,7 +104,7 @@ inline std::ostream& operator<<(std::ostream &os, const LManip &l)
  *
  * Usage example:
  *     std::vector<int> numbers{ 1, 2, 3 };
- *     LOG(info4) << utility::join(numbers, " -> );
+ *     LOG(info4) << utility::join(numbers, " -> ");
  * Outpur:
  *     1 -> 2 -> 3
  *
