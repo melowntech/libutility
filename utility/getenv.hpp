@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017 Melown Technologies SE
+ * Copyright (c) 2019 Melown Technologies SE
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -41,7 +41,7 @@
 
 namespace utility {
 
-#if !WINAPI_PARTITION_DESKTOP
+#if defined(_WIN32) && !WINAPI_PARTITION_DESKTOP
 
 inline char *getenv(const char *)
 {
