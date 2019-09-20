@@ -27,6 +27,7 @@
 #define utility_binaryio_hpp_included_
 
 #include <iostream>
+#include <array>
 #include <vector>
 
 namespace utility { namespace binaryio {
@@ -41,9 +42,14 @@ void write(std::ostream &os, const T *v, size_t count)
     os.write(reinterpret_cast<const char*>(v), count * sizeof(T));
 }
 
-template<typename T, int size>
+template <typename T, int size>
 void write(std::ostream &os, const T(&v)[size]) {
     os.write(reinterpret_cast<const char*>(v), size * sizeof(T));
+}
+
+template <typename T, int size>
+void write(std::ostream &os, const std::array<T, size> &v) {
+    os.write(reinterpret_cast<const char*>(v.data()), size * sizeof(T));
 }
 
 template <typename T>
@@ -70,6 +76,11 @@ void read(std::istream &is, T *v, size_t count)
 template<typename T, int size>
 void read(std::istream &is, T(&v)[size]) {
     is.read(reinterpret_cast<char*>(v), size * sizeof(T));
+}
+
+template<typename T, int size>
+void read(std::istream &is, std::array<T, size> &v) {
+    is.read(reinterpret_cast<char*>(v.data()), size * sizeof(T));
 }
 
 template <typename T>
