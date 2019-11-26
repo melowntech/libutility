@@ -97,6 +97,7 @@ set(utility_SOURCES
   format.hpp
   raise.hpp
   expect.hpp
+  assert.hpp assert.cpp
 
   path.hpp path.cpp # implementation is system-dependent
   filesystem.hpp filesystem.cpp # some implementation is system-dependent
