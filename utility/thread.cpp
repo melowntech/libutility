@@ -36,23 +36,21 @@ namespace utility { namespace thread {
 
 void setName(const std::string &name)
 {
-#ifndef _GNU_SOURCE
-    LOG(warn3) << "pthread_setname_np unsupported";
-#else
+#if defined(_GNU_SOURCE) && !defined(__llvm__)
     auto useName((name.size() > 15) ? name.substr(0, 15) : name);
     if (::pthread_setname_np(::pthread_self(), useName.c_str())) {
         LOG(warn3) << "pthread_setname_np failed";
     } else {
         LOG(info4) << "set name to: <" << useName << ">";
     }
+#else
+    LOG(warn3) << "pthread_setname_np unsupported";
 #endif
 }
 
 void appendName(const std::string &name)
 {
-#ifndef _GNU_SOURCE
-    LOG(warn3) << "pthread_setname_np unsupported";
-#else
+#if defined(_GNU_SOURCE) && !defined(__llvm__)
     // fetch original name
     char buf[16];
     if (::pthread_getname_np(::pthread_self(), buf, sizeof(buf))) {
@@ -66,6 +64,8 @@ void appendName(const std::string &name)
     if (::pthread_setname_np(::pthread_self(), useName.c_str())) {
         LOG(warn3) << "pthread_setname_np failed";
     }
+#else
+    LOG(warn3) << "pthread_setname_np unsupported";
 #endif
 }
 

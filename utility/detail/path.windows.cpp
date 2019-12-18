@@ -28,6 +28,7 @@
 #include <cerrno>
 #include <system_error>
 #include <winapifamily.h>
+#include <Windows.h>
 
 #include <boost/filesystem.hpp>
 
