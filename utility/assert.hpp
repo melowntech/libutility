@@ -40,6 +40,10 @@ namespace detail {
 
 } // namespace utility
 
+#ifdef NDEBUG
+#define MLWN_DISABLE_ASSERTS
+#endif
+
 #ifdef MLWN_DISABLE_ASSERTS
 // sizeof prevents the "unused variable" warning, but does not evaluate the expression
 #define MLWN_ASSERT(x) (void)(sizeof(x))
