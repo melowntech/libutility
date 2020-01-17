@@ -193,7 +193,7 @@ BOOST_PYTHON_MODULE(melown_utility_mysql)
     try {
         py::mysqlModule = import("MySQLdb");
         py::mysql_cursorsModule = import("MySQLdb.cursors");
-    } catch (error_already_set) {}
+    } catch (const error_already_set&) {}
 }
 
 BOOST_PYTHON_MODULE(melown_utility)

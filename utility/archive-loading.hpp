@@ -119,7 +119,7 @@ void loadArchive(const boost::filesystem::path &filename
         // try old boost archive
         boost::archive::binary_iarchive ia(filter);
         callbackArchive(ia);
-    } catch (boost::iostreams::gzip_error) {
+    } catch (const boost::iostreams::gzip_error&) {
         // it must be ungzipped old boost archive
         LOG(warn1) << "File " << filename << " probably not gzipped, "
                    << "try old plain format.";
