@@ -34,7 +34,7 @@ namespace utility {
 
 typedef std::map<std::string, boost::optional<std::string> > Environment;
 
-void apply(const Environment &environ);
+void apply(const Environment &environment);
 
 } // namespace utility
 

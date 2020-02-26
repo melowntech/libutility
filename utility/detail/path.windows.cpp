@@ -74,7 +74,7 @@ boost::optional<boost::filesystem::path> exePath()
             "(GetModuleFileName failed): <"
             << e.code() << ", " << e.what() << ">.";
     }
-    return buf;
+    return boost::filesystem::path(buf.data());
 #else
     return {};
 #endif
