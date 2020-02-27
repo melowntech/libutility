@@ -110,7 +110,7 @@ protected:
 
     CostType maxCost_;
     CostType totalCost_;
-    long missCnt_, hitCnt_;
+    long long missCnt_, hitCnt_;
 
     std::mutex mainMutex_;
 

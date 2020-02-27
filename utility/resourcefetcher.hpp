@@ -27,6 +27,7 @@
 #ifndef utility_resourcefetcher_hpp_included_
 #define utility_resourcefetcher_hpp_included_
 
+#include <cstdint>
 #include <ctime>
 #include <string>
 #include <exception>
@@ -82,20 +83,22 @@ public:
         /** Total timeout for this query in ms. Zero or negative means no
          *  timeout.
          */
-        long timeout() const { return timeout_; }
+        long long timeout() const { return timeout_; }
         /** Total timeout for this query in ms. Zero or negative means no
          *  timeout.
          */
-        Query& timeout(long timeout) { timeout_ = timeout; return *this; }
+        Query& timeout(long long timeout) { timeout_ = timeout; return *this; }
 
         /** Delay before query is performed. Zero means no delay. Delay is NOT
          *  accounted to timeout.
          */
-        unsigned long delay() const { return delay_; }
+        unsigned long long delay() const { return delay_; }
         /** Delay before query is performed. Zero means no delay. Delay is NOT
          *  accounted to timeout.
          */
-        Query& delay(unsigned long delay) { delay_ = delay; return *this; }
+        Query& delay(unsigned long long delay) {
+            delay_ = delay; return *this;
+        }
 
         /** Add options. Option is protocol dependent. For HTTP, option =
          *  header.
@@ -148,8 +151,8 @@ public:
         bool followRedirects_;
         bool reuse_;
 
-        long timeout_;
-        unsigned long delay_;
+        long long timeout_;
+        unsigned long long delay_;
 
         Options options_;
     };

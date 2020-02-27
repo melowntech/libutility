@@ -45,6 +45,7 @@ struct Positive {
 using pos_short_t = Positive<short>;
 using pos_int_t = Positive<int>;
 using pos_long_t = Positive<long>;
+using pos_long_long_t = Positive<long long>;
 
 template <typename T>
 void validate(boost::any &v
