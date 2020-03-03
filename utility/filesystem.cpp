@@ -35,6 +35,7 @@
 
 #include "filesystem.hpp"
 #include "streams.hpp"
+#include "path.hpp"
 
 namespace fs = boost::filesystem;
 
@@ -151,6 +152,27 @@ void processFile( const boost::filesystem::path &from
     processFile(f, of, lineProcessor);
 
     of.close();
+}
+
+std::map<std::string, fs::path> scanDir(const fs::path &root)
+{
+    std::map<std::string, fs::path> map;
+
+    for (fs::recursive_directory_iterator
+             iroot(root, fs::symlink_option::recurse)
+             , eroot;
+         iroot != eroot; ++iroot)
+    {
+        const auto status(iroot->status());
+        if (status.type() == fs::file_type::directory_file) { continue; }
+
+        const auto &path(iroot->path());
+        const auto local(cutPathPrefix(path, root));
+        const auto id((local.parent_path() / local.stem()).string());
+        map[id] = local;
+    }
+
+    return map;
 }
 
 } // namespace utility

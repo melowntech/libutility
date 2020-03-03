@@ -29,6 +29,7 @@
 
 #include <new>
 #include <ctime>
+#include <map>
 
 #include <boost/filesystem/path.hpp>
 
@@ -65,6 +66,9 @@ void copyTree(const boost::filesystem::path &from
 std::time_t lastModified(const boost::filesystem::path &path);
 
 std::size_t fileSize(const boost::filesystem::path &path);
+
+std::map<std::string, boost::filesystem::path> scanDir(
+    const boost::filesystem::path& root);
 
 /** Generalized file ID. Wrapper around file devide/inode. Using uint64 to
  *  capture every possibility.
