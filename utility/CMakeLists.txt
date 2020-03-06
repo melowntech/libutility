@@ -238,3 +238,6 @@ if(NOT BUILDSYS_EMBEDDED)
   add_subdirectory(test-uri EXCLUDE_FROM_ALL)
 endif()
 
+if(LIBPROC_FOUND)
+  add_subdirectory(test-procstat EXCLUDE_FROM_ALL)
+endif()

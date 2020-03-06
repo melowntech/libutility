@@ -33,7 +33,17 @@ namespace utility {
 
 struct ProcStat
 {
-    long pid;
+    typedef long Pid;
+
+    typedef long Uid;
+
+    /** Process ID.
+     */
+    Pid pid;
+
+    /** Parent process ID.
+     */
+    Pid ppid;
 
     /** Resident memory in KiB.
      */
@@ -58,9 +68,20 @@ struct ProcStat
     typedef std::vector<ProcStat> list;
 };
 
-typedef std::vector<long> PidList;
+typedef std::vector<ProcStat::Pid> PidList;
+typedef std::vector<ProcStat::Uid> UidList;
 
+/** Get statistics for given processes. Return all processes if list is empty.
+ */
 ProcStat::list getProcStat(const PidList &pids);
+
+/** Get statistics for all processes for given users.
+ */
+ProcStat::list getUserProcStat(const UidList &uids);
+
+/** Get statistics for all processes for given user.
+ */
+ProcStat::list getUserProcStat(ProcStat::Uid uid);
 
 /** Returns self process statistics.
  */
