@@ -40,64 +40,145 @@ namespace utility {
 namespace {
 std::size_t pageSize(::sysconf(_SC_PAGESIZE));
 std::size_t pageSizeKb(pageSize >> 10);
+
+inline int flags(const ::pid_t *pids) {
+    int flags(PROC_FILLSTATUS | PROC_FILLMEM);
+    if (pids) { flags |= PROC_PID; }
+    return flags;
 }
+
+struct PidTag {};
+struct UidTag {};
+
+typedef std::vector< ::pid_t> Pids;
+
+Pids makePidList(const PidList &pids)
+{
+    if (pids.empty()) { return {}; }
+    std::vector< ::pid_t> pidList(pids.begin(), pids.end());
+    pidList.push_back(0);
+    return pidList;
+}
+
+PROCTAB* openPids(const Pids &pids)
+{
+    int flags(PROC_FILLSTATUS | PROC_FILLMEM);
+    if (!pids.empty()) { flags |= PROC_PID; }
+
+    auto p(::openproc(flags, pids.data()));
+    if (!p) {
+        std::system_error e(errno, std::system_category());
+        LOG(err3) << "Cannot open /proc: <"
+                  << e.code() << ", " << e.what() << ">.";
+        throw e;
+    }
+    return p;
+}
+
+PROCTAB* openUids(const UidList &uids)
+{
+    int flags(PROC_FILLSTATUS | PROC_FILLMEM | PROC_UID);
+    std::vector< ::uid_t> uidList(uids.begin(), uids.end());
+
+    auto p(::openproc(flags, uids.data(), int(uids.size())));
+    if (!p) {
+        std::system_error e(errno, std::system_category());
+        LOG(err3) << "Cannot open /proc: <"
+                  << e.code() << ", " << e.what() << ">.";
+        throw e;
+    }
+    return p;
+}
+
+class Table {
+public:
+    Table(const PidList &pids, const PidTag&)
+        : pidList(makePidList(pids))
+        , p(openPids(pidList)), proc()
+    {}
+
+    Table(const UidList &uids, const UidTag&)
+        : p(openUids(uids)), proc()
+    {}
+
+    ~Table() {
+        if (proc) { ::freeproc(proc); }
+        if (p) { ::closeproc(p); }
+    }
+
+    const ::proc_t* next() {
+        auto item(::readproc(p, proc));
+        if (item && !proc) { proc = item; }
+        return item;
+    }
+
+private:
+    Pids pidList;
+    ::PROCTAB *p;
+    ::proc_t *proc;
+};
+
+void fill(ProcStat &ps, const ::proc_t *proc)
+{
+    ps.pid = proc->tid;
+    ps.ppid = proc->ppid;
+    ps.rss = proc->vm_rss;
+    ps.swap = proc->vm_swap;
+    ps.virt = proc->size / pageSizeKb;
+    ps.shared = proc->share / pageSizeKb;
+}
+
+} // namespace
 
 ProcStat::list getProcStat(const PidList &pids)
 {
-    std::vector< ::pid_t> pidList(pids.begin(), pids.end());
-    pidList.push_back(0);
-
-    struct Table {
-        Table(const ::pid_t *pids)
-            : p(::openproc(PROC_FILLSTATUS | PROC_FILLMEM | PROC_PID, pids))
-        {
-            if (!p) {
-                std::system_error e(errno, std::system_category());
-                LOG(err3) << "Cannot open /proc: <"
-                          << e.code() << ", " << e.what() << ">.";
-                throw e;
-            }
-        }
-
-        ~Table() {
-            ::closeproc(p);
-        }
-        ::PROCTAB *p;
-    } table(pidList.data());
-
-    struct Record {
-        Record(Table &table, ::pid_t pid) : proc(nullptr) {
-            proc = ::readproc(table.p, proc);
-            if (!proc) {
-                if (!errno) { errno = ESRCH; }
-                std::system_error e(errno, std::system_category());
-                LOG(err3) << "Cannot read from /proc (pid " << pid << "): <"
-                          << e.code() << ", " << e.what() << ">.";
-                throw e;
-            }
-        }
-
-        ~Record() { ::freeproc(proc); }
-
-        ::proc_t *proc;
-    };
+    Table table(pids, PidTag{});
 
     ProcStat::list stat;
 
-    for (const auto &pid : pids) {
-        errno = 0;
-        Record record(table, pid);
-        const auto *proc(record.proc);
+    auto ipids(pids.begin());
+    auto epids(pids.end());
+    while (const auto *proc = table.next()) {
+        if (ipids != epids) {
+            const auto pid(*ipids++);
+            if (pid != proc->tid) {
+                std::system_error e(ESRCH, std::system_category());
+                LOG(err3) << "Cannot get process " << pid << " information.";
+                throw e;
+            }
+        }
 
-        ProcStat ps;
-        ps.pid = proc->tid;
-        ps.rss = proc->vm_rss;
-        ps.swap = proc->vm_swap;
-        ps.virt = proc->vsize / pageSizeKb;
-        ps.shared = proc->share / pageSizeKb;
-        stat.push_back(ps);
+        stat.emplace_back();
+        fill(stat.back(), proc);
+        LOG(info4) << stat.back().pid;
     }
+
+    if (ipids != epids) {
+        std::system_error e(ESRCH, std::system_category());
+        LOG(err3) << "Not all processes found.";
+        throw e;
+    }
+
     return stat;
+}
+
+ProcStat::list getUserProcStat(const UidList &uids)
+{
+    Table table(uids, UidTag{});
+
+    ProcStat::list stat;
+
+    while (const auto *proc = table.next()) {
+        stat.emplace_back();
+        fill(stat.back(), proc);
+    }
+
+    return stat;
+}
+
+ProcStat::list getUserProcStat(ProcStat::Uid uid)
+{
+    return getUserProcStat({uid});
 }
 
 ProcStat getProcStat()
