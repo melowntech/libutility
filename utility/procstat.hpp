@@ -83,6 +83,10 @@ ProcStat::list getUserProcStat(const UidList &uids);
  */
 ProcStat::list getUserProcStat(ProcStat::Uid uid);
 
+/** Get statistics for all processes for this user.
+ */
+ProcStat::list getUserProcStat();
+
 /** Returns self process statistics.
  */
 ProcStat getProcStat();

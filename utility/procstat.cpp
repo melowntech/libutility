@@ -150,7 +150,6 @@ ProcStat::list getProcStat(const PidList &pids)
 
         stat.emplace_back();
         fill(stat.back(), proc);
-        LOG(info4) << stat.back().pid;
     }
 
     if (ipids != epids) {
@@ -178,12 +177,17 @@ ProcStat::list getUserProcStat(const UidList &uids)
 
 ProcStat::list getUserProcStat(ProcStat::Uid uid)
 {
-    return getUserProcStat({uid});
+    return getUserProcStat(UidList{uid});
+}
+
+ProcStat::list getUserProcStat()
+{
+    return getUserProcStat(UidList{::getuid()});
 }
 
 ProcStat getProcStat()
 {
-    return getProcStat({::getpid()}).front();
+    return getProcStat(PidList{::getpid()}).front();
 }
 
 } // namespace utility
