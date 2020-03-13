@@ -59,15 +59,18 @@ int main(int argc, char *argv[])
 
     if (!strcmp(argv[0], "uid")) {
         shift();
-        utility::UidList uids;
 
         if (!argc) {
-            uids.push_back(::getuid());
-        } else {
-            uids.reserve(argc);
-            for (int i(0); i < argc; ++i) {
-                uids.push_back(boost::lexical_cast<long>(argv[i]));
+            for (const auto &ps : utility::getUserProcStat(::getuid())) {
+                print(ps);
             }
+            return EXIT_SUCCESS;
+        }
+
+        utility::UidList uids;
+        uids.reserve(argc);
+        for (int i(0); i < argc; ++i) {
+            uids.push_back(boost::lexical_cast<long>(argv[i]));
         }
 
         for (const auto &ps : utility::getUserProcStat(uids)) {
