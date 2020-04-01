@@ -40,7 +40,7 @@ UdpEndpoint::UdpEndpoint(const std::string &def)
     : value(parseUdpEndpoint(def).value)
 {}
 
-namespace detail {
+namespace {
 
 UdpEndpoint parseIpv4(const std::string &input, const std::string &host
                       , short port)
@@ -82,7 +82,7 @@ UdpEndpoint parseIpv6(const std::string &input, const std::string &host
          + " is neither valid IPv6 address nor any local interface.");
 }
 
-} // namespace detail
+} // namespace
 
 UdpEndpoint parseUdpEndpoint(const std::string &input) {
     auto colon(input.rfind(':'));
@@ -120,11 +120,11 @@ UdpEndpoint parseUdpEndpoint(const std::string &input) {
             throw std::runtime_error
                 ("Not an endpoint: <" + input + ">: missing closing ']'.");
         }
-        return detail::parseIpv6(input, host.substr(1, host.size() - 2)
-                                 , sPort);
+        return parseIpv6(input, host.substr(1, host.size() - 2)
+                         , sPort);
     }
 
-    return detail::parseIpv4(input, host, sPort);
+    return parseIpv4(input, host, sPort);
 }
 
 } // namespace utility
