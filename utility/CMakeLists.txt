@@ -144,6 +144,8 @@ set(utility_SOURCES
   cppversion.hpp
 
   getenv.hpp
+
+  memoryfile.hpp
   )
 
 # system-dependent stuff
@@ -156,6 +158,7 @@ if(CMAKE_SYSTEM_NAME MATCHES Linux)
     detail/path.posix.cpp
     detail/rlimit.linux.cpp
     detail/filesystem.linux.cpp
+    detail/memoryfile.linux.cpp
     )
 elseif(CMAKE_SYSTEM_NAME MATCHES Darwin)
   message(STATUS "utility: adding darwin-specific sources")
@@ -165,6 +168,7 @@ elseif(CMAKE_SYSTEM_NAME MATCHES Darwin)
     detail/path.unsupported.cpp
     detail/rlimit.unsupported.cpp
     detail/filesystem.linux.cpp
+    detail/memoryfile.unsupported.cpp
     )
 elseif(WIN32)
   message(STATUS "utility: adding windows-specific sources")
@@ -173,6 +177,7 @@ elseif(WIN32)
     detail/path.windows.cpp
     detail/rlimit.unsupported.cpp
     detail/filesystem.windows.cpp
+    detail/memoryfile.unsupported.cpp
     )
 else()
   message(STATUS "utility: adding sources for unsupported system")
@@ -181,6 +186,7 @@ else()
     detail/path.unsupported.cpp
     detail/rlimit.unsupported.cpp
     detail/filesystem.unsupported.cpp
+    detail/memoryfile.unsupported.cpp
     )
 endif()
 

@@ -30,6 +30,7 @@
 #include <vector>
 #include <mutex>
 
+#include <boost/noncopyable.hpp>
 #include <boost/python.hpp>
 #include <boost/python/stl_iterator.hpp>
 #include <boost/python/raw_function.hpp>
@@ -47,8 +48,12 @@
 #include "pysupport/hasattr.hpp"
 #include "pysupport/iostreams.hpp"
 #include "pysupport/dump.hpp"
+#include "pysupport/load.hpp"
 
 #include "../mysqldb.hpp"
+#include "../memoryfile.hpp"
+
+#include "importsupport.py.pyc.hpp"
 
 namespace fs = boost::filesystem;
 namespace bp = boost::python;
@@ -151,6 +156,15 @@ private:
     bp::object conn_;
 };
 
+struct MemoryFileFlag {};
+
+std::shared_ptr<utility::Filedes>
+memoryFile(const std::string &name, int flags)
+{
+    return std::make_shared<utility::Filedes>
+        (utility::memoryFile(name, flags));
+}
+
 } } // namespace utility::py
 
 BOOST_PYTHON_MODULE(melown_utility_mysql)
@@ -200,6 +214,29 @@ BOOST_PYTHON_MODULE(melown_utility)
 {
     using namespace bp;
     namespace py = utility::py;
+
+    auto Filedes = class_<utility::Filedes, std::shared_ptr<utility::Filedes>
+                          , boost::noncopyable>
+        ("Filedes", init<>())
+        .def("fileno", &utility::Filedes::get)
+        .def("path", &utility::Filedes::path
+             , bp::return_value_policy<bp::return_by_value>())
+        ;
+
+    def("memoryFile", &py::memoryFile);
+
+    auto MemoryFileFlag = class_<py::MemoryFileFlag>
+        ("MemoryFileFlag", init<>())
+        ;
+
+    MemoryFileFlag.attr("closeOnExec")
+        = utility::MemoryFileFlag::closeOnExec;
+    MemoryFileFlag.attr("allowSealing")
+        = utility::MemoryFileFlag::allowSealing;
+
+    scope().attr("import_extension")
+        = pysupport::load("importsupport", py::importsupport)
+        .attr("import_extension");
 }
 
 namespace utility { namespace py {
