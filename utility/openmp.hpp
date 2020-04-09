@@ -33,6 +33,8 @@
 #ifndef utility_openmp_hpp_included_
 #define utility_openmp_hpp_included_
 
+#include <algorithm>
+
 /** Include OpenMP runtime header if enabled.
  */
 #ifdef _OPENMP
@@ -62,8 +64,17 @@
 /** Define extra functions if compiling with OpenMP
  */
 #ifndef _OPENMP
+inline int omp_get_max_threads() { return 1; }
 inline int omp_get_num_threads() { return 1; }
 inline int omp_get_thread_num() { return 0; }
 #endif
+
+namespace utility {
+
+inline int capThreadCount(int limit) {
+    return std::min(omp_get_max_threads(), limit);
+}
+
+} // namespace utility
 
 #endif // utility_openmp_hpp_included_
