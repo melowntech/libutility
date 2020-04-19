@@ -205,6 +205,7 @@ else()
   list(APPEND utility_SOURCES
     process.hpp process.cpp detail/process.hpp detail/redirectfile.hpp
     atfork.hpp atfork.cpp
+    atexit.hpp atexit.cpp
     lockfile.hpp lockfile.cpp
     identity.hpp identity.cpp
     tar.hpp tar.cpp
