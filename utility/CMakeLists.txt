@@ -217,6 +217,12 @@ else()
     )
 endif()
 
+if(C++_VERSION VERSION_GREATER_EQUAL 14)
+  list(APPEND utility_SOURCES
+    po-alias.hpp po-alias.cpp
+    )
+endif()
+
 add_library(utility STATIC
   ${utility_SOURCES}
   ${utility_MYSQL++_SOURCES}
