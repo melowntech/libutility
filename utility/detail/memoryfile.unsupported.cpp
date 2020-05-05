@@ -25,10 +25,15 @@
  */
 
 #include "../memoryfile.hpp"
+#include "dbglog/dbglog.hpp"
+
+namespace utility {
 
 Filedes memoryFile(const std::string &name, int flags)
 {
     LOGTHROW(err3, std::runtime_error)
         << "In-memory file creation unsupported on this platform.";
 }
+
+} // namespace utility
 
