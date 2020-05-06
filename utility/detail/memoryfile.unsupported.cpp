@@ -33,6 +33,7 @@ Filedes memoryFile(const std::string &name, int flags)
 {
     LOGTHROW(err3, std::runtime_error)
         << "In-memory file creation unsupported on this platform.";
+    throw;
 }
 
 } // namespace utility
