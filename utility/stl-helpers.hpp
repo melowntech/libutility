@@ -40,6 +40,13 @@ T& append(std::vector<T> &vector, Args &&...args)
     return vector.back();
 }
 
+template <typename T, typename C>
+std::vector<T>& extend(std::vector<T> &vector, const C &container)
+{
+    vector.insert(vector.end(), container.begin(), container.end());
+    return vector;
+}
+
 /** Joins containers of data convertible to T into a flat vector of T.
  *
  *  \param containers collection of containers of data convertible to T
