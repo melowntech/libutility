@@ -158,8 +158,16 @@ if(CMAKE_SYSTEM_NAME MATCHES Linux)
     detail/path.posix.cpp
     detail/rlimit.linux.cpp
     detail/filesystem.linux.cpp
-    detail/memoryfile.linux.cpp
     )
+  if(BUILDSYS_EMBEDDED)
+    list(APPEND utility_SOURCES
+      detail/memoryfile.unsupported.cpp
+      )
+  else()
+    list(APPEND utility_SOURCES
+      detail/memoryfile.linux.cpp
+      )
+  endif()
 elseif(CMAKE_SYSTEM_NAME MATCHES Darwin)
   message(STATUS "utility: adding darwin-specific sources")
   list(APPEND utility_SOURCES
