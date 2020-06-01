@@ -30,6 +30,24 @@ bool checkMagic(std::istream &f, const std::array<char, size> &expectedMagic)
     return !std::memcmp(magic, expectedMagic.data(), size);
 }
 
+/** Check for two alternative magic numbers if the same size.
+ *  Returns 0 if not matched, 1 if expected magic matched and 2 if alternative
+ *  magic matched
+ */
+template <std::size_t size>
+std::size_t checkMagic(std::istream &f
+                       , const std::array<char, size> &expectedMagic
+                       , const std::array<char, size> &altMagic)
+{
+    char magic[size];
+    binaryio::read(f, magic);
+
+    if (!std::memcmp(magic, expectedMagic.data(), size)) { return 1; }
+    if (!std::memcmp(magic, altMagic.data(), size)) { return 2; }
+
+    return false;
+}
+
 template <typename BadFileFormat>
 std::uint16_t
 checkVersion(std::istream &f, const boost::filesystem::path &filename
