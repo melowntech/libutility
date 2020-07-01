@@ -23,49 +23,48 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  */
-#include <sys/time.h>
-#include <sys/resource.h>
+#ifndef utility_unistd_compat_included_dsfh5jk4jdfh
+#define utility_unistd_compat_included_dsfh5jk4jdfh
 
-#include <system_error>
+#ifdef _WIN32
 
-#include "dbglog/dbglog.hpp"
+#include <Windows.h>
+#include <io.h> // lseek
+#include <sys/types.h> // off_t
+#include <sys/stat.h> // S_IFREG
+#include <time.h> // localtime
 
-#include "limits.hpp"
+#ifndef S_IRGRP
+#define S_IRGRP 040
+#endif
+#ifndef S_IWGRP
+#define S_IWGRP 020
+#endif
+#ifndef S_IROTH
+#define S_IROTH 04
+#endif
+#ifndef S_IWOTH
+#define S_IWOTH 02
+#endif
 
-namespace utility {
-
-bool unlimitedCoredump()
+#ifdef __cplusplus
+extern "C"
 {
-    // first, try to set unlimited value
-    struct rlimit limit;
-    limit.rlim_max = limit.rlim_cur = RLIM_INFINITY;
-    if (0 == ::setrlimit(RLIMIT_CORE, &limit)) {
-        // fine, we can do it
-        return true;
-    }
+#endif
 
-    // damn, we do not have sufficient privileges
-    // fetch current settings
-    if (-1 == ::getrlimit(RLIMIT_CORE, &limit)) {
-        std::system_error e(errno, std::system_category());
-        LOG(err1) << "Cannot get core rlimit: <"
-                  << e.code() << ", " << e.what() << ">.";
-        return false;
-    }
+int pread(int fd, void *buf, size_t count, off_t offset);
+int pwrite(int fd, const void *buf, size_t count, off_t offset);
+int ftruncate(int fd, off_t length);
+struct tm *localtime_r(const time_t *timep, struct tm *result);
 
-    // set soft limit to hard limit
-    limit.rlim_cur = limit.rlim_max;
-
-    // and store again
-    if (-1 == ::setrlimit(RLIMIT_CORE, &limit)) {
-        std::system_error e(errno, std::system_category());
-        LOG(err1) << "Cannot set core rlimit to {"
-                  << limit.rlim_cur << ", " << limit.rlim_max << "}: "
-                  << e.code() << ", " << e.what() << ">.";
-        return false;
-    }
-
-    return true;
+#ifdef __cplusplus
 }
+#endif
 
-} // namespace utility
+#else // _WIN32
+
+#include <unistd.h>
+
+#endif // _WIN32
+
+#endif // utility_unistd_compat_included_dsfh5jk4jdfh

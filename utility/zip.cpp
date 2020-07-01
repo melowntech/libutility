@@ -26,7 +26,6 @@
 
 #include <sys/stat.h>
 #include <sys/types.h>
-#include <unistd.h>
 #include <fcntl.h>
 
 #include <ctime>
@@ -40,6 +39,7 @@
 #include <boost/iostreams/device/array.hpp>
 #include <boost/crc.hpp>
 
+#include "utility/unistd_compat.hpp"
 #include "dbglog/dbglog.hpp"
 
 #include "binaryio.hpp"
@@ -109,6 +109,7 @@ MS-DOS time format:
     5-10   Minute (0–59)
     11-15   Hour (0–23 on a 24-hour clock)
  */
+
 
 namespace bin = utility::binaryio;
 namespace fs = boost::filesystem;
@@ -1034,7 +1035,7 @@ OpenMode openMode(bool overwrite)
 
 Filedes openFile(const boost::filesystem::path &path, OpenMode openMode)
 {
-    Filedes fd(::open(path.c_str(), openFlags(openMode)
+    Filedes fd(::open(path.string().c_str(), openFlags(openMode)
                       , (S_IRUSR | S_IWUSR | S_IRGRP)), path);
 
     if (!fd) {

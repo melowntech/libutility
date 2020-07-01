@@ -24,15 +24,28 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 #include <sys/stat.h>
-#include <unistd.h>
 #include <fcntl.h>
-#include <tar.h>
 
 #include <system_error>
 
+#include "utility/unistd_compat.hpp"
 #include "dbglog/dbglog.hpp"
 
 #include "tar.hpp"
+
+
+#ifdef _WIN32
+ // taken from https://pubs.opengroup.org/onlinepubs/9699919799/basedefs/tar.h.html
+#define REGTYPE '0'
+#define AREGTYPE '\0'
+#define TMAGIC "ustar"
+#define TMAGLEN 6
+#define TVERSION "00"
+#define TVERSLEN 2
+#else
+#include <tar.h>
+#endif
+
 
 namespace utility { namespace tar {
 

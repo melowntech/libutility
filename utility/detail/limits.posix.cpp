@@ -23,69 +23,49 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  */
+#include <sys/time.h>
+#include <sys/resource.h>
 
 #include <system_error>
 
-#include "unistd_compat.hpp"
-#include "raise.hpp"
-#include "substream.hpp"
+#include "dbglog/dbglog.hpp"
 
-namespace utility { namespace io {
+#include "../limits.hpp"
 
-std::streampos SubStreamDevice::seek(boost::iostreams::stream_offset off
-                                     , std::ios_base::seekdir way)
+namespace utility {
+
+bool unlimitedCoredump()
 {
-    std::int64_t newPos(0);
-
-    switch (way) {
-    case std::ios_base::beg:
-        newPos = fd_.start + off;
-        break;
-
-    case std::ios_base::end:
-        newPos = fd_.end + off;
-        break;
-
-    case std::ios_base::cur:
-        newPos = pos_ + off;
-        break;
-
-    default: // shut up compiler!
-        break;
-    };
-
-    if (newPos < std::int64_t(fd_.start)) {
-        pos_ = fd_.start;
-    } else if (newPos > std::int64_t(fd_.end)) {
-        pos_ = fd_.end;
-    } else {
-        pos_ = newPos;
+    // first, try to set unlimited value
+    struct rlimit limit;
+    limit.rlim_max = limit.rlim_cur = RLIM_INFINITY;
+    if (0 == ::setrlimit(RLIMIT_CORE, &limit)) {
+        // fine, we can do it
+        return true;
     }
 
-    return (pos_ - fd_.start);
+    // damn, we do not have sufficient privileges
+    // fetch current settings
+    if (-1 == ::getrlimit(RLIMIT_CORE, &limit)) {
+        std::system_error e(errno, std::system_category());
+        LOG(err1) << "Cannot get core rlimit: <"
+                  << e.code() << ", " << e.what() << ">.";
+        return false;
+    }
+
+    // set soft limit to hard limit
+    limit.rlim_cur = limit.rlim_max;
+
+    // and store again
+    if (-1 == ::setrlimit(RLIMIT_CORE, &limit)) {
+        std::system_error e(errno, std::system_category());
+        LOG(err1) << "Cannot set core rlimit to {"
+                  << limit.rlim_cur << ", " << limit.rlim_max << "}: "
+                  << e.code() << ", " << e.what() << ">.";
+        return false;
+    }
+
+    return true;
 }
 
-std::streamsize
-SubStreamDevice::read_impl(char *data, std::streamsize size
-                           , boost::iostreams::stream_offset pos)
-{
-    // trim if out of range
-    auto end(fd_.end);
-    if (size > std::streamsize(end - pos)) {
-        size = end - pos;
-    }
-
-    if (!size) { return size; }
-
-    auto bytes(::pread(fd_.fd, data, size, pos));
-    if (-1 == bytes) {
-        std::system_error e
-            (errno, std::system_category()
-             , utility::formatError
-             ("Unable to read from substream at %s.", path_));
-        throw e;
-    }
-    return bytes;
-}
-
-} } // namespace utility::io
+} // namespace utility

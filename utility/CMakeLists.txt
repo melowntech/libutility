@@ -1,5 +1,5 @@
 # bump version here
-set(utility_VERSION 1.32)
+set(utility_VERSION 1.33)
 
 set(utility_DEPENDS
   dbglog>=1.4
@@ -42,7 +42,7 @@ else()
   message(STATUS "utility: compiling without magic support")
 endif()
 
-if(Boost_IOSTREAMS_FOUND AND NOT WIN32)
+if(Boost_IOSTREAMS_FOUND)
   message(STATUS "utility: compiling in boost iostreams support")
 
   list(APPEND utility_DEPENDS Boost_IOSTREAMS)
@@ -116,6 +116,7 @@ set(utility_SOURCES
   environment.hpp
 
   lrucache.hpp
+  limits.hpp
 
   openmp.hpp
 
@@ -147,6 +148,10 @@ set(utility_SOURCES
   getenv.hpp
 
   memoryfile.hpp
+
+  tar.hpp tar.cpp
+
+  unistd_compat.hpp
   )
 
 # system-dependent stuff
@@ -206,6 +211,8 @@ if(WIN32)
   list(APPEND utility_SOURCES
     detail/time.windows.cpp
     detail/filedes.windows.cpp
+    detail/limits.unsupported.cpp
+    detail/unistd_compat.windows.cpp
     )
 
 else()
@@ -217,10 +224,9 @@ else()
     atexit.hpp atexit.cpp
     lockfile.hpp lockfile.cpp
     identity.hpp identity.cpp
-    tar.hpp tar.cpp
     persona.hpp switchpersona.cpp
-    limits.hpp limits.cpp
 
+    detail/limits.posix.cpp
     detail/time.posix.cpp
     detail/filedes.posix.cpp
     )
