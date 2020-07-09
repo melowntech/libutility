@@ -262,6 +262,16 @@ bool tryPrint(std::basic_ostream<E, T> &os, const boost::optional<V> &t)
     return false;
 }
 
+template <typename E, typename T>
+bool tryPrint(std::basic_ostream<E, T> &os, const char *str)
+{
+    if (str) {
+        os << str;
+        return true;
+    }
+    return false;
+}
+
 template <typename E, typename T, typename V>
 bool tryPrint(std::basic_ostream<E, T> &os, const V *t)
 {
