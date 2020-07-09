@@ -260,6 +260,7 @@ endif()
 if (COMPILE_TESTS)
   add_subdirectory(test-copytree)
   add_subdirectory(test-base64)
+  add_subdirectory(test-utility)
 endif()
 
 if(NOT BUILDSYS_EMBEDDED)
