@@ -174,8 +174,8 @@ if(CMAKE_SYSTEM_NAME MATCHES Linux)
       detail/memoryfile.linux.cpp
       )
   endif()
-elseif(CMAKE_SYSTEM_NAME MATCHES Darwin)
-  message(STATUS "utility: adding darwin-specific sources")
+elseif(CMAKE_SYSTEM_NAME MATCHES Darwin OR CMAKE_SYSTEM_NAME MATCHES iOS)
+  message(STATUS "utility: adding darwin- or ios-specific sources")
   list(APPEND utility_SOURCES
     detail/iface.unsupported.cpp
     detail/path.posix.cpp
