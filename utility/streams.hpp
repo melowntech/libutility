@@ -273,7 +273,8 @@ public:
     explicit
     ofstreambuf(const char* filename,
                 std::ios_base::openmode mode =
-                    std::ios_base::out | std::ios_base::trunc,
+                    std::ios_base::out | std::ios_base::trunc
+                    | std::ios_base::binary,
                 std::streamsize bufSize = DefaultBufSize)
         : detail::BufHolder(bufSize), std::ofstream()
     {
@@ -284,7 +285,8 @@ public:
     explicit
     ofstreambuf(const std::string& filename,
                 std::ios_base::openmode mode =
-                    std::ios_base::out | std::ios_base::trunc,
+                    std::ios_base::out | std::ios_base::trunc
+                    | std::ios_base::binary,
                 std::streamsize bufSize = DefaultBufSize)
         : detail::BufHolder(bufSize), std::ofstream()
     {
@@ -315,7 +317,9 @@ public:
 
     explicit
     ifstreambuf(const char* filename,
-                std::ios_base::openmode mode = std::ios_base::in,
+                std::ios_base::openmode mode =
+                    std::ios_base::in
+                    | std::ios_base::binary,
                 std::streamsize bufSize = DefaultBufSize)
         : detail::BufHolder(bufSize), std::ifstream()
     {
@@ -325,7 +329,9 @@ public:
 
     explicit
     ifstreambuf(const std::string& filename,
-                std::ios_base::openmode mode = std::ios_base::in,
+                std::ios_base::openmode mode =
+                    std::ios_base::in
+                    | std::ios_base::binary,
                 std::streamsize bufSize = DefaultBufSize)
         : detail::BufHolder(bufSize), std::ifstream()
     {
