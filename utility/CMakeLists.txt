@@ -189,7 +189,7 @@ elseif(WIN32)
   list(APPEND utility_SOURCES
     detail/iface.unsupported.cpp
     detail/path.windows.cpp
-    detail/rlimit.unsupported.cpp
+    detail/rlimit.windows.cpp
     detail/filesystem.windows.cpp
     detail/memoryfile.unsupported.cpp
     )

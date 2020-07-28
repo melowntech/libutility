@@ -46,6 +46,13 @@ namespace utility {
     }()
 #endif
 
+Filedes::Filedes(int fd) : fd_(fd)
+{}
+
+Filedes::Filedes(int fd, const boost::filesystem::path &path)
+    : fd_(fd), path_(path)
+{}
+
 Filedes::~Filedes() {
     close();
 }

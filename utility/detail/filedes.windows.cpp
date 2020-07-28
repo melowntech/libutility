@@ -45,6 +45,19 @@ namespace utility {
     }()
 #endif
 
+Filedes::Filedes(int fd) : fd_(fd)
+{
+    if (valid())
+        _setmode(fd_, _O_BINARY);
+}
+
+Filedes::Filedes(int fd, const boost::filesystem::path &path)
+    : fd_(fd), path_(path)
+{
+    if (valid())
+        _setmode(fd_, _O_BINARY);
+}
+
 Filedes::~Filedes() {
     close();
 }
