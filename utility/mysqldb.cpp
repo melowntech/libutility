@@ -133,6 +133,18 @@ void Db::prepareConfig(po::options_description &config
         ;
 }
 
+void Db::prepareConfig(const boost::filesystem::path &defaultPath
+                       , po::options_description &config
+                       , const std::string &rootRef)
+{
+    config.add_options()
+        ("dbconf", po::value<fs::path>()
+         ->default_value(defaultPath)->required()
+         , ("Path to DB configuration (relative path is appended to "
+            + rootRef + ").").c_str())
+        ;
+}
+
 void Db::configHelp(std::ostream &out)
 {
     Parameters dbconf;

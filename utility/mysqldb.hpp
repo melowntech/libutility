@@ -124,6 +124,11 @@ public:
                               &config
                               , const std::string &rootRef = "cwd");
 
+    static void prepareConfig(const boost::filesystem::path &defaultPath
+                              , boost::program_options::options_description
+                              &config
+                              , const std::string &rootRef = "cwd");
+
     static Parameters
     fromConfig(const boost::program_options::variables_map &vars
                , const boost::filesystem::path &root
