@@ -150,6 +150,73 @@ int spawn(const std::function<int ()> &func
  */
 bool checkTermination(::pid_t expectedPid);
 
+/** Process handle modeled after thread library.
+ */
+class Process {
+public:
+    typedef int Id;
+    typedef int ExitCode;
+
+    class Flags;
+
+    struct Alive {};
+
+    Process() : id_(), killed_(false) {}
+    Process(Process &&other);
+
+    template<typename Function, typename ...Args>
+    Process(const Flags &flags, Function &&f, Args &&...args);
+
+    // template<typename Function, typename ...Args>
+    // Process(Function &&f, Args &&...args);
+
+    Process(const Process&) = delete;
+    ~Process();
+
+    Process& operator=(Process &&other);
+    Process& operator=(Process &other) = delete;
+
+    Id id() const { return id_; }
+
+    inline bool joinable() const { return id_ > 0; }
+
+    inline void swap(Process &other) {
+        std::swap(id_, other.id_);
+    }
+
+    /** Joins process. Can throw system_error, see std::thread documentation.
+     *
+     * \param justTry throws Alive when true and process is still running.
+     */
+    ExitCode join(bool justTry = false);
+
+    /** Terminate process (soft kill).
+     */
+    void terminate();
+
+    /** Kill the process (hard kill).
+     */
+    void kill();
+
+    bool killed() const { return killed_; }
+
+    static void terminate(Id id);
+
+    static void kill(Id id);
+
+private:
+    static Id run(const std::function<void()> &func, const Flags &flags);
+
+    Id id_;
+
+    bool killed_;
+};
+
+struct ThisProcess {
+    static Process::Id id();
+    static Process::Id parentId();
+};
+
 } // namespace utility
 
 #include "detail/process.hpp"
@@ -191,6 +258,47 @@ inline int spawn(const std::function<int ()> &func
                  , SpawnFlag::value_type flags)
 {
     return detail::spawnImpl(func, flags);
+}
+
+class Process::Flags {
+public:
+    Flags() : quickExit_(false) {}
+    Flags& quickExit(bool value) { quickExit_ = value; return *this; }
+    bool quickExit() const { return quickExit_; }
+
+private:
+    bool quickExit_;
+};
+
+inline Process::Process(Process &&other)
+    : id_(other.id_), killed_(other.killed_)
+{
+    other.id_ = 0;
+    other.killed_ = false;
+}
+
+inline Process& Process::operator=(Process &&other)
+{
+    if (joinable()) { std::terminate(); }
+    id_ = other.id_;
+    killed_ = other.killed_;
+    other.id_ = 0;
+    other.killed_ = false;
+    return *this;
+}
+
+template<class Function, typename ...Args>
+inline Process::Process(const Flags &flags, Function &&f, Args &&...args)
+    : killed_(false)
+{
+    id_ = run(std::bind<void>(std::forward<Function>(f)
+                              , std::forward<Args>(args)...)
+              , flags);
+}
+
+inline Process::~Process()
+{
+    if (joinable()) { std::terminate(); }
 }
 
 } // namespace utility
