@@ -23,10 +23,13 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  */
+
 #ifndef utility_interprocess_hpp_included_
 #define utility_interprocess_hpp_included_
 
 #include <boost/interprocess/sync/interprocess_mutex.hpp>
+#include <boost/interprocess/anonymous_shared_memory.hpp>
+#include <boost/interprocess/sync/scoped_lock.hpp>
 
 namespace utility {
 
@@ -43,6 +46,43 @@ public:
 private:
     boost::interprocess::interprocess_mutex &mutex_;
 };
+
+namespace shm {
+
+/** Simple shared memory allocator.
+ */
+class Allocator : boost::noncopyable {
+public:
+    Allocator(std::size_t size)
+        : size_(size + sizeof(boost::interprocess::interprocess_mutex))
+        , offset_()
+        , mem_(boost::interprocess::anonymous_shared_memory(size_))
+        , mutex_(*allocate_unlocked<boost::interprocess::interprocess_mutex>())
+    {}
+
+    template <typename T>
+    T* allocate(std::size_t count = 1) {
+        boost::interprocess::scoped_lock
+            <boost::interprocess::interprocess_mutex> guard(mutex_);
+        return allocate_unlocked<T>(count);
+    }
+
+private:
+    template <typename T>
+    T* allocate_unlocked(std::size_t count = 1) {
+        // TODO: check size
+        auto data(static_cast<char*>(mem_.get_address()) + offset_);
+        offset_ += sizeof(T) * count;
+        return reinterpret_cast<T*>(data);
+    }
+
+    std::size_t size_;
+    std::size_t offset_;
+    boost::interprocess::mapped_region mem_;
+    boost::interprocess::interprocess_mutex &mutex_;
+};
+
+} // shm
 
 } // namespace utility
 

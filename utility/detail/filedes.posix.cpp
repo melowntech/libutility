@@ -65,15 +65,15 @@ void Filedes::close()
     fd_ = -1;
 }
 
-void Filedes::closeOnExec(bool value)
+void Filedes::closeOnExec(int fd, bool value)
 {
     // no log file -> fine
-    if (fd_ < 0) { return; }
+    if (fd < 0) { return; }
 
-    int flags(::fcntl(fd_, F_GETFD, 0));
+    int flags(::fcntl(fd, F_GETFD, 0));
     if (flags == -1) {
         std::system_error e(errno, std::system_category());
-        LOG(warn2) << "fcntl(" << fd_ << ", F_GETFD) failed: <"
+        LOG(warn2) << "fcntl(" << fd << ", F_GETFD) failed: <"
                    << e.code() << ", " << e.what() << ">";
         throw e;
     }
@@ -83,9 +83,9 @@ void Filedes::closeOnExec(bool value)
         flags &= ~FD_CLOEXEC;
     }
 
-    if (::fcntl(fd_, F_SETFD, flags) == -1) {
+    if (::fcntl(fd, F_SETFD, flags) == -1) {
         std::system_error e(errno, std::system_category());
-        LOG(warn2) << "fcntl(" << fd_ << ", F_SETFD) failed: <"
+        LOG(warn2) << "fcntl(" << fd << ", F_SETFD) failed: <"
                    << e.code() << ", " << e.what() << ">";
         throw e;
     }

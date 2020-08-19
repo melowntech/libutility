@@ -72,6 +72,8 @@ public:
 
     void closeOnExec(bool value);
 
+    static void closeOnExec(int fd, bool value);
+
     /** Duplicates file descriptor (via dup).;
      */
     Filedes dup() const;
@@ -87,6 +89,12 @@ private:
     int fd_;
     boost::filesystem::path path_;
 };
+
+// inlines
+
+inline void Filedes::closeOnExec(bool value) {
+    return closeOnExec(fd_, value);
+}
 
 } // namespace utility
 

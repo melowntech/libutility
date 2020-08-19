@@ -70,7 +70,7 @@ void Filedes::close()
     fd_ = -1;
 }
 
-void Filedes::closeOnExec(bool value)
+void Filedes::closeOnExec(int fd, bool value)
 {
     // UNIMPLEMENTED
     LOG(warn2) << "closeOnExec unimplemented on Windows.";
