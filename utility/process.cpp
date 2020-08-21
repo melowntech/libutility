@@ -721,9 +721,6 @@ Process::ExitCode Process::join(bool justTry)
         throw e;
     }
 
-    LOG(debug) << (justTry ? "Trying to join process " : "Joining process ")
-               << id_ << ".";
-
     int status;
     int options(0);
     if (justTry) { options |= WNOHANG; }
