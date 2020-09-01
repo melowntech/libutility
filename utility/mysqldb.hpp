@@ -242,6 +242,8 @@ template <typename Derived> struct TxProxyTraits;
 template <typename Derived>
 struct TxProxy
 {
+    typedef TxProxy<Derived> TxProxyType;
+
     typedef typename TxProxyTraits<Derived>::DbType DbType;
 
     typedef Tx<TxProxy<Derived> > TxType;
@@ -265,6 +267,18 @@ struct TxProxy
     void connectDb() {
         return static_cast<Derived*>(this)->connectDb();
     }
+};
+
+template <typename T>
+struct ScopedConnection
+{
+    typedef typename T::TxProxyType TxProxyType;
+    TxProxyType &txProxy;
+
+    ScopedConnection(TxProxyType &txProxy) : txProxy(txProxy) {
+        txProxy.connectDb();
+    }
+    ~ScopedConnection() { try { txProxy.closeDb(); } catch (...) {} }
 };
 
 /** Check whether transaction that caused BadQuery is restartable.
