@@ -97,6 +97,12 @@ make_lambda_visitor(Lambdas &&...lambdas)
     return { std::forward<Lambdas>(lambdas)... };
 }
 
+template <typename T, typename... Ts>
+T& make_variant(boost::variant<Ts...> &variant)
+{
+    return boost::get<T>(variant = T());
+}
+
 } // namespace utility
 
 #endif // utility_variantri_hpp_included_
