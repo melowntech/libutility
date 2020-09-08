@@ -4,6 +4,7 @@ def import_extension(loader, name, file, modulename):
     import os.path
     root = os.path.dirname(file)
 
+    mf = None
     if hasattr(loader, "archive"):
         archive = os.path.join(loader.prefix, loader.archive)
         zip_filename = os.path.join(os.path.relpath(root, archive)
@@ -24,6 +25,8 @@ def import_extension(loader, name, file, modulename):
 
     try:
         module = imp.load_module(name, *spec)
+        # keep open tmp file inside module
+        if mf: module.__mf = mf;
     finally:
         if spec[0] is not None:
             spec[0].close()
