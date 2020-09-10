@@ -85,6 +85,28 @@
 #    define UTILITY_POSSIBLY_UNUSED
 #endif
 
+#if defined(__GNUC__) && ! defined(__clang__)
+#    define UTILITY_POSSIBLY_USED             \
+    __attribute__ ((used))
+#elif __clang__
+#    define UTILITY_POSSIBLY_USED             \
+    __attribute__ ((used))
+#else
+// TODO: implement for other compilers
+#    define UTILITY_POSSIBLY_USED
+#endif
+
+#if defined(__GNUC__) && ! defined(__clang__)
+#    define UTILITY_SECTION(SECTION)            \
+    __attribute__ ((section(SECTION)))
+#elif __clang__
+#    define UTILITY_SECTION(SECTION)            \
+    __attribute__ ((section(SECTION)))
+#else
+// TODO: implement for other compilers
+#    define UTILITY_SECTION(section)
+#endif
+
 #if __cplusplus >= 201703L
 #    define UTILITY_FALLTHROUGH      [[fallthrough]]
 #elif defined(__GNUC__)
