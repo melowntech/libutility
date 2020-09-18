@@ -30,7 +30,7 @@
 #include <string>
 #include <vector>
 #include <utility>
-#include <iosfwd>
+#include <iostream>
 
 #include <boost/filesystem/path.hpp>
 #include <boost/optional.hpp>
@@ -338,18 +338,7 @@ inline Process::~Process()
     if (joinable()) { std::terminate(); }
 }
 
-template<typename CharT, typename Traits>
-inline std::basic_ostream<CharT, Traits>&
-operator<<(std::basic_ostream<CharT, Traits> &os, const ExecArgs &a)
-{
-    bool first = true;
-    for (const auto *arg : a.args()) {
-        if (!arg) { break; } // final nullptr
-        os << (first ? "" : " ") << arg;
-        first = false;
-    }
-    return os;
-}
+std::ostream& operator<<(std::ostream &os, const ExecArgs &a);
 
 } // namespace utility
 

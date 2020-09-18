@@ -48,6 +48,17 @@ namespace fs = boost::filesystem;
 
 namespace utility {
 
+std::ostream& operator<<(std::ostream &os, const ExecArgs &a)
+{
+    bool first = true;
+    for (const auto *arg : a.args()) {
+        if (!arg) { break; } // final nullptr
+        os << (first ? "" : " ") << arg;
+        first = false;
+    }
+    return os;
+}
+
 void ProcessExecContext::setFdPath(int redirectIdx
                                    , const detail::RedirectFile::DstArg &arg
                                    , int fd)
