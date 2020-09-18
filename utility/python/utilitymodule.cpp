@@ -234,9 +234,15 @@ BOOST_PYTHON_MODULE(melown_utility)
     MemoryFileFlag.attr("allowSealing")
         = utility::MemoryFileFlag::allowSealing;
 
-    scope().attr("import_extension")
-        = pysupport::load("importsupport", py::importsupport)
-        .attr("import_extension");
+    {
+        auto importsupport
+            (pysupport::load("importsupport", py::importsupport));
+
+        scope().attr("import_extension")
+            = importsupport.attr("import_extension");
+        scope().attr("file_from_archive")
+            = importsupport.attr("file_from_archive");
+    }
 }
 
 namespace utility { namespace py {
