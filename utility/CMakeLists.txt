@@ -87,6 +87,7 @@ set(utility_SOURCES
   scopedguard.hpp
   interprocess.hpp
   runnable.hpp runnable.cpp
+  ctrlcommand.hpp
   iohelpers.hpp
 
   uri.hpp uri.cpp

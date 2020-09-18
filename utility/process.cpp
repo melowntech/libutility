@@ -80,33 +80,6 @@ void ProcessExecContext::setFdPath(int redirectIdx
 
 namespace detail {
 
-struct ExecArgs {
-    typedef std::vector<char*> Argv;
-    Argv argv;
-
-    ~ExecArgs() {
-        for (auto arg : argv) { std::free(arg); }
-    }
-
-    void arg(const std::string &arg) {
-        argv.push_back(::strdup(arg.c_str()));
-    }
-
-    void finish() { argv.push_back(nullptr); }
-};
-
-template<typename CharT, typename Traits>
-inline std::basic_ostream<CharT, Traits>&
-operator<<(std::basic_ostream<CharT, Traits> &os, const ExecArgs &a)
-{
-    bool first = true;
-    for (const auto arg : a.argv) {
-        os << (first ? "" : " ") << arg;
-        first = false;
-    }
-    return os;
-}
-
 constexpr int EXEC_FAILED = 255;
 
 void useFd(int dst, int src)
@@ -142,14 +115,13 @@ pid_t execute(const ExecArgs &argv, const boost::function<void()> &afterFork)
 
         // exec
 #ifdef __APPLE__
-        if (::execvp(argv.argv.front(), &(argv.argv.front())) == -1)
+        if (::execvp(argv.filename(), argv.argv()) == -1)
 #else
-        if (::execvpe(argv.argv.front(), &(argv.argv.front())
-                      , ::environ) == -1)
+        if (::execvpe(argv.filename(), argv.argv(), ::environ) == -1)
 #endif
         {
             std::system_error e(errno, std::system_category());
-            LOG(warn1) << "execve(2) [" << argv.argv.front()
+            LOG(warn1) << "execve(2) [" << argv.filename()
                        << "] failed: <" << e.code() << ", "
                        << e.what() << ">";
             std::exit(EXEC_FAILED);
@@ -167,14 +139,13 @@ void execute(const ExecArgs &argv)
 
     // exec
 #ifdef __APPLE__
-    if (::execvp(argv.argv.front(), &(argv.argv.front())) == -1)
+    if (::execvp(argv.filename(), argv.argv()) == -1)
 #else
-    if (::execvpe(argv.argv.front(), &(argv.argv.front())
-                  , ::environ) == -1)
+    if (::execvpe(argv.filename(), argv.argv(), ::environ) == -1)
 #endif
     {
         std::system_error e(errno, std::system_category());
-        LOG(warn1) << "execve(2) [" << argv.argv.front()
+        LOG(warn1) << "execve(2) [" << argv.filename()
                    << "] failed: <" << e.code() << ", "
                    << e.what() << ">";
         throw(e);
@@ -595,7 +566,7 @@ int systemImpl(const std::string &program, ProcessExecContext ctx)
     }
 
     // build arguments
-    detail::ExecArgs argv;
+    ExecArgs argv;
     argv.arg(program);
     for (const auto arg : ctx.argv) {
         if (arg) {
@@ -627,7 +598,7 @@ int systemImpl(const std::string &program, ProcessExecContext ctx)
 void execImpl(const std::string &program, ProcessExecContext ctx)
 {
     // build arguments
-    detail::ExecArgs argv;
+    ExecArgs argv;
     argv.arg(program);
     for (const auto arg : ctx.argv) {
         if (arg) {

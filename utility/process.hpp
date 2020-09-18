@@ -150,6 +150,43 @@ int spawn(const std::function<int ()> &func
  */
 bool checkTermination(::pid_t expectedPid);
 
+/** Convenience type of generating exec arguments
+ */
+class ExecArgs {
+public:
+    typedef std::vector<char*> Argv;
+
+    ExecArgs() = default;
+    ExecArgs(const ExecArgs&) = delete;
+    ExecArgs& operator=(const ExecArgs&) = delete;
+    ExecArgs(ExecArgs&&) = default;
+    ExecArgs& operator=(ExecArgs&&) = default;
+
+    ~ExecArgs() { for (auto arg : argv_) { std::free(arg); } }
+
+    void arg(const char *arg) { argv_.push_back(::strdup(arg)); }
+    void arg(const std::string &a) { arg(a.c_str()); }
+    void arg(const boost::filesystem::path &a) { arg(a.c_str()); }
+    void finish() { argv_.push_back(nullptr); }
+
+    template <typename T>
+    void arg(const boost::optional<T> &a) { if (a) { arg(*a); } }
+
+    template <typename T>
+    void operator()(const T &a) { arg(a); }
+
+    template <typename T1, typename T2>
+    void operator()(const T1 &a1, const T2 &a2) { arg(a1); arg(a2); }
+
+    const char* filename() const { return argv_.front(); }
+    char* const* argv() const { return argv_.data(); }
+
+    const Argv& args() const { return argv_; }
+
+private:
+    Argv argv_;
+};
+
 /** Process handle modeled after thread library.
  */
 class Process {
@@ -299,6 +336,19 @@ inline Process::Process(const Flags &flags, Function &&f, Args &&...args)
 inline Process::~Process()
 {
     if (joinable()) { std::terminate(); }
+}
+
+template<typename CharT, typename Traits>
+inline std::basic_ostream<CharT, Traits>&
+operator<<(std::basic_ostream<CharT, Traits> &os, const ExecArgs &a)
+{
+    bool first = true;
+    for (const auto *arg : a.args()) {
+        if (!arg) { break; } // final nullptr
+        os << (first ? "" : " ") << arg;
+        first = false;
+    }
+    return os;
 }
 
 } // namespace utility
