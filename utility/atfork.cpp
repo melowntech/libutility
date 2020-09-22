@@ -23,61 +23,114 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  */
-#include <pthread.h>
 
+#include <vector>
+#include <mutex>
 #include <algorithm>
+
+#include <pthread.h>
 
 #include "dbglog/dbglog.hpp"
 
 #include "atfork.hpp"
+#include "enum-io.hpp"
 
 namespace utility {
 
-std::vector<AtFork::Entry> AtFork::entries_;
+UTILITY_GENERATE_ENUM_IO(AtFork::Event,
+                         ((prepare))
+                         ((parent))
+                         ((child))
+                         )
 
-AtFork AtFork::init_;
+struct AtFork_Detail {
+    struct Entry {
+        const void *id;
+        AtFork::Callback cb;
 
-void AtFork::add(const void *id, const Callback &cb)
+        Entry(const void *id, AtFork::Callback cb) : id(id), cb(cb) {}
+        Entry() : id(), cb() {}
+
+        typedef std::vector<Entry> list;
+    };
+
+    AtFork_Detail();
+    ~AtFork_Detail() = default;
+
+    void add(const void *id, const AtFork::Callback &cb) {
+        std::lock_guard<std::mutex> guard(mutex);
+        entries.emplace_back(id, cb);
+    }
+
+    void remove(const void *id) {
+        std::lock_guard<std::mutex> guard(mutex);
+
+        // remove handler
+        auto nend(std::remove_if(entries.begin(), entries.end()
+                                 , [id](const Entry &e) {
+                                       return e.id == id;
+                                   }));
+        // trim
+        entries.resize(nend - entries.begin());
+    }
+
+    void run(AtFork::Event event) {
+        // first, lock/unlock
+        switch (event) {
+        case AtFork::Event::prepare: mutex.lock(); break;
+        case AtFork::Event::parent: mutex.unlock(); break;
+        case AtFork::Event::child: new (&mutex) std::mutex(); break;
+        }
+
+        for (auto &entry : entries) {
+            try {
+                entry.cb(event);
+            } catch (const std::exception &e) {
+                LOG(err3) << "Failed to run at-fork event <"
+                          << event << "> for id="
+                          << entry.id << ": " << e.what();
+            } catch (...) {
+                LOG(err3) << "Failed to run at-fork event <"
+                          << event << "> for id="
+                          << entry.id << ": unknown error.";
+            }
+        }
+    }
+
+    std::mutex mutex;
+    Entry::list entries;
+};
+
+AtFork_Detail *detail = new AtFork_Detail();
+
+void AtFork::add(const void *id, const AtFork::Callback &cb)
 {
-    entries_.emplace_back(id, cb);
+    detail->add(id, cb);
 }
 
 void AtFork::remove(const void *id)
 {
-    // remove ios
-    auto nend(std::remove_if(entries_.begin(), entries_.end()
-                             , [id](const Entry &e) {
-                                 return e.id == id;
-                             }));
-    // trim
-    entries_.resize(nend - entries_.begin());
-}
-
-void AtFork::run(Event event)
-{
-    for (auto &entry : entries_) {
-        entry.cb(event);
-    }
+    detail->remove(id);
 }
 
 extern "C" {
     void utility_signalhandler_atfork_pre() {
         LOG(info1) << "utility_signalhandler_atfork_pre";
-        AtFork::run(AtFork::prepare);
+        detail->run(AtFork::Event::prepare);
     }
 
     void utility_signalhandler_atfork_parent() {
         LOG(info1) << "utility_signalhandler_atfork_parent";
-        AtFork::run(AtFork::parent);
+        detail->run(AtFork::Event::parent);
     }
 
     void utility_signalhandler_atfork_child() {
         LOG(info1) << "utility_signalhandler_atfork_child";
-        AtFork::run(AtFork::child);
+        detail->run(AtFork::Event::child);
     }
 }
 
-AtFork::AtFork()
+AtFork_Detail::AtFork_Detail()
 {
     if (-1 == ::pthread_atfork(&utility_signalhandler_atfork_pre
                                , utility_signalhandler_atfork_parent

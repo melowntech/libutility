@@ -30,6 +30,7 @@
 #include <string>
 #include <vector>
 #include <utility>
+#include <memory>
 #include <iostream>
 
 #include <boost/filesystem/path.hpp>
@@ -156,18 +157,18 @@ class ExecArgs {
 public:
     typedef std::vector<char*> Argv;
 
-    ExecArgs() = default;
-    ExecArgs(const ExecArgs&) = delete;
-    ExecArgs& operator=(const ExecArgs&) = delete;
-    ExecArgs(ExecArgs&&) = default;
-    ExecArgs& operator=(ExecArgs&&) = default;
+    ExecArgs()
+        : argv_(new Argv(), [](Argv *argv)
+                            {
+                                for (auto arg : *argv) { std::free(arg); }
+                                delete argv;
+                            })
+    {}
 
-    ~ExecArgs() { for (auto arg : argv_) { std::free(arg); } }
-
-    void arg(const char *arg) { argv_.push_back(::strdup(arg)); }
+    void arg(const char *arg) { argv_->push_back(::strdup(arg)); }
     void arg(const std::string &a) { arg(a.c_str()); }
     void arg(const boost::filesystem::path &a) { arg(a.c_str()); }
-    void finish() { argv_.push_back(nullptr); }
+    void finish() { argv_->push_back(nullptr); }
 
     template <typename T>
     void arg(const boost::optional<T> &a) { if (a) { arg(*a); } }
@@ -178,13 +179,13 @@ public:
     template <typename T1, typename T2>
     void operator()(const T1 &a1, const T2 &a2) { arg(a1); arg(a2); }
 
-    const char* filename() const { return argv_.front(); }
-    char* const* argv() const { return argv_.data(); }
+    const char* filename() const { return argv_->front(); }
+    char* const* argv() const { return argv_->data(); }
 
-    const Argv& args() const { return argv_; }
+    const Argv& args() const { return *argv_; }
 
 private:
-    Argv argv_;
+    std::shared_ptr<Argv> argv_;
 };
 
 /** Process handle modeled after thread library.
@@ -237,12 +238,16 @@ public:
 
     bool killed() const { return killed_; }
 
+    /** Separates the process from the process object.
+     */
+    void detach();
+
     static void terminate(Id id);
 
     static void kill(Id id);
 
 private:
-    static Id run(const std::function<void()> &func, const Flags &flags);
+    static Id run(const std::function<int()> &func, const Flags &flags);
 
     Id id_;
 
@@ -324,18 +329,41 @@ inline Process& Process::operator=(Process &&other)
     return *this;
 }
 
+namespace detail {
+
+template <typename ResultOf>
+struct ProcessFunction {
+    template<typename Function, typename ...Args>
+    static std::function<int()> make(Function &&f, Args &&...args)
+    {
+        auto func = std::bind<void>(std::forward<Function>(f)
+                                    , std::forward<Args>(args)...);
+        return [func]() { func(); return EXIT_SUCCESS; };
+    }
+};
+
+template <>
+struct ProcessFunction<int> {
+    template<typename Function, typename ...Args>
+    static std::function<int()> make(Function &&f, Args &&...args)
+    {
+        return std::bind<int>(std::forward<Function>(f)
+                              , std::forward<Args>(args)...);
+    }
+};
+
+} // namespace detail
+
 template<class Function, typename ...Args>
 inline Process::Process(const Flags &flags, Function &&f, Args &&...args)
     : killed_(false)
 {
-    id_ = run(std::bind<void>(std::forward<Function>(f)
-                              , std::forward<Args>(args)...)
+    typedef decltype(std::bind(std::forward<Function>(f)
+                               , std::forward<Args>(args)...)
+                     (std::forward<Args>(args)...)) FunctionResult;
+    id_ = run(detail::ProcessFunction<FunctionResult>::make
+              (std::forward<Function>(f), std::forward<Args>(args)...)
               , flags);
-}
-
-inline Process::~Process()
-{
-    if (joinable()) { std::terminate(); }
 }
 
 std::ostream& operator<<(std::ostream &os, const ExecArgs &a);

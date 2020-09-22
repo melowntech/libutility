@@ -688,6 +688,14 @@ bool checkTermination(::pid_t expectedPid)
     return pid == expectedPid;
 }
 
+Process::~Process()
+{
+    if (joinable()) {
+        LOG(fatal) << "Destroying utility::Process with assigned job.";
+        std::terminate();
+    }
+}
+
 Process::ExitCode Process::join(bool justTry)
 {
 
@@ -785,7 +793,18 @@ void Process::kill()
     killed_ = true;
 }
 
-Process::Id Process::run(const std::function<void()> &func
+
+void Process::detach()
+{
+    if (!joinable()) {
+        std::system_error e(EINVAL, std::system_category());
+        LOG(err3) << "Cannot join non-joinable process.";
+        throw e;
+    }
+    id_ = 0;
+}
+
+Process::Id Process::run(const std::function<int()> &func
                          , const Flags &flags)
 {
     int pflags(SpawnFlag::none);
@@ -793,8 +812,7 @@ Process::Id Process::run(const std::function<void()> &func
         pflags |= SpawnFlag::quickExit;
     }
 
-    return spawn([=]() -> int { func(); return EXIT_SUCCESS; }
-                 , pflags);
+    return spawn(func, pflags);
 }
 
 Process::Id ThisProcess::id()

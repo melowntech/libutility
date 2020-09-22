@@ -23,25 +23,57 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  */
-#ifndef shared_utility_atfork_hpp_included_
-#define shared_utility_atfork_hpp_included_
 
-#include <functional>
+#ifndef utility_atfork_asio_hpp_included_
+#define utility_atfork_asio_hpp_included_
+
+#include <utility>
+
+#include <boost/asio.hpp>
+
+#include "atfork.hpp"
 
 namespace utility {
 
-class AtFork {
+class AtForkAsio {
 public:
-    enum Event { prepare, parent, child };
-    typedef std::function<void(Event)> Callback;
+    AtForkAsio(boost::asio::io_service &ios);
 
-    static void add(const void *id, const Callback &cb);
-    static void remove(const void *id);
+    AtForkAsio(const AtForkAsio&) = delete;
+    AtForkAsio(AtForkAsio &&o) : ios_() { std::swap(ios_, o.ios_); }
+
+    AtForkAsio& operator=(const AtForkAsio&) = delete;
+    AtForkAsio& operator=(AtForkAsio &&o) {
+        std::swap(ios_, o.ios_); return *this;
+    }
+
+    ~AtForkAsio() { AtFork::remove(ios_); }
 
 private:
-    AtFork() = delete;
+    boost::asio::io_service *ios_;
 };
+
+inline AtForkAsio::AtForkAsio(boost::asio::io_service &ios)
+    : ios_(&ios)
+{
+    AtFork::add(ios_, [this](utility::AtFork::Event event)
+    {
+        switch (event) {
+        case utility::AtFork::prepare:
+            ios_->notify_fork(boost::asio::io_service::fork_prepare);
+            break;
+
+        case utility::AtFork::parent:
+            ios_->notify_fork(boost::asio::io_service::fork_parent);
+            break;
+
+        case utility::AtFork::child:
+            ios_->notify_fork(boost::asio::io_service::fork_child);
+            break;
+        }
+    });
+}
 
 } // namespace utility
 
-#endif // shared_utility_atfork_hpp_included_
+#endif // utility_atfork_asio_hpp_included_
