@@ -691,7 +691,7 @@ bool checkTermination(::pid_t expectedPid)
 Process::~Process()
 {
     if (joinable()) {
-        LOG(fatal) << "Destroying utility::Process with assigned job.";
+        LOG(fatal) << "Destroying utility::Process with assigned pid.";
         std::terminate();
     }
 }
