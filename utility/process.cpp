@@ -769,6 +769,19 @@ void Process::kill(Id id)
     }
 }
 
+void Process::signal(Id id, int signo)
+{
+    auto res(::kill(id, signo));
+
+    if (res < 0) {
+        std::system_error e(errno, std::system_category());
+        LOG(warn1) << "kill(" << id << ", " << signo
+                   << ") failed: <" << e.code()
+                   << ", " << e.what() << ">";
+        throw e;
+    }
+}
+
 void Process::terminate()
 {
     if (!joinable()) {

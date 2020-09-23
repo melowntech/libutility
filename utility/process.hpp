@@ -246,6 +246,8 @@ public:
 
     static void kill(Id id);
 
+    static void signal(Id id, int signo);
+
 private:
     static Id run(const std::function<int()> &func, const Flags &flags);
 
