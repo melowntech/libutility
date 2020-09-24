@@ -35,6 +35,7 @@
 
 #include <boost/filesystem/path.hpp>
 #include <boost/optional.hpp>
+#include <boost/lexical_cast.hpp>
 
 #include "detail/redirectfile.hpp"
 
@@ -165,13 +166,16 @@ public:
                             })
     {}
 
+    template <typename T> void arg(const T &a);
+
     void arg(const char *arg) { argv_->push_back(::strdup(arg)); }
     void arg(const std::string &a) { arg(a.c_str()); }
     void arg(const boost::filesystem::path &a) { arg(a.c_str()); }
-    void finish() { argv_->push_back(nullptr); }
 
     template <typename T>
     void arg(const boost::optional<T> &a) { if (a) { arg(*a); } }
+
+    void finish() { argv_->push_back(nullptr); }
 
     template <typename T>
     void operator()(const T &a) { arg(a); }
@@ -187,6 +191,12 @@ public:
 private:
     std::shared_ptr<Argv> argv_;
 };
+
+/** Needs to be defined here to see other arg declarations.
+ */
+template <typename T> void ExecArgs::arg(const T &a) {
+    arg(boost::lexical_cast<std::string>(a));
+}
 
 /** Process handle modeled after thread library.
  */
