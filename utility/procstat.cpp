@@ -129,6 +129,8 @@ void fill(ProcStat &ps, const ::proc_t *proc)
     ps.virt = proc->size / pageSizeKb;
     ps.shared = proc->share / pageSizeKb;
 
+    ps.utime = proc->utime;
+    ps.stime = proc->stime;
     ps.cutime = proc->cutime;
     ps.cstime = proc->cstime;
 }

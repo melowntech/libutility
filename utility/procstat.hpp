@@ -61,17 +61,29 @@ struct ProcStat
      */
     std::size_t shared;
 
-    /** Cumulative utime (this process and its reaped children) [clock ticks]
+    /** This process's utime [clock ticks]
+     */
+    std::size_t utime;
+
+    /** This process's stime [clock ticks]
+     */
+    std::size_t stime;
+
+    /** Cumulative utime (all reaped children) [clock ticks]
      */
     std::size_t cutime;
 
-    /** Cumulative stime (this process and its reaped children) [clock ticks]
+    /** Cumulative stime (all reaped children) [clock ticks]
      */
     std::size_t cstime;
 
     /** Real memory occupied by this process (resident + swapped).
      */
     std::size_t occupies() const { return rss + swap; }
+
+    /** Total CPU time (user + system including reaped children)
+     */
+    std::size_t cpuTime() const { return utime + stime + cutime + cstime; }
 
     typedef std::vector<ProcStat> list;
 
