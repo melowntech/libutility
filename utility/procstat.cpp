@@ -37,6 +37,8 @@
 
 namespace utility {
 
+std::size_t ProcStat::ClocksPerSecond(::sysconf(_SC_CLK_TCK));
+
 namespace {
 std::size_t pageSize(::sysconf(_SC_PAGESIZE));
 std::size_t pageSizeKb(pageSize >> 10);
@@ -126,6 +128,9 @@ void fill(ProcStat &ps, const ::proc_t *proc)
     ps.swap = proc->vm_swap;
     ps.virt = proc->size / pageSizeKb;
     ps.shared = proc->share / pageSizeKb;
+
+    ps.cutime = proc->cutime;
+    ps.cstime = proc->cstime;
 }
 
 } // namespace
