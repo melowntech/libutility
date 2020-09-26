@@ -37,7 +37,7 @@
 namespace utility {
 
 template <typename TimeDuration>
-std::string formatDuration(const TimeDuration &d)
+std::string formatDuration(const TimeDuration &d, int precision = 6)
 {
     using namespace std::chrono;
 
@@ -47,10 +47,21 @@ std::string formatDuration(const TimeDuration &d)
        << std::setw(2) << std::setfill('0')
        << (duration_cast<minutes>(d).count() % 60) << ':'
        << std::setw(2) << std::setfill('0')
-       << (duration_cast<seconds>(d).count() % 60) << '.'
-       << std::setw(6) << std::setfill('0')
-       << (duration_cast<microseconds>(d).count() % 1000000);
+       << (duration_cast<seconds>(d).count() % 60)
+        ;
+    if (!precision) { return os.str(); }
 
+    auto usec(duration_cast<microseconds>(d).count() % 1000000);
+    switch (precision) {
+    case 1: usec /= 100000; break;
+    case 2: usec /= 10000; break;
+    case 3: usec /= 1000; break;
+    case 4: usec /= 100; break;
+    case 5: usec /= 10; break;
+    default: precision = 6; break;
+    }
+
+    os << '.' << std::setw(precision) << std::setfill('0') << usec;
     return os.str();
 }
 
