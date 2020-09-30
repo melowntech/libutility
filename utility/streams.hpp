@@ -117,7 +117,7 @@ inline std::ostream& operator<<(std::ostream &os, const LManip &l)
  */
 template <typename Container>
 detail::Join<Container> join(const Container &c, const std::string &sep
-                             , const std::string dflt = std::string())
+                             , const std::string &dflt = std::string())
 {
     return { c, sep, dflt };
 }
