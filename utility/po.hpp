@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019 Melown Technologies SE
+ * Copyright (c) 2019-2020 Melown Technologies SE
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -65,6 +65,24 @@ void validate(boost::any &v
         boost::throw_exception(bpo::invalid_option_value(s));
     }
 }
+
+/** Simple class for holding and parsing program options.
+ */
+class ProgramOptions {
+public:
+    ProgramOptions(const std::string &help) : od_(help) {}
+
+    std::ostream& dump(std::ostream &os, const std::string& = "") const {
+        return os << od_;
+    }
+
+protected:
+    void parse(const std::vector<std::string> &args);
+
+    boost::program_options::options_description od_;
+    boost::program_options::positional_options_description pd_;
+    boost::program_options::variables_map vars_;
+};
 
 } } // namespace utility::po
 
