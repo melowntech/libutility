@@ -24,11 +24,32 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <iostream>
+
 #include "po.hpp"
 
 namespace utility { namespace po {
 
-void ProgramOptions::parse(const std::vector<std::string> &args)
+ProgramOptions::ProgramOptions(const std::string &help)
+    : od_(help)
+{
+    od_.add_options()
+        ("help", "Show help.")
+        ;
+}
+
+std::ostream& ProgramOptions::dump(std::ostream &os, const std::string&) const
+{
+    return os << od_;
+}
+
+bool ProgramOptions::parse(const std::vector<std::string> &args)
+{
+    return parse(args, std::cout);
+}
+
+bool ProgramOptions::parse(const std::vector<std::string> &args
+                           , std::ostream &os)
 {
     auto style
         ((boost::program_options::command_line_style::default_style
@@ -40,7 +61,14 @@ void ProgramOptions::parse(const std::vector<std::string> &args)
 
     auto parsed(parser.run());
     boost::program_options::store(parsed, vars_);
+
+    if (vars_.count("help")) {
+        os << od_;
+        return false;
+    }
+
     boost::program_options::notify(vars_);
+    return true;
 }
 
 } } // namespace utility::po

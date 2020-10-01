@@ -27,6 +27,8 @@
 #ifndef utility_po_hpp_included_
 #define utility_po_hpp_included_
 
+#include <iosfwd>
+
 #include <boost/program_options.hpp>
 #include <boost/any.hpp>
 #include <boost/lexical_cast.hpp>
@@ -70,14 +72,28 @@ void validate(boost::any &v
  */
 class ProgramOptions {
 public:
-    ProgramOptions(const std::string &help) : od_(help) {}
+    ProgramOptions(const std::string &help);
 
-    std::ostream& dump(std::ostream &os, const std::string& = "") const {
-        return os << od_;
-    }
+    std::ostream& dump(std::ostream &os, const std::string& = "") const;
 
 protected:
-    void parse(const std::vector<std::string> &args);
+    /** Parses arguments. Handles help request.
+     *
+     * Returns false if help was handled and no further processing was
+     * performed.
+     *
+     * Returns true if args were fully processed.
+     *
+     * \params args arguments
+     * \params os   help output stream
+     * \return true if args are usable.
+     */
+    bool parse(const std::vector<std::string> &args
+               , std::ostream &os);
+
+    /** Same as above but prints help to stdout.
+     */
+    bool parse(const std::vector<std::string> &args);
 
     boost::program_options::options_description od_;
     boost::program_options::positional_options_description pd_;
