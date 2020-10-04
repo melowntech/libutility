@@ -213,7 +213,9 @@ template <typename E, typename T, typename Container>
 inline std::basic_ostream<E, T>&
 operator<<(std::basic_ostream<E, T> &os, const Join<Container> &j)
 {
-    if (std::begin(j.c) == std::end(j.c)) {
+    using std::cbegin;
+    using std::cend;
+    if (cbegin(j.c) == cend(j.c)) {
         // empty -> use default
         if (!j.dflt.empty()) { return os << j.dflt; }
         return os;
