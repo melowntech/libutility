@@ -43,10 +43,7 @@
 #include <boost/program_options.hpp>
 #include <boost/filesystem/path.hpp>
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 #include <mysql++/mysql++.h>
-#pragma GCC diagnostic pop
 
 #include "dbglog/dbglog.hpp"
 
