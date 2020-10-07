@@ -30,7 +30,10 @@
 
 namespace utility {
 
-std::size_t cpuCount();
+/** If available number of CPUs is requested only available # of CPUs is
+ *  returned. Otherwise total # of CPUs configured is returned.
+ */
+std::size_t cpuCount(bool available = true);
 
 } // namespace utility
 

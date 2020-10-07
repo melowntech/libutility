@@ -52,8 +52,10 @@ std::size_t boostThreadCpuCount()
 
 #ifdef __linux__
 
-std::size_t cpuCount()
+std::size_t cpuCount(bool available)
 {
+    if (!available) { return boostThreadCpuCount(); }
+
     cpu_set_t set;
     auto res(::sched_getaffinity(0, sizeof(set), &set));
     if (res == -1) {
