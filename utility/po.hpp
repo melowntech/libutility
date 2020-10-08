@@ -27,13 +27,22 @@
 #ifndef utility_po_hpp_included_
 #define utility_po_hpp_included_
 
+#include <new>
 #include <iosfwd>
 
+#include <boost/optional.hpp>
 #include <boost/program_options.hpp>
 #include <boost/any.hpp>
 #include <boost/lexical_cast.hpp>
 
 namespace utility { namespace po {
+
+template <typename T, typename Key>
+boost::optional<T> get(const boost::program_options::variables_map &vars
+                       , const Key &key, const std::nothrow_t&);
+
+template <typename T, typename Key>
+T get(const boost::program_options::variables_map &vars, const Key &key);
 
 /** Positive-only configuration option value.
  */
@@ -99,6 +108,24 @@ protected:
     boost::program_options::positional_options_description pd_;
     boost::program_options::variables_map vars_;
 };
+
+// inlines
+
+template <typename T, typename Key>
+boost::optional<T> get(const boost::program_options::variables_map &vars
+                       , const Key &key, const std::nothrow_t&)
+{
+    auto fvars(vars.find(key));
+    if (fvars == vars.end()) { return boost::none; }
+    return fvars->second.template as<T>();
+}
+
+template <typename T, typename Key>
+T get(const boost::program_options::variables_map &vars
+      , const Key &key)
+{
+    return vars.at(key).template as<T>();
+}
 
 } } // namespace utility::po
 
