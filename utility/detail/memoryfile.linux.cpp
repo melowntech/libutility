@@ -64,7 +64,7 @@ Filedes memoryFile(const std::string &name, int flags)
         throw e;
     }
 
-    const auto path(utility::format("/proc/self/fd/%s", fd.get()));
+    const auto path(utility::format("/proc/%s/fd/%s", ::getpid(), fd.get()));
     return Filedes(fd.release(), path);
 }
 

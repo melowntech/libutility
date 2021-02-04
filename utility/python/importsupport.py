@@ -9,7 +9,6 @@ def import_extension(loader, name, file, modulename):
         archive = os.path.join(loader.prefix, loader.archive)
         zip_filename = os.path.join(os.path.relpath(root, archive)
                                     , modulename)
-
         import zipfile
         z = zipfile.ZipFile(archive)
 
@@ -35,21 +34,30 @@ def import_extension(loader, name, file, modulename):
     return module
 
 
-def file_from_archive(loader, name, file, filename):
+def file_from_archive(loader, name, file, filename, closeOnExec=True):
     import os
     import os.path
     root = os.path.dirname(file)
 
     if hasattr(loader, "archive"):
         archive = os.path.join(loader.prefix, loader.archive)
-        zip_filename = os.path.join(os.path.relpath(root, archive)
-                                    , filename)
+        rp = os.path.relpath(root, archive)
+        if rp != ".":
+            # some subdir
+            zip_filename = os.path.join(rp, filename)
+        else:
+            # root itself
+            zip_filename = filename
 
         import zipfile
         z = zipfile.ZipFile(archive)
 
+        flags = 0
+        if closeOnExec:
+            flags |= utility.MemoryFileFlag.closeOnExec
+
         from melown import utility
-        mf = utility.memoryFile(name, utility.MemoryFileFlag.closeOnExec)
+        mf = utility.memoryFile(name, flags)
 
         buf = z.open(zip_filename).read();
         os.write(mf.fileno(), buf)
