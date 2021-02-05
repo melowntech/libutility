@@ -52,11 +52,10 @@ def file_from_archive(loader, name, file, filename, closeOnExec=True):
         import zipfile
         z = zipfile.ZipFile(archive)
 
+        from melown import utility
         flags = 0
         if closeOnExec:
             flags |= utility.MemoryFileFlag.closeOnExec
-
-        from melown import utility
         mf = utility.memoryFile(name, flags)
 
         buf = z.open(zip_filename).read();
