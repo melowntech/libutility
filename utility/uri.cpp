@@ -332,16 +332,17 @@ Uri parseUri(const std::string &in) {
 
 std::string Uri::str() const
 {
+    bool isFileScheme = false;
     std::ostringstream os;
 
     // schema
     if (!components_.scheme.empty()) {
-        os << components_.scheme << ':';
+        os << components_.scheme << "://";
+        isFileScheme = components_.scheme == "file";
     }
 
     // netloc
     if (!components_.host.empty()) {
-        os << "//";
         if (!components_.user.empty()) {
             os << components_.user;
             if (!components_.password.empty()) {
@@ -361,14 +362,16 @@ std::string Uri::str() const
         os << components_.path;
     }
 
-    // search
-    if (!components_.search.empty()) {
-        os << '?' << components_.search;
-    }
+    if (!isFileScheme) {
+        // search
+        if (!components_.search.empty()) {
+            os << '?' << components_.search;
+        }
 
-    // fragment
-    if (!components_.fragment.empty()) {
-        os << '#' << components_.fragment;
+        // fragment
+        if (!components_.fragment.empty()) {
+            os << '#' << components_.fragment;
+        }
     }
 
     return os.str();
