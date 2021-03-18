@@ -79,6 +79,8 @@ set(utility_SOURCES
   gl.hpp
   has_member.hpp
   map.hpp
+  small_list.hpp
+  small_set.hpp
   small_map.hpp
   streams.hpp detail/streams.hpp
   utility.cpp
