@@ -163,6 +163,17 @@ inline void write(const boost::filesystem::path &file
     f.close();
 }
 
+/** Copies content of input stream to file.
+ */
+inline void copy(const boost::filesystem::path &file, std::istream &is)
+{
+    std::ofstream f;
+    f.exceptions(std::ios::badbit | std::ios::failbit);
+    f.open(file.string(), std::ios_base::out | std::ios_base::trunc);
+    f << is.rdbuf();
+    f.close();
+}
+
 template<typename T, std::size_t size>
 inline void write(const boost::filesystem::path &file, const T(&v)[size])
 {
