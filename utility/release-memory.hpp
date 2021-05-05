@@ -29,6 +29,22 @@
 
 #include <vector>
 
+namespace {
+
+namespace __impl {
+
+// enable namespace-scope ADL
+using std::swap;
+
+template<typename T>
+struct swappable : std::is_same<decltype(swap(std::declval<T&>(),
+                                              std::declval<T&>())), void>::type {};
+
+} // namespace __impl
+
+} // namespace
+
+
 namespace utility {
 
 template <typename T,
@@ -61,9 +77,10 @@ inline void release(std::vector<T, Allocator>& vec)
 
 
 // releases memory occupied using swap-idiom
-// C++17: add std::is_swappable<T>{}
+// C++17: replace with std::is_swappable
 template <typename T,
-          typename std::enable_if_t<std::is_default_constructible<T>{}, int> = 0>
+          typename std::enable_if_t<std::is_default_constructible<T>{}
+                   && __impl::swappable<T>{}, int> = 0>
 inline void release(T& container)
 {
     T tmp;
