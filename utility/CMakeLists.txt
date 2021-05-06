@@ -1,5 +1,5 @@
 # bump version here
-set(utility_VERSION 1.34)
+set(utility_VERSION 1.35)
 
 set(utility_DEPENDS
   dbglog>=1.4
@@ -79,6 +79,8 @@ set(utility_SOURCES
   gl.hpp
   has_member.hpp
   map.hpp
+  small_list.hpp
+  small_set.hpp
   small_map.hpp
   streams.hpp detail/streams.hpp
   utility.cpp
