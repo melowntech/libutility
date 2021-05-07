@@ -230,6 +230,7 @@ else()
     lockfile.hpp lockfile.cpp
     identity.hpp identity.cpp
     persona.hpp switchpersona.cpp
+    hostname.hpp hostname.cpp
 
     detail/limits.posix.cpp
     detail/time.posix.cpp
