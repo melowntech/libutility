@@ -94,7 +94,7 @@ namespace detail {
 
 constexpr int EXEC_FAILED = 255;
 
-void useFd(int dst, int src)
+void useFd(int dst, int src, bool closeSrc = false)
 {
     // ignore invalid descriptors
     if ((src < 0) || (dst < 0)) { return; }
@@ -105,7 +105,8 @@ void useFd(int dst, int src)
             << ", " << e.what() << ">";
         throw e;
     }
-    ::close(src);
+
+    if (closeSrc) { ::close(src); }
 }
 
 pid_t execute(const ExecArgs &argv, const boost::function<void()> &afterFork)
@@ -192,7 +193,7 @@ void redirect(const ProcessExecContext::Redirects &redirects)
                           << e.code() << ", " << e.what() << ">.";
                 throw e;
             }
-            useFd(boost::any_cast<int>(redirect.dst), fd);
+            useFd(boost::any_cast<int>(redirect.dst), fd, true);
             break;
         }
 
