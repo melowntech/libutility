@@ -1,5 +1,5 @@
 # bump version here
-set(utility_VERSION 1.35)
+set(utility_VERSION 1.36)
 
 set(utility_DEPENDS
   dbglog>=1.4
@@ -230,6 +230,7 @@ else()
     lockfile.hpp lockfile.cpp
     identity.hpp identity.cpp
     persona.hpp switchpersona.cpp
+    hostname.hpp hostname.cpp
 
     detail/limits.posix.cpp
     detail/time.posix.cpp
