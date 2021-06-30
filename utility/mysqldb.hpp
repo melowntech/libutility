@@ -56,6 +56,9 @@ public:
     typedef mysqlpp::Query Query;
     typedef mysqlpp::SimpleResult SimpleResult;
     typedef mysqlpp::StoreQueryResult StoreQueryResult;
+    using TxIsolationLevel = mysqlpp::Transaction::IsolationLevel;
+    using OptionalTxIsolationLevel = boost::optional<TxIsolationLevel>;
+    using IsolationScope = mysqlpp::Transaction::IsolationScope;
 
     struct Parameters {
         std::string database;
@@ -152,10 +155,10 @@ private:
 template <typename Connector>
 class Tx {
 public:
-    Tx(Connector &connector)
+    Tx(Connector &connector, const Db::OptionalTxIsolationLevel& isolationLevel)
         : connector_(&connector)
     {
-        open();
+        open(isolationLevel);
     }
 
     Tx(Tx &&other)
@@ -186,7 +189,7 @@ public:
     inline operator mysqlpp::Transaction&() { return *tx_; }
 
 protected:
-    void open();
+    void open(const Db::OptionalTxIsolationLevel& isolationLevel = boost::none);
 
     void flush();
 
@@ -195,13 +198,21 @@ protected:
 };
 
 template <typename Connector>
-void Tx<Connector>::open()
+void Tx<Connector>::open(const Db::OptionalTxIsolationLevel& isolationLevel)
 {
     for (int i(5); i; --i) {
         try {
             // connect to the db(if not connected)
             connector_->connectDb();
-            tx_.reset(new mysqlpp::Transaction(connector_->dbconn(), false));
+            if (isolationLevel) {
+                tx_ = std::make_unique<mysqlpp::Transaction>(
+                    connector_->dbconn(), isolationLevel.value(),
+                    Db::IsolationScope::this_transaction, false);
+            }
+            else {
+                tx_ = std::make_unique<mysqlpp::Transaction>(
+                    connector_->dbconn(), false);
+            }
 
             // done
             return;
@@ -245,8 +256,9 @@ struct TxProxy
 
     typedef Tx<TxProxy<Derived> > TxType;
 
-    TxType openTx() {
-        return TxType(*this);
+    TxType openTx(const Db::OptionalTxIsolationLevel& isolationLevel = boost::none)
+    {
+        return TxType(*this, isolationLevel);
     }
 
     inline DbType& db() {
