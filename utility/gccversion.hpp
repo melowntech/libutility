@@ -121,4 +121,12 @@
 #    define UTILITY_FALLTHROUGH
 #endif
 
+#if defined(__GNUC__) || defined(__clang__)
+#  define UTILITY_VISIBILITY(VALUE)            \
+    __attribute__ ((visibility(#VALUE)))
+#else
+// TODO: implement for other compilers
+#  define UTILITY_VISIBILITY(VALUE)
+#endif
+
 #endif // SHARED_UTILITY_GCCVERSION_HPP_INCLUDED_
