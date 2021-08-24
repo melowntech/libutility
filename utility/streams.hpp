@@ -231,6 +231,32 @@ scopedStreamExceptions(std::basic_ios<CharT, Traits> &ios)
     return { ios };
 }
 
+/**
+* Temporarily redirects written strings to the given functor.
+*/
+class ScopedStreamHook
+{
+    using Hook = std::function<void(const std::string& s)> ;
+
+    std::streambuf* buf_;
+    std::ostream& ofs_;
+    Hook hook_;
+    std::ostringstream ss_;
+
+public:
+    ScopedStreamHook(std::ostream& ofs, const Hook& hook)
+        : buf_(ofs.rdbuf())
+        , ofs_(ofs)
+        , hook_(hook) {
+        ofs_.rdbuf(ss_.rdbuf());
+    }
+
+    ~ScopedStreamHook() {
+        ofs_.rdbuf(buf_);
+        hook_(ss_.str());
+    }
+};
+
 struct StreamState {
     template<class CharT, class Traits>
     StreamState(std::basic_ios<CharT, Traits> &ios)
