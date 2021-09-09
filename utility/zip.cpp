@@ -49,6 +49,7 @@
 #include "filedes.hpp"
 #include "scopedguard.hpp"
 #include "typeinfo.hpp"
+#include "raise.hpp"
 
 /*
 Format documentation (Library of Congress preserved version):
@@ -117,6 +118,35 @@ namespace bio = boost::iostreams;
 
 namespace utility { namespace zip {
 
+/** Attributes
+ */
+const std::uint32_t Attributes::regular =
+    ((S_IFREG | S_IRUSR | S_IWUSR | S_IRGRP) << 16);
+const std::uint32_t Attributes::directory =
+    ((S_IFDIR | S_IRUSR | S_IWUSR | S_IXUSR | S_IRGRP | S_IXGRP) << 16);
+const std::uint32_t Attributes::executable =
+    ((S_IFREG | S_IRUSR | S_IWUSR | S_IXUSR | S_IRGRP | S_IXGRP) << 16);
+
+std::uint32_t Attributes::fromFileStatus(std::uint32_t status)
+{
+    return (status << 16);
+}
+
+std::uint32_t Attributes::fromFile(const boost::filesystem::path &path)
+{
+    struct ::stat s;
+
+    if (-1 == ::stat(path.c_str(), &s)) {
+        std::system_error e
+            (errno, std::system_category()
+             , formatError("Cannot stat file %s.", path));
+        LOG(err1) << e.what();
+        throw e;
+    }
+
+    return fromFileStatus(s.st_mode);
+}
+
 EmbedFlag Embed;
 
 namespace detail {
@@ -135,11 +165,6 @@ constexpr std::uint16_t VERSION_NEEDED = 46;
 /** UNIX (3) + version 6.3 (3f = 63)
  */
 constexpr std::uint16_t VERSION_MADE_BY = 0x33f;
-
-/** Attributes for regular file.
- */
-constexpr std::uint32_t REGULAR_FILE_ATTRIBUTES
-((S_IFREG | S_IRUSR | S_IWUSR | S_IRGRP) << 16);
 
 constexpr std::uint16_t Tag64 = 0x0001u;
 
@@ -938,6 +963,7 @@ struct Writer::Detail : public std::enable_shared_from_this<Detail>
         std::size_t compressedSize;
         std::size_t uncompressedSize;
         std::uint32_t crc32;
+        std::uint32_t attributes = Attributes::regular;
 
         FileEntry(const fs::path &name, CompressionMethod compressionMethod)
             : name(name), compressionMethod(compressionMethod)
@@ -1207,6 +1233,16 @@ public:
                           , fileEntry_.uncompressedSize);
     }
 
+    virtual void setFileAttributes(std::uint32_t attributes) {
+        if (!open_) {
+            LOGTHROW(err2, Error)
+                << "Zip stream for file " << fileEntry_.name
+                << " is already closed. Cannot udpate.";
+        }
+
+        fileEntry_.attributes = attributes;
+    }
+
 private:
     Writer::Detail::pointer detail_;
     Writer::Detail::FileEntry fileEntry_;
@@ -1411,7 +1447,7 @@ void Writer::Detail::commit(const FileEntry &fe)
     fh.crc32 = fe.crc32;
     fh.compressedSize = fe.compressedSize;
     fh.uncompressedSize = fe.uncompressedSize;
-    fh.externalFileAttributes = REGULAR_FILE_ATTRIBUTES;
+    fh.externalFileAttributes = fe.attributes;
     fh.filename = fe.name.string();
     fh.fileOffset = tx;
 
