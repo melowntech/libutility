@@ -160,6 +160,16 @@ private:
     Record::list records_;
 };
 
+
+struct Attributes {
+    static const std::uint32_t regular;
+    static const std::uint32_t directory;
+    static const std::uint32_t executable;
+
+    static std::uint32_t fromFileStatus(std::uint32_t status);
+    static std::uint32_t fromFile(const boost::filesystem::path &path);
+};
+
 UTILITY_GENERATE_ENUM(Compression,
                       ((store))
                       ((deflate))
@@ -241,6 +251,10 @@ public:
     virtual ~OStream() {}
     virtual std::ostream& get() = 0;
     virtual Statistics close() = 0;
+
+    /** Sets (external) file attributes, i.e. access rights on linux.
+     */
+    virtual void setFileAttributes(std::uint32_t attributes) = 0;
 };
 
 } } // namespace utility::zip

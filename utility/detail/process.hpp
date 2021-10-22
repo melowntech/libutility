@@ -31,6 +31,7 @@
 #include <utility>
 
 #include <boost/optional.hpp>
+#include <boost/filesystem/path.hpp>
 #include <boost/lexical_cast.hpp>
 
 #include "../process.hpp"
@@ -71,6 +72,9 @@ public:
     void apply(const UnsetEnv &arg) { environ[arg.name] = boost::none; }
     void apply(const ChangeCwd &arg) { cwd = arg.wd; }
     void apply(const std::string &arg) { argv.push_back(arg); }
+    void apply(const boost::filesystem::path &arg) {
+        argv.push_back(arg.string());
+    }
     void apply(const ProcessExecContext &arg) { *this = arg; }
 
     template <typename T>
