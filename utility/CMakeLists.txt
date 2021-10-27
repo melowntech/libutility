@@ -169,6 +169,7 @@ if(CMAKE_SYSTEM_NAME MATCHES Linux)
     detail/path.posix.cpp
     detail/rlimit.linux.cpp
     detail/filesystem.linux.cpp
+    glob.hpp glob.cpp
     )
   if(BUILDSYS_EMBEDDED)
     list(APPEND utility_SOURCES
