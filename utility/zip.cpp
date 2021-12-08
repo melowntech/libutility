@@ -120,6 +120,10 @@ namespace utility { namespace zip {
 
 /** Attributes
  */
+#ifndef S_IXUSR // windows
+#define S_IXUSR _S_IEXEC
+#define S_IXGRP _S_IEXEC
+#endif
 const std::uint32_t Attributes::regular =
     ((S_IFREG | S_IRUSR | S_IWUSR | S_IRGRP) << 16);
 const std::uint32_t Attributes::directory =
@@ -136,7 +140,7 @@ std::uint32_t Attributes::fromFile(const boost::filesystem::path &path)
 {
     struct ::stat s;
 
-    if (-1 == ::stat(path.c_str(), &s)) {
+    if (-1 == ::stat(path.string().c_str(), &s)) {
         std::system_error e
             (errno, std::system_category()
              , formatError("Cannot stat file %s.", path));
