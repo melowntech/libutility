@@ -30,6 +30,7 @@
 #include <utility>
 #include <initializer_list>
 #include <algorithm>
+#include <functional>
 
 namespace utility {
 

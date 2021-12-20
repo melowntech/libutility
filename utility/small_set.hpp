@@ -104,7 +104,7 @@ public:
         return 1;
     }
 
-    size_type count(const value_type &value) {
+    size_type count(const value_type &value) const {
         return find(value) != storage_.end();
     }
 
