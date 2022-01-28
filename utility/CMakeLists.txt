@@ -157,6 +157,8 @@ set(utility_SOURCES
   unistd_compat.hpp
 
   po.hpp po.cpp
+
+  vercmp.hpp vercmp.cpp
   )
 
 # system-dependent stuff
