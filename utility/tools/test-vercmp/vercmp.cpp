@@ -67,8 +67,8 @@ private:
 };
 
 void VerCmp::configuration(po::options_description &cmdline
-                        , po::options_description &config
-                        , po::positional_options_description &pd)
+                           , po::options_description &config
+                           , po::positional_options_description &pd)
 {
     cmdline.add_options()
         ("a", po::value(&a_)->required()
