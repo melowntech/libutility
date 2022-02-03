@@ -121,6 +121,12 @@
 #    define UTILITY_FALLTHROUGH
 #endif
 
+#if __cplusplus >= 201703L
+#    define UTILITY_MAYBE_UNUSED [[maybe_unused]]
+#else
+#    define UTILITY_MAYBE_UNUSED
+#endif
+
 #if defined(__GNUC__) || defined(__clang__)
 #  define UTILITY_VISIBILITY(VALUE)            \
     __attribute__ ((visibility(#VALUE)))

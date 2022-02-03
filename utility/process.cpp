@@ -44,6 +44,7 @@
 #include "dbglog/dbglog.hpp"
 
 #include "process.hpp"
+#include "uncaught-exception.hpp"
 
 namespace fs = boost::filesystem;
 
@@ -465,7 +466,7 @@ int Pump::run()
             pid_t pid;
             Kill(pid_t pid) : pid(pid) {}
             ~Kill() {
-                if (std::uncaught_exception()) {
+                if (utility::uncaught_exception()) {
                     ::kill(pid, SIGKILL);
                 }
             }

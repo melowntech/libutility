@@ -38,6 +38,8 @@
 
 #include <boost/noncopyable.hpp>
 
+#include "uncaught-exception.hpp"
+
 namespace utility {
 
 class ScopedGuard : boost::noncopyable {
@@ -47,7 +49,7 @@ public:
     {}
 
     ~ScopedGuard() noexcept(false) {
-        if (std::uncaught_exception()) {
+        if (utility::uncaught_exception()) {
             // some other exception -> do not propagate
             try { cleanup_(); } catch (...) {}
         } else {
