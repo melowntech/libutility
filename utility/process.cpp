@@ -582,7 +582,7 @@ int systemImpl(const std::string &program, ProcessExecContext ctx)
     // build arguments
     ExecArgs argv;
     argv.arg(program);
-    for (const auto arg : ctx.argv) {
+    for (const auto &arg : ctx.argv) {
         if (arg) {
             argv.arg(*arg);
         }
@@ -614,7 +614,7 @@ void execImpl(const std::string &program, ProcessExecContext ctx)
     // build arguments
     ExecArgs argv;
     argv.arg(program);
-    for (const auto arg : ctx.argv) {
+    for (const auto &arg : ctx.argv) {
         if (arg) {
             argv.arg(*arg);
         }
