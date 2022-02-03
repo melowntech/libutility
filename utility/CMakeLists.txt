@@ -159,6 +159,8 @@ set(utility_SOURCES
   po.hpp po.cpp
 
   vercmp.hpp vercmp.cpp
+
+  hostname.hpp # implementation is system dependent
   )
 
 # system-dependent stuff
@@ -221,6 +223,7 @@ if(WIN32)
     detail/filedes.windows.cpp
     detail/limits.unsupported.cpp
     detail/unistd_compat.windows.cpp
+    detail/hostname.windows.cpp
     )
 
 else()
@@ -233,11 +236,11 @@ else()
     lockfile.hpp lockfile.cpp
     identity.hpp identity.cpp
     persona.hpp switchpersona.cpp
-    hostname.hpp hostname.cpp
 
     detail/limits.posix.cpp
     detail/time.posix.cpp
     detail/filedes.posix.cpp
+    detail/hostname.linux.cpp
     )
 endif()
 

@@ -28,7 +28,7 @@
 
 #include <climits>
 
-#include "hostname.hpp"
+#include "../hostname.hpp"
 
 namespace utility {
 
