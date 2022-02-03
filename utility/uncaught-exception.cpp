@@ -7,7 +7,7 @@ bool uncaught_exception() noexcept
 #if __cplusplus >= 201703L
     return std::uncaught_exceptions();
 #else
-    return std::uncaught_expcetion();
+    return std::uncaught_exception();
 #endif
 }
 
