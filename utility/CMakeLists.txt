@@ -159,6 +159,8 @@ set(utility_SOURCES
   po.hpp po.cpp
 
   vercmp.hpp vercmp.cpp
+
+  uncaught-exception.hpp uncaught-exception.cpp
   )
 
 # system-dependent stuff
