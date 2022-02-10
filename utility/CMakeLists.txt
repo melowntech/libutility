@@ -121,6 +121,8 @@ set(utility_SOURCES
   lrucache.hpp
   limits.hpp
 
+  hostname.hpp # implementation is system dependent
+
   openmp.hpp
 
   atomic.hpp
@@ -219,6 +221,7 @@ if(WIN32)
     detail/filedes.windows.cpp
     detail/limits.unsupported.cpp
     detail/unistd_compat.windows.cpp
+    detail/hostname.windows.cpp
     )
 
 else()
@@ -231,8 +234,8 @@ else()
     lockfile.hpp lockfile.cpp
     identity.hpp identity.cpp
     persona.hpp switchpersona.cpp
-    hostname.hpp hostname.cpp
 
+    detail/hostname.windows.cpp
     detail/limits.posix.cpp
     detail/time.posix.cpp
     detail/filedes.posix.cpp

@@ -24,11 +24,14 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <unistd.h>
+#include <winsock.h>
+#ifndef HOST_NAME_MAX
+#define HOST_NAME_MAX 255
+#endif
 
 #include <climits>
 
-#include "hostname.hpp"
+#include "../hostname.hpp"
 
 namespace utility {
 
