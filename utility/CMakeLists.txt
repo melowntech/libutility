@@ -235,7 +235,7 @@ else()
     identity.hpp identity.cpp
     persona.hpp switchpersona.cpp
 
-    detail/hostname.windows.cpp
+    detail/hostname.posix.cpp
     detail/limits.posix.cpp
     detail/time.posix.cpp
     detail/filedes.posix.cpp
