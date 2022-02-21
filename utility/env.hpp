@@ -24,7 +24,7 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 /**
- *  @file utility/getenv.hpp
+ *  @file utility/env.hpp
  *  @author Tomas Maly
  *
  *  getenv wrapper that returns nullptr on platforms without environment
@@ -48,9 +48,31 @@ inline char *getenv(const char *)
     return nullptr;
 }
 
+#elif defined(_WIN32)
+
+using ::std::getenv;
+
+inline int setenv(const char *name, const char *value, int overwrite)
+{
+    int errcode = 0;
+    if(!overwrite) {
+        size_t envsize = 0;
+        errcode = getenv_s(&envsize, NULL, 0, name);
+        if(errcode || envsize) return errcode;
+    }
+    return _putenv_s(name, value);
+}
+
+inline int unsetenv(const char *name)
+{
+    return _putenv_s(name, "");
+}
+
 #else
 
 using ::std::getenv;
+using ::setenv;
+using ::unsetenv;
 
 #endif
 
