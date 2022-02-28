@@ -44,6 +44,7 @@
 #include "dbglog/dbglog.hpp"
 
 #include "process.hpp"
+#include "uncaught-exception.hpp"
 
 namespace fs = boost::filesystem;
 
@@ -465,7 +466,7 @@ int Pump::run()
             pid_t pid;
             Kill(pid_t pid) : pid(pid) {}
             ~Kill() {
-                if (std::uncaught_exception()) {
+                if (utility::uncaught_exception()) {
                     ::kill(pid, SIGKILL);
                 }
             }
@@ -581,7 +582,7 @@ int systemImpl(const std::string &program, ProcessExecContext ctx)
     // build arguments
     ExecArgs argv;
     argv.arg(program);
-    for (const auto arg : ctx.argv) {
+    for (const auto &arg : ctx.argv) {
         if (arg) {
             argv.arg(*arg);
         }
@@ -613,7 +614,7 @@ void execImpl(const std::string &program, ProcessExecContext ctx)
     // build arguments
     ExecArgs argv;
     argv.arg(program);
-    for (const auto arg : ctx.argv) {
+    for (const auto &arg : ctx.argv) {
         if (arg) {
             argv.arg(*arg);
         }

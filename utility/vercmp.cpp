@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017 Melown Technologies SE
+ * Copyright (c) 2022 Melown Technologies SE
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -23,47 +23,57 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  */
-/**
- * @file scopedguard.hpp
- * @author Vaclav Blazek <vaclav.blazek@citationtech.net>
- *
- * Scoped guard support
- */
 
-#ifndef utility_scopedguard_hpp_included_
-#define utility_scopedguard_hpp_included_
+#include <cctype>
 
-#include <functional>
-#include <exception>
-
-#include <boost/noncopyable.hpp>
-
-#include "uncaught-exception.hpp"
+#include "vercmp.hpp"
 
 namespace utility {
 
-class ScopedGuard : boost::noncopyable {
-public:
-    ScopedGuard(std::function<void()> cleanup)
-        : cleanup_(cleanup)
-    {}
+namespace {
 
-    ~ScopedGuard() noexcept(false) {
-        if (utility::uncaught_exception()) {
-            // some other exception -> do not propagate
-            try { cleanup_(); } catch (...) {}
-        } else {
-            // fine to propagate exception
-            cleanup_();
+inline int characterOrder(int c) {
+    if (std::isdigit(c)) { return 0; }
+    if (std::isalpha(c)) { return c; }
+    if (c) { return c + 256; }
+    return 0;
+}
+
+} // namespace
+
+int versionCompare(const std::string &a, const std::string &b)
+{
+    const char *pa(a.data());
+    const char *pb(b.data());
+
+    while (*pa || *pb) {
+        int diff = 0;
+
+        // compare non-digits
+        while ((*pa && !std::isdigit(*pa)) || (*pb && !std::isdigit(*pb))) {
+            int aco = characterOrder(*pa);
+            int bco = characterOrder(*pb);
+
+            if (aco != bco) { return aco - bco; }
+            ++pa; ++pb;
         }
+
+        // consume leading zeroes
+        while (*pa == '0') { ++pa; }
+        while (*pb == '0') { ++pb; }
+
+        // compare numbers
+        while (std::isdigit(*pa) && std::isdigit(*pb)) {
+            if (!diff) { diff = *pa - *pb; }
+            ++pa; ++pb;
+        }
+
+        if (std::isdigit(*pa)) { return 1; }
+        if (std::isdigit(*pb)) { return -1; }
+        if (diff) { return diff; }
     }
 
-    void reset() { cleanup_ = [](){}; }
-
-private:
-    std::function<void()> cleanup_;
-};
+    return 0;
+}
 
 } // namespace utility
-
-#endif // utility_scopedguard_hpp_included_

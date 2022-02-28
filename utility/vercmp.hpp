@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017 Melown Technologies SE
+ * Copyright (c) 2022 Melown Technologies SE
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -23,47 +23,21 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  */
-/**
- * @file scopedguard.hpp
- * @author Vaclav Blazek <vaclav.blazek@citationtech.net>
- *
- * Scoped guard support
- */
 
-#ifndef utility_scopedguard_hpp_included_
-#define utility_scopedguard_hpp_included_
+#ifndef utility_vercmp_hpp_included_
+#define utility_vercmp_hpp_included_
 
-#include <functional>
-#include <exception>
-
-#include <boost/noncopyable.hpp>
-
-#include "uncaught-exception.hpp"
+#include <string>
 
 namespace utility {
 
-class ScopedGuard : boost::noncopyable {
-public:
-    ScopedGuard(std::function<void()> cleanup)
-        : cleanup_(cleanup)
-    {}
-
-    ~ScopedGuard() noexcept(false) {
-        if (utility::uncaught_exception()) {
-            // some other exception -> do not propagate
-            try { cleanup_(); } catch (...) {}
-        } else {
-            // fine to propagate exception
-            cleanup_();
-        }
-    }
-
-    void reset() { cleanup_ = [](){}; }
-
-private:
-    std::function<void()> cleanup_;
-};
+/** Compares two versin string
+ *
+ * @returns 0 If a and b are equal, <0 If a is smaller than b, >0 If a is
+ * greater than b.
+ */
+int versionCompare(const std::string &a, const std::string &b);
 
 } // namespace utility
 
-#endif // utility_scopedguard_hpp_included_
+#endif // utility_vercmp_hpp_included_

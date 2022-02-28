@@ -1,5 +1,5 @@
 # bump version here
-set(utility_VERSION 1.37)
+set(utility_VERSION 1.38)
 
 set(utility_DEPENDS
   dbglog>=1.4
@@ -159,6 +159,12 @@ set(utility_SOURCES
   unistd_compat.hpp
 
   po.hpp po.cpp
+
+  vercmp.hpp vercmp.cpp
+
+  uncaught-exception.hpp uncaught-exception.cpp
+
+  hostname.hpp # implementation is system dependent
   )
 
 # system-dependent stuff
@@ -239,6 +245,7 @@ else()
     detail/limits.posix.cpp
     detail/time.posix.cpp
     detail/filedes.posix.cpp
+    detail/hostname.linux.cpp
     )
 endif()
 

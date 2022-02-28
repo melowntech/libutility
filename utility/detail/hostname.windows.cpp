@@ -24,12 +24,7 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <winsock.h>
-#ifndef HOST_NAME_MAX
-#define HOST_NAME_MAX 255
-#endif
-
-#include <climits>
+#include <Windows.h>
 
 #include "../hostname.hpp"
 
@@ -37,9 +32,10 @@ namespace utility {
 
 std::string hostname()
 {
-    char hn[HOST_NAME_MAX + 1];
-    hn[HOST_NAME_MAX] = '\0';
-    ::gethostname(hn, sizeof(hn));
+    constexpr size_t HOST_NAME_MAX = 256;
+    char hn[HOST_NAME_MAX + 1] = {};
+    DWORD siz = HOST_NAME_MAX;
+    ::GetComputerNameA(hn, &siz); // gethostname is also available but requires WSAStartup
     return std::string(hn);
 }
 
