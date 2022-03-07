@@ -28,10 +28,11 @@
  *  @author Tomas Maly
  *
  *  getenv wrapper that returns nullptr on platforms without environment
+ *  getenv, setenv, unsetenv wrapper
  */
 
-#ifndef getenv_hpp_included_
-#define getenv_hpp_included_
+#ifndef env_hpp_included_
+#define env_hpp_included_
 
 #include <cstdlib>
 
@@ -78,4 +79,4 @@ using ::unsetenv;
 
 }
 
-#endif // getenv_hpp_included_
+#endif // env_hpp_included_
