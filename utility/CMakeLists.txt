@@ -150,6 +150,7 @@ set(utility_SOURCES
   gccversion.hpp
   cppversion.hpp
 
+  getenv.hpp # deprecated
   env.hpp
 
   memoryfile.hpp
