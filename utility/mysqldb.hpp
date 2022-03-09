@@ -27,7 +27,9 @@
 #define utility_mysqldb_hpp_included_
 
 // needed by sleep
+#ifndef _WIN32
 #include <unistd.h>
+#endif
 
 #include <ctime>
 #include <string>
@@ -225,7 +227,7 @@ void Tx<Connector>::open(const Db::OptionalTxIsolationLevel& isolationLevel)
                 << "Error starting transaction: <" << e.what()
                 << ">; retrying.";
             connector_->closeDb();
-#if 0
+#ifdef _WIN32
             std::this_thread::sleep_for(std::chrono::seconds(1));
 #else
             sleep(1);
@@ -398,7 +400,7 @@ void failIfNotRestartable(const Exception &e)
         "safe to restart transaction: <" << e.what()
         << ">; retrying.";
     // sleep a bit
-#if 0
+#ifdef _WIN32
     std::this_thread::sleep_for(std::chrono::seconds(1));
 #else
     sleep(1);
