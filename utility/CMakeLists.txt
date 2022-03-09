@@ -121,6 +121,8 @@ set(utility_SOURCES
   lrucache.hpp
   limits.hpp
 
+  hostname.hpp # implementation is system dependent
+
   openmp.hpp
 
   atomic.hpp
@@ -148,7 +150,8 @@ set(utility_SOURCES
   gccversion.hpp
   cppversion.hpp
 
-  getenv.hpp
+  getenv.hpp # deprecated
+  env.hpp
 
   memoryfile.hpp
 
