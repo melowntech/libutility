@@ -53,15 +53,14 @@
 #include "../mysqldb.hpp"
 #include "../memoryfile.hpp"
 
+#include "utilitymodule.hpp"
+
 #include "importsupport.py.pyc.hpp"
 
 namespace fs = boost::filesystem;
 namespace bp = boost::python;
 
 namespace utility { namespace py {
-
-bp::object mysqlModule;
-bp::object mysql_cursorsModule;
 
 const utility::mysql::Db::Parameters
 Parameters_fromConfig(const fs::path &path
@@ -105,11 +104,6 @@ Parameters_asDict(const utility::mysql::Db::Parameters &parameters)
 
 bp::object Db_connect(const utility::mysql::Db::Parameters &parameters)
 {
-    if (!mysqlModule) {
-        LOGTHROW(err1, std::runtime_error)
-            << "MySQLdb module not found";
-    }
-
     bp::list empty;
     auto options(Parameters_asDict(parameters));
 
@@ -122,7 +116,7 @@ bp::object Db_connect(const utility::mysql::Db::Parameters &parameters)
         options["init_command"] = os.str();
     }
 
-    return mysqlModule.attr("connect")(*empty, **options);
+    return bp::import("MySQLdb").attr("connect")(*empty, **options);
 }
 
 class Db {
@@ -142,13 +136,8 @@ public:
     }
 
     bp::object dictCursor() {
-        if (!mysql_cursorsModule) {
-            LOGTHROW(err1, std::runtime_error)
-                << "MySQLdb.cursors module not found";
-        }
-
         return conn_.attr("cursor")
-            (bp::object(mysql_cursorsModule.attr("DictCursor")));
+            (bp::object(bp::import("MySQLdb.cursors").attr("DictCursor")));
     }
 
 private:
@@ -203,11 +192,6 @@ BOOST_PYTHON_MODULE(melown_utility_mysql)
             PYSUPPORT_DUMPABLE(py::Db::Parameters)
             ;
     }
-
-    try {
-        py::mysqlModule = import("MySQLdb");
-        py::mysql_cursorsModule = import("MySQLdb.cursors");
-    } catch (const error_already_set&) {}
 }
 
 BOOST_PYTHON_MODULE(melown_utility)
@@ -251,18 +235,22 @@ namespace {
 
 std::once_flag utility_mysql_onceFlag;
 
-void injectMysqlModule(const bp::object&, const bp::object &module)
+void injectMysqlModule(const bp::object &package, const bp::object &module)
 {
     std::call_once(utility_mysql_onceFlag, [&]()
     {
+        const auto pn(bp::extract<std::string>(package.attr("__name__"))());
+        const auto parentName(str(boost::format("%s.utility") % pn));
+        const auto fullName(str(boost::format("%s.utility.mysql") % pn));
         pysupport::addModuleToPackage("mysql", PyInit_melown_utility_mysql()
-                                      , "melown.utility", module);
-        bp::import("melown.utility.mysql");
+                                      , parentName.c_str(), module);
     });
 }
 
 } // namespace
 
 PYSUPPORT_MODULE_IMPORT_CALLBACK(utility, injectMysqlModule)
+
+// PYSUPPORT_MODULE_IMPORT(utility)
 
 } } // namespace utility::py

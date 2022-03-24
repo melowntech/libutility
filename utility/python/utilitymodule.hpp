@@ -31,7 +31,7 @@
 
 namespace utility { namespace py {
 
-boost::python::object import();
+boost::python::object import(const boost::python::object *package = nullptr);
 
 } } // namespace dbglog::py
 
