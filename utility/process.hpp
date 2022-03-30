@@ -170,7 +170,7 @@ public:
 
     void arg(const char *arg) { argv_->push_back(::strdup(arg)); }
     void arg(const std::string &a) { arg(a.c_str()); }
-    void arg(const boost::filesystem::path &a) { arg(a.c_str()); }
+    void arg(const boost::filesystem::path &a) { arg(a.string()); }
 
     template <typename T>
     void arg(const boost::optional<T> &a) { if (a) { arg(*a); } }
