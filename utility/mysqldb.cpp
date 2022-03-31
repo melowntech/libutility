@@ -23,7 +23,11 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  */
+#ifdef MYSQLPP_MYSQL_HEADERS_BURIED
 #include <mysql/mysqld_error.h>
+#else
+#include <mysqld_error.h>
+#endif
 
 #include <functional>
 
