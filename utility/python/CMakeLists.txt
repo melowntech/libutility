@@ -1,7 +1,7 @@
 define_module(LIBRARY pyutility=${MODULE_utility_VERSION}
   DEPENDS
   utility=${MODULE_utility_VERSION}
-  pysupport>=1.3
+  pysupport>=1.4
   Boost_THREAD Boost_SYSTEM)
 
 

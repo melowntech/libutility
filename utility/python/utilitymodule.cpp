@@ -43,7 +43,12 @@
 
 #include "dbglog/dbglog.hpp"
 
+#undef PYSUPPORT_MODULE_IMPORT_API
+#define PYSUPPORT_MODULE_IMPORT_API 2
 #include "pysupport/package.hpp"
+#undef PYSUPPORT_MODULE_IMPORT_API
+#include "pysupport/package.hpp"
+
 #include "pysupport/class.hpp"
 #include "pysupport/hasattr.hpp"
 #include "pysupport/iostreams.hpp"
