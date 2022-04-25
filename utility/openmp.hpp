@@ -77,15 +77,15 @@ inline int capThreadCount(int limit) {
     return std::min(omp_get_max_threads(), limit);
 }
 
-class ScopedNestedParalellism {
+class ScopedNestedParallelism {
 public:
-    ScopedNestedParalellism(bool newValue)
+    ScopedNestedParallelism(bool newValue)
         : oldValue_(omp_get_nested())
     {
         omp_set_nested(newValue);
     }
 
-    ~ScopedNestedParalellism() { omp_set_nested(oldValue_); }
+    ~ScopedNestedParallelism() { omp_set_nested(oldValue_); }
 
 private:
     bool oldValue_;
