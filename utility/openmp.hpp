@@ -67,6 +67,8 @@
 inline int omp_get_max_threads() { return 1; }
 inline int omp_get_num_threads() { return 1; }
 inline int omp_get_thread_num() { return 0; }
+inline int omp_get_nested() { return 0; }
+inline void omp_set_nested(int) {}
 #endif
 
 namespace utility {
@@ -74,6 +76,20 @@ namespace utility {
 inline int capThreadCount(int limit) {
     return std::min(omp_get_max_threads(), limit);
 }
+
+class ScopedNestedParalellism {
+public:
+    ScopedNestedParalellism(bool newValue)
+        : oldValue_(omp_get_nested())
+    {
+        omp_set_nested(newValue);
+    }
+
+    ~ScopedNestedParalellism() { omp_set_nested(oldValue_); }
+
+private:
+    bool oldValue_;
+};
 
 } // namespace utility
 
