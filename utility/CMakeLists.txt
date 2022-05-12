@@ -15,6 +15,7 @@ if(MYSQL++_FOUND)
   message(STATUS "utility: compiling in MySQL++ support")
 
   list(APPEND utility_DEPENDS MYSQL++)
+  list(APPEND utility_DEFINITIONS UTILITY_HAS_MYSQL=1)
 
   set(utility_MYSQL++_SOURCES mysqldb.hpp mysqldb.cpp)
 else()

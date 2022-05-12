@@ -27,6 +27,7 @@
 #ifndef utility_python_utilitymodule_hpp_included_
 #define utility_python_utilitymodule_hpp_included_
 
+#include <pysupport/boost-python-definitions.hpp>
 #include <boost/python.hpp>
 
 namespace utility { namespace py {

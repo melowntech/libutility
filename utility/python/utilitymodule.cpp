@@ -24,6 +24,8 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include "utilitymodule.hpp"
+
 #include <cstring>
 #include <sstream>
 #include <string>
@@ -58,8 +60,6 @@
 #include "../mysqldb.hpp"
 #include "../memoryfile.hpp"
 
-#include "utilitymodule.hpp"
-
 #include "importsupport.py.pyc.hpp"
 
 namespace fs = boost::filesystem;
@@ -71,7 +71,12 @@ const utility::mysql::Db::Parameters
 Parameters_fromConfig(const fs::path &path
                       , const fs::path &root = fs::path())
 {
+#if UTILITY_HAS_MYSQL
     return utility::mysql::Db::fromConfig(path, root);
+#else
+    throw std::runtime_error("Not Implemented!");
+    return {};
+#endif
 }
 
 BOOST_PYTHON_FUNCTION_OVERLOADS
@@ -79,19 +84,27 @@ BOOST_PYTHON_FUNCTION_OVERLOADS
 
 std::string Parameters_configHelp0()
 {
+#if UTILITY_HAS_MYSQL
     std::ostringstream os;
     utility::mysql::Db::configHelp(os);
     return os.str();
+#else
+    throw std::runtime_error("Not Implemented!");
+    return {};
+#endif
 }
 
 void Parameters_configHelp1(const pysupport::OStream::pointer &os)
 {
+#if UTILITY_HAS_MYSQL
     utility::mysql::Db::configHelp(os->ostream());
+#endif
 }
 
 bp::dict
 Parameters_asDict(const utility::mysql::Db::Parameters &parameters)
 {
+#if UTILITY_HAS_MYSQL
     bp::dict dict;
 
     dict["host"] = parameters.host;
@@ -105,10 +118,15 @@ Parameters_asDict(const utility::mysql::Db::Parameters &parameters)
     dict["charset"] = "utf8";
 
     return dict;
+#else
+    throw std::runtime_error("Not Implemented!");
+    return {};
+#endif
 }
 
 bp::object Db_connect(const utility::mysql::Db::Parameters &parameters)
 {
+#if UTILITY_HAS_MYSQL
     bp::list empty;
     auto options(Parameters_asDict(parameters));
 
@@ -122,6 +140,10 @@ bp::object Db_connect(const utility::mysql::Db::Parameters &parameters)
     }
 
     return bp::import("MySQLdb").attr("connect")(*empty, **options);
+#else
+    throw std::runtime_error("Not Implemented!");
+    return {};
+#endif
 }
 
 class Db {
@@ -184,6 +206,7 @@ BOOST_PYTHON_MODULE(melown_utility_mysql)
         bp::scope scope(Db);
         auto Parameters = class_<py::Db::Parameters>
             ("Parameters", init<>())
+#if UTILITY_HAS_MYSQL
             .def_readwrite("database", &py::Db::Parameters::database)
             .def_readwrite("host", &py::Db::Parameters::host)
             .def_readwrite("user", &py::Db::Parameters::user)
@@ -195,6 +218,7 @@ BOOST_PYTHON_MODULE(melown_utility_mysql)
             .def_readwrite("writeTimeout", &py::Db::Parameters::writeTimeout)
             .def("asDict", &py::Parameters_asDict)
             PYSUPPORT_DUMPABLE(py::Db::Parameters)
+#endif
             ;
     }
 }
