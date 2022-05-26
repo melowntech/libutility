@@ -98,6 +98,8 @@ void Parameters_configHelp1(const pysupport::OStream::pointer &os)
 {
 #if UTILITY_HAS_MYSQL
     utility::mysql::Db::configHelp(os->ostream());
+#else
+    throw std::runtime_error("Not Implemented!");
 #endif
 }
 
