@@ -26,6 +26,42 @@
 #ifndef utility_mysqldb_hpp_included_
 #define utility_mysqldb_hpp_included_
 
+#if !UTILITY_HAS_MYSQL
+namespace mysqlpp {
+    const char quote = '"';
+    using Query = std::stringstream;
+    class Connection {};
+    class StoreQueryResult {};
+    class SimpleResult {};
+    class Row {};
+    class Transaction {};
+}
+namespace utility {
+namespace mysql {
+    template<typename T>
+    class TxProxy {};
+    template<typename T>
+    class TxProxyTraits {};
+    class Db {
+    public:
+        using Query = mysqlpp::Query;
+        using Connection = mysqlpp::Connection;
+        using SimpleResult = mysqlpp::SimpleResult;
+        using StoreQueryResult = mysqlpp::StoreQueryResult;
+        struct Parameters {};
+        Connection& conn();
+        Query query();
+        template <typename T>
+        Query query(const T &t);
+        SimpleResult execute(Query &query);
+        StoreQueryResult store(Query &query);
+        Db(const Parameters &params) { }
+        ~Db() {}
+    };
+}
+}
+#else
+
 // needed by sleep
 #ifndef _WIN32
 #include <unistd.h>
@@ -424,5 +460,6 @@ auto safeTx(const Function &f)-> decltype(f())
 }
 
 } } // namespace utility::mysql
+#endif
 
 #endif // utility_mysqldb_hpp_included_
