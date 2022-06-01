@@ -29,10 +29,21 @@
 
 namespace utility { namespace detail {
 
-boost::asio::ip::tcp::endpoint
-tcpEndpointForIface(const boost::asio::ip::tcp&
-                    , const std::string&
+namespace ip = boost::asio::ip;
+
+ip::tcp::endpoint
+tcpEndpointForIface(const ip::tcp &
+                    , const std::string &
                     , unsigned short)
+{
+    throw std::runtime_error
+        ("Network interface querying not supported on this platform");
+}
+
+ip::udp::endpoint
+udpEndpointForIface(const ip::udp &
+                    , const std::string &
+                    , unsigned short )
 {
     throw std::runtime_error
         ("Network interface querying not supported on this platform");
