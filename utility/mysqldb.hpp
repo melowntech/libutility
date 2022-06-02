@@ -55,7 +55,7 @@ namespace mysql {
         Query query(const T &t);
         SimpleResult execute(Query &query);
         StoreQueryResult store(Query &query);
-        Db(const Parameters &params) { }
+        Db(const Parameters &params) { (void)(params); }
         ~Db() {}
     };
 }
