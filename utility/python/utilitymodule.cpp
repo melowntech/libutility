@@ -74,6 +74,8 @@ Parameters_fromConfig(const fs::path &path
 #if UTILITY_HAS_MYSQL
     return utility::mysql::Db::fromConfig(path, root);
 #else
+    (void)(path);
+    (void)(root);
     throw std::runtime_error("Not Implemented!");
     return {};
 #endif
@@ -99,6 +101,7 @@ void Parameters_configHelp1(const pysupport::OStream::pointer &os)
 #if UTILITY_HAS_MYSQL
     utility::mysql::Db::configHelp(os->ostream());
 #else
+    (void)(os);
     throw std::runtime_error("Not Implemented!");
 #endif
 }
@@ -121,6 +124,7 @@ Parameters_asDict(const utility::mysql::Db::Parameters &parameters)
 
     return dict;
 #else
+    (void)(parameters);
     throw std::runtime_error("Not Implemented!");
     return {};
 #endif
@@ -143,6 +147,7 @@ bp::object Db_connect(const utility::mysql::Db::Parameters &parameters)
 
     return bp::import("MySQLdb").attr("connect")(*empty, **options);
 #else
+    (void)(parameters);
     throw std::runtime_error("Not Implemented!");
     return {};
 #endif
