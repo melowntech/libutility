@@ -76,7 +76,7 @@ Parameters_fromConfig(const fs::path &path
 #else
     (void)(path);
     (void)(root);
-    throw std::runtime_error("Not Implemented!");
+    LOGTHROW(err3, std::runtime_error) << "Not Implemented!";
     return {};
 #endif
 }
@@ -91,7 +91,7 @@ std::string Parameters_configHelp0()
     utility::mysql::Db::configHelp(os);
     return os.str();
 #else
-    throw std::runtime_error("Not Implemented!");
+    LOGTHROW(err3, std::runtime_error) << "Not Implemented!";
     return {};
 #endif
 }
@@ -102,7 +102,7 @@ void Parameters_configHelp1(const pysupport::OStream::pointer &os)
     utility::mysql::Db::configHelp(os->ostream());
 #else
     (void)(os);
-    throw std::runtime_error("Not Implemented!");
+    LOGTHROW(err3, std::runtime_error) << "Not Implemented!";
 #endif
 }
 
@@ -125,7 +125,7 @@ Parameters_asDict(const utility::mysql::Db::Parameters &parameters)
     return dict;
 #else
     (void)(parameters);
-    throw std::runtime_error("Not Implemented!");
+    LOGTHROW(err3, std::runtime_error) << "Not Implemented!";
     return {};
 #endif
 }
@@ -148,7 +148,7 @@ bp::object Db_connect(const utility::mysql::Db::Parameters &parameters)
     return bp::import("MySQLdb").attr("connect")(*empty, **options);
 #else
     (void)(parameters);
-    throw std::runtime_error("Not Implemented!");
+    LOGTHROW(err3, std::runtime_error) << "Not Implemented!";
     return {};
 #endif
 }
