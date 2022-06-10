@@ -69,6 +69,12 @@ inline int omp_get_num_threads() { return 1; }
 inline int omp_get_thread_num() { return 0; }
 inline int omp_get_nested() { return 0; }
 inline void omp_set_nested(int) {}
+
+using omp_lock_t = int;
+inline void omp_set_lock(omp_lock_t *) {}
+inline void omp_unset_lock(omp_lock_t *) {}
+inline void omp_init_lock(omp_lock_t *) {}
+inline void omp_destroy_lock(omp_lock_t *) {}
 #endif
 
 namespace utility {
