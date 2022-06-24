@@ -1,8 +1,8 @@
 # bump version here
-set(utility_VERSION 1.40)
+set(utility_VERSION 1.41)
 
 set(utility_DEPENDS
-  dbglog>=1.4
+  dbglog>=1.7
   Boost_THREAD
   Boost_PROGRAM_OPTIONS
   Boost_FILESYSTEM
@@ -266,7 +266,7 @@ add_library(utility STATIC
   )
 buildsys_library(utility)
 target_link_libraries(utility ${MODULE_LIBRARIES})
-buildsys_target_compile_definitions(utility ${MODULE_DEFINITIONS})
+target_compile_definitions(utility PRIVATE ${MODULE_DEFINITIONS})
 
 # fallback to pre C++11 compiler for Boost.Filesystem operations
 if (${CMAKE_C_COMPILER_ID} MATCHES GNU)

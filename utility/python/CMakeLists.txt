@@ -11,7 +11,7 @@ define_module(LIBRARY pyutility=${MODULE_utility_VERSION}
   DEPENDS
   ${pyutility_DEPENDS}
   utility=${MODULE_utility_VERSION}
-  pysupport>=1.5
+  pysupport>=1.6
   Boost_THREAD Boost_SYSTEM
   DEFINITIONS ${pyutility_DEFINITIONS})
 
@@ -25,4 +25,4 @@ py_to_pyc(pyutility_SOURCES utility::py::importsupport importsupport.py)
 add_library(pyutility STATIC ${pyutility_SOURCES})
 buildsys_library(pyutility)
 target_link_libraries(pyutility ${MODULE_LIBRARIES})
-buildsys_target_compile_definitions(pyutility ${MODULE_DEFINITIONS})
+target_compile_definitions(pyutility PRIVATE ${MODULE_DEFINITIONS})

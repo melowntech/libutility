@@ -8,4 +8,4 @@ add_executable(utility-tests EXCLUDE_FROM_ALL
   main.cpp ${UTILITY_TEST_SOURCES})
 buildsys_binary(utility-tests)
 target_link_libraries(utility-tests ${MODULE_LIBRARIES})
-buildsys_target_compile_definitions(utility-tests ${MODULE_DEFINITIONS})
+target_compile_definitions(utility-tests PRIVATE ${MODULE_DEFINITIONS})
