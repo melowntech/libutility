@@ -112,7 +112,7 @@ bool Zip::help(std::ostream &out, const std::string &what) const
     if (what.empty()) {
         out << R"RAW(utility-zip
 usage
-    vef2vts OUTPUT INPUT+ [OPTIONS]
+    utility-zip OUTPUT INPUT+ [OPTIONS]
 
 )RAW";
     }

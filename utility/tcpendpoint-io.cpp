@@ -28,22 +28,30 @@
 
 #include <boost/lexical_cast.hpp>
 
+#include <boost/asio/io_service.hpp>
+
 #include "tcpendpoint.hpp"
 #include "tcpendpoint-io.hpp"
 #include "detail/iface.hpp"
 
-namespace ip = boost::asio::ip;
+namespace asio = boost::asio;
+namespace ip = asio::ip;
 
 namespace utility {
 
-TcpEndpoint::TcpEndpoint(const std::string &def)
-    : value(parseTcpEndpoint(def).value)
+TcpEndpoint::TcpEndpoint(const std::string &def, ParseFlags flags)
+    : value(parseTcpEndpoint(def, flags).value)
 {}
 
 namespace {
 
+inline constexpr bool allowResolve(TcpEndpoint::ParseFlags flags)
+{
+    return +(flags & TcpEndpoint::ParseFlags::allowResolve);
+}
+
 TcpEndpoint parseIpv4(const std::string &input, const std::string &host
-                      , short port)
+                      , short port, TcpEndpoint::ParseFlags flags)
 {
     // try to parse ipv4 first
     try {
@@ -51,19 +59,35 @@ TcpEndpoint parseIpv4(const std::string &input, const std::string &host
                 (ip::address_v4::from_string(host), port)};
     } catch (const std::exception&) {}
 
-    // try interface as last resort
+    // try interface
     try {
         return { detail::tcpEndpointForIface
                 (ip::tcp::v4(), host, port) };
     } catch (const std::exception&) {}
 
+    // try DNS resolver if allowed to
+    if (allowResolve(flags)) {
+        try {
+            // ipv4 resolver
+            asio::io_service ios;
+            ip::tcp::resolver resolver(ios);
+            auto iresponse(resolver.resolve
+                           (ip::tcp::v4()
+                            , host, boost::lexical_cast<std::string>(port)
+                            , ip::tcp::resolver::query::numeric_service));
+            return { iresponse->endpoint() };
+        } catch (const std::exception&) {}
+    }
+
+    // nothing worked
     throw std::runtime_error
         ("Not an endpoint: <" + input + ">: " + host
-         + " is neither valid IPv4 address nor any local interface.");
+         + " is neither valid IPv4 address nor any local interface "
+         "nor a valid hostname.");
 }
 
 TcpEndpoint parseIpv6(const std::string &input, const std::string &host
-                      , short port)
+                      , short port, TcpEndpoint::ParseFlags flags)
 {
     // try to parse ipv6 first
     try {
@@ -71,20 +95,43 @@ TcpEndpoint parseIpv6(const std::string &input, const std::string &host
                 (ip::address_v6::from_string(host), port)};
     } catch (const std::exception&) {}
 
-    // try interface as last resort
+    // try DNS resolver if allowed to
+    if (allowResolve(flags)) {
+        // TODO: ipv6 resolver
+    }
+
+    // try interface
     try {
         return { detail::tcpEndpointForIface
                 (ip::tcp::v6(), host, port) };
     } catch (const std::exception&) {}
 
+    // try DNS resolver if allowed to
+    if (allowResolve(flags)) {
+        try {
+            // ipv4 resolver
+            asio::io_service ios;
+            ip::tcp::resolver resolver(ios);
+            auto iresponse(resolver.resolve
+                           (ip::tcp::v6()
+                            , host, boost::lexical_cast<std::string>(port)
+                            , ip::tcp::resolver::query::numeric_service));
+            return { iresponse->endpoint() };
+        } catch (const std::exception&) {}
+    }
+
+    // nothing worked
     throw std::runtime_error
         ("Not an endpoint: <" + input + ">: " + host
-         + " is neither valid IPv6 address nor any local interface.");
+         + " is neither valid IPv6 address nor any local interface "
+         "nor a valid hostname.");
 }
 
 } // namespace
 
-TcpEndpoint parseTcpEndpoint(const std::string &input) {
+TcpEndpoint parseTcpEndpoint(const std::string &input
+                             , TcpEndpoint::ParseFlags flags)
+{
     auto colon(input.rfind(':'));
 
     const auto host
@@ -121,10 +168,10 @@ TcpEndpoint parseTcpEndpoint(const std::string &input) {
                 ("Not an endpoint: <" + input + ">: missing closing ']'.");
         }
         return parseIpv6(input, host.substr(1, host.size() - 2)
-                                 , sPort);
+                         , sPort, flags);
     }
 
-    return parseIpv4(input, host, sPort);
+    return parseIpv4(input, host, sPort, flags);
 }
 
 } // namespace utility

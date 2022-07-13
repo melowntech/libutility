@@ -35,12 +35,18 @@
 namespace utility {
 
 struct TcpEndpoint {
+    enum class ParseFlags : unsigned int {
+        default_ = 0x00
+        , allowResolve = 0x01
+    };
+
     TcpEndpoint() = default;
 
     TcpEndpoint(unsigned short portNum)
         : value(boost::asio::ip::tcp::v4(), portNum) {}
 
-    TcpEndpoint(const std::string &def);
+    TcpEndpoint(const std::string &def
+                , ParseFlags flags = ParseFlags::default_);
 
     TcpEndpoint(const boost::asio::ip::tcp::endpoint &value) : value(value) {}
 
@@ -48,6 +54,39 @@ struct TcpEndpoint {
 
     boost::asio::ip::tcp::endpoint value;
 };
+
+// inlines
+
+inline constexpr auto
+operator+(TcpEndpoint::ParseFlags f)
+{
+    using Type = std::underlying_type<TcpEndpoint::ParseFlags>::type;
+    return static_cast<Type>(f);
+}
+
+inline constexpr TcpEndpoint::ParseFlags
+operator&(TcpEndpoint::ParseFlags l, TcpEndpoint::ParseFlags r)
+{
+    using Type = std::underlying_type<TcpEndpoint::ParseFlags>::type;
+    return static_cast<TcpEndpoint::ParseFlags>
+        (static_cast<Type>(l) & static_cast<Type>(r));
+}
+
+inline constexpr TcpEndpoint::ParseFlags
+operator|(TcpEndpoint::ParseFlags l, TcpEndpoint::ParseFlags r)
+{
+    using Type = std::underlying_type<TcpEndpoint::ParseFlags>::type;
+    return static_cast<TcpEndpoint::ParseFlags>
+        (static_cast<Type>(l) | static_cast<Type>(r));
+}
+
+inline constexpr TcpEndpoint::ParseFlags&
+operator|=(TcpEndpoint::ParseFlags& l, TcpEndpoint::ParseFlags r)
+{
+    using Type = std::underlying_type<TcpEndpoint::ParseFlags>::type;
+    reinterpret_cast<Type&>(l) |= static_cast<Type>(r);
+    return l;
+}
 
 } // namespace utility
 

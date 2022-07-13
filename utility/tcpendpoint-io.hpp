@@ -32,7 +32,9 @@
 
 namespace utility {
 
-TcpEndpoint parseTcpEndpoint(const std::string &listen);
+TcpEndpoint parseTcpEndpoint(const std::string &input
+                             , TcpEndpoint::ParseFlags flags
+                             = TcpEndpoint::ParseFlags::default_);
 
 template<typename CharT, typename Traits>
 std::basic_istream<CharT, Traits>&
