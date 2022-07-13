@@ -96,10 +96,12 @@ public:
     Uri& host(std::string value);
     int port() const;
     boost::filesystem::path path() const;
+    const std::string& user() const;
+    const std::string& password() const;
 
     /** Drops authentization info (username and password) from URI.
      */
-    Uri& dropAuthInfo();
+    Uri& dropAuthInfo(bool justPassword = false);
 
     /** Returns slice of path starting at given index.
      *
@@ -221,8 +223,13 @@ inline Uri& Uri::host(std::string value) {
 
 inline int Uri::port() const { return components_.port; }
 
-inline Uri& Uri::dropAuthInfo() {
-    components_.user.clear();
+inline const std::string& Uri::user() const { return components_.user; }
+inline const std::string& Uri::password() const {
+    return components_.password;
+}
+
+inline Uri& Uri::dropAuthInfo(bool justPassword) {
+    if (!justPassword) { components_.user.clear(); }
     components_.password.clear();
     return *this;
 }
