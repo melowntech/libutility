@@ -54,9 +54,11 @@ inline get_multi_value(const po::variables_map &map, const char *name
     const auto &value(v.as<std::vector<T> >());
 
     if (value.size() != size) {
-        // TODO: replace "xxx" with size difference description
+        std::string log = "Wrong number of multi_value entries: " + 
+                          std::to_string(value.size()) + 
+                          " vs expected " + std::to_string(size);
         throw po::validation_error
-            (po::validation_error::invalid_option_value, "xxx", name);
+            (po::validation_error::invalid_option_value, log, name);
     }
     return value;
 }
