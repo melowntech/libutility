@@ -33,6 +33,8 @@ namespace utility {
 
 std::string hostname();
 
+std::string fqdn();
+
 } // namespace utility
 
 #endif // utility_hostname_hpp_included_

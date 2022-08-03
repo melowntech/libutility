@@ -39,4 +39,10 @@ std::string hostname()
     return std::string(hn);
 }
 
+std::string fqdn()
+{
+    // TODO: implement me
+    return {}
+}
+
 } // namespace utility
