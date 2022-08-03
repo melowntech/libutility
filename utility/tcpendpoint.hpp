@@ -80,7 +80,7 @@ operator|(TcpEndpoint::ParseFlags l, TcpEndpoint::ParseFlags r)
         (static_cast<Type>(l) | static_cast<Type>(r));
 }
 
-inline constexpr TcpEndpoint::ParseFlags&
+inline TcpEndpoint::ParseFlags&
 operator|=(TcpEndpoint::ParseFlags& l, TcpEndpoint::ParseFlags r)
 {
     using Type = std::underlying_type<TcpEndpoint::ParseFlags>::type;
