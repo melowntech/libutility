@@ -42,7 +42,7 @@ std::string hostname()
 std::string fqdn()
 {
     // TODO: implement me
-    return {}
+    return {};
 }
 
 } // namespace utility
