@@ -180,12 +180,20 @@ void redirect(const ProcessExecContext::Redirects &redirects)
 
             auto src(boost::any_cast<RedirectFile::SrcPath>(redirect.src));
             int fd(-1);
-            if (src.out) {
+            switch (src.out) {
+            case RedirectFile::Direction::in:
+                fd = ::open(src.path.string().c_str(), O_RDONLY);
+                break;
+            case RedirectFile::Direction::outTruncate:
                 fd = ::open(src.path.string().c_str()
                             , O_WRONLY | O_CREAT | O_TRUNC
                             , (S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH));
-            } else {
-                fd = ::open(src.path.string().c_str(), O_RDONLY);
+                break;
+            case RedirectFile::Direction::out:
+                fd = ::open(src.path.string().c_str()
+                            , O_WRONLY | O_CREAT
+                            , (S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH));
+                break;
             }
 
             if (fd == -1) {

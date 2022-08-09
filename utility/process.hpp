@@ -54,8 +54,13 @@ struct Stdin : detail::RedirectFile {
 
 struct Stdout : detail::RedirectFile {
     explicit Stdout(int fd) : RedirectFile(STDOUT_FILENO, fd) {}
-    explicit Stdout(const boost::filesystem::path &path)
-        : RedirectFile(STDOUT_FILENO, path, true) {}
+    explicit Stdout(const boost::filesystem::path &path
+                    , bool truncate = true)
+        : RedirectFile(STDOUT_FILENO, path
+                       , (truncate
+                          ? detail::RedirectFile::Direction::outTruncate
+                          : detail::RedirectFile::Direction::out))
+    {}
     explicit Stdout(std::ostream &os) : RedirectFile(STDOUT_FILENO, os) {}
 
     friend class ProcessExecContext;
