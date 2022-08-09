@@ -180,7 +180,7 @@ void redirect(const ProcessExecContext::Redirects &redirects)
 
             auto src(boost::any_cast<RedirectFile::SrcPath>(redirect.src));
             int fd(-1);
-            switch (src.out) {
+            switch (src.dir) {
             case RedirectFile::Direction::in:
                 fd = ::open(src.path.string().c_str(), O_RDONLY);
                 break;

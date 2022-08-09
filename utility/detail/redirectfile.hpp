@@ -41,11 +41,11 @@ struct RedirectFile {
     enum class Direction { in, outTruncate, out };
 
     struct SrcPath {
-        SrcPath(const boost::filesystem::path &path, Direction out)
-            : path(path), out(out) {}
+        SrcPath(const boost::filesystem::path &path, Direction dir)
+            : path(path), dir(dir) {}
         boost::filesystem::path path;
 
-        Direction out;
+        Direction dir;
     };
 
     struct DstArg {
@@ -67,11 +67,10 @@ struct RedirectFile {
         : dst(dst), dstType(DstType::fd)
         , src(src), srcType(SrcType::fd) {}
     RedirectFile(int dst, const boost::filesystem::path &path
-                 , Direction out)
+                 , Direction dir)
         : dst(dst), dstType(DstType::fd)
-        , src(SrcPath(path, out)), srcType(SrcType::path) {}
-    RedirectFile(int dst, const boost::filesystem::path &path
-                 , bool out)
+        , src(SrcPath(path, dir)), srcType(SrcType::path) {}
+    RedirectFile(int dst, const boost::filesystem::path &path, bool out)
         : RedirectFile
           (dst, path, out ? Direction::outTruncate : Direction::in)
     {}
