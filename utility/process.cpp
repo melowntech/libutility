@@ -191,7 +191,7 @@ void redirect(const ProcessExecContext::Redirects &redirects)
                 break;
             case RedirectFile::Direction::out:
                 fd = ::open(src.path.string().c_str()
-                            , O_WRONLY | O_CREAT
+                            , O_WRONLY | O_CREAT | O_APPEND
                             , (S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH));
                 break;
             }
