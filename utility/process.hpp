@@ -68,8 +68,13 @@ struct Stdout : detail::RedirectFile {
 
 struct Stderr : detail::RedirectFile {
     explicit Stderr(int fd) : RedirectFile(STDERR_FILENO, fd) {}
-    explicit Stderr(const boost::filesystem::path &path)
-        : RedirectFile(STDERR_FILENO, path, true) {}
+    explicit Stderr(const boost::filesystem::path &path
+                    , bool truncate = true)
+        : RedirectFile(STDERR_FILENO, path
+                       , (truncate
+                          ? detail::RedirectFile::Direction::outTruncate
+                          : detail::RedirectFile::Direction::out))
+    {}
     explicit Stderr(std::ostream &os) : RedirectFile(STDERR_FILENO, os) {}
 
     friend class ProcessExecContext;
