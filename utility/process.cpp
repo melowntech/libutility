@@ -118,8 +118,8 @@ pid_t execute(const ExecArgs &argv, const boost::function<void()> &afterFork)
     if (-1 == pid) {
         // Oops, failed
         std::system_error e(errno, std::system_category());
-        LOG(warn1) << "fork(2) failed: <" << e.code()
-                   << ", " << e.what() << ">";
+        LOG(err2) << "fork(2) failed: <" << e.code()
+                  << ", " << e.what() << ">";
         throw e;
     } else if (0 == pid) {
         // child -> prepare and exec
@@ -135,9 +135,9 @@ pid_t execute(const ExecArgs &argv, const boost::function<void()> &afterFork)
 #endif
         {
             std::system_error e(errno, std::system_category());
-            LOG(warn1) << "execve(2) [" << argv.filename()
-                       << "] failed: <" << e.code() << ", "
-                       << e.what() << ">";
+            LOG(err2) << "execve(2) [" << argv.filename()
+                      << "] failed: <" << e.code() << ", "
+                      << e.what() << ">";
             std::exit(EXEC_FAILED);
         }
 
@@ -159,9 +159,9 @@ void execute(const ExecArgs &argv)
 #endif
     {
         std::system_error e(errno, std::system_category());
-        LOG(warn1) << "execve(2) [" << argv.filename()
-                   << "] failed: <" << e.code() << ", "
-                   << e.what() << ">";
+        LOG(err2) << "execve(2) [" << argv.filename()
+                  << "] failed: <" << e.code() << ", "
+                  << e.what() << ">";
         throw(e);
     }
     // never reached
@@ -643,8 +643,8 @@ int spawnImpl(const std::function<int ()> &func, int flags)
     if (-1 == pid) {
         // Oops, failed
         std::system_error e(errno, std::system_category());
-        LOG(warn1) << "fork(2) failed: <" << e.code()
-                   << ", " << e.what() << ">";
+        LOG(err2) << "fork(2) failed: <" << e.code()
+                  << ", " << e.what() << ">";
         throw e;
     } else if (0 == pid) {
         // run function
