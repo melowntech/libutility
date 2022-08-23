@@ -97,6 +97,7 @@ public:
     const std::string& host() const;
     Uri& host(std::string value);
     int port() const;
+    Uri& port(int value);
     boost::filesystem::path path() const;
     const std::string& user() const;
     const std::string& password() const;
@@ -231,6 +232,10 @@ inline Uri& Uri::host(std::string value) {
 }
 
 inline int Uri::port() const { return components_.port; }
+inline Uri& Uri::port(int value) {
+    components_.port = value;
+    return *this;
+}
 
 inline const std::string& Uri::user() const { return components_.user; }
 inline const std::string& Uri::password() const {
