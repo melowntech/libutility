@@ -333,7 +333,12 @@ Uri parseUri(const std::string &in) {
 std::string Uri::str() const
 {
     std::ostringstream os;
+    toStream(os);
+    return os.str();
+}
 
+void Uri::toStream(std::ostream &os) const
+{
     // schema
     if (!components_.scheme.empty()) {
         os << components_.scheme << ':';
@@ -370,8 +375,6 @@ std::string Uri::str() const
     if (!components_.fragment.empty()) {
         os << '#' << components_.fragment;
     }
-
-    return os.str();
 }
 
 std::string Uri::removeDotSegments(const std::string &str)
@@ -657,6 +660,20 @@ std::string QueryString::get(const std::string &key
         }
     }
     return defaultValue;
+}
+
+std::ostream& operator<<(std::ostream &os, const Uri &uri)
+{
+    uri.toStream(os);
+    return os;
+}
+
+std::istream& operator>>(std::istream &is, Uri &uri)
+{
+    std::string s;
+    is >> s;
+    uri = { s };
+    return is;
 }
 
 } // utility
