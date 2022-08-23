@@ -84,6 +84,8 @@ struct UriComponents : UriNetloc {
 
 class Uri {
 public:
+    using list = std::vector<Uri>;
+
     Uri() {}
     Uri(const std::string &in);
     Uri(UriComponents components) : components_(std::move(components)) {}
@@ -128,6 +130,10 @@ public:
      */
     std::string str() const;
 
+    /** Output to stream
+     */
+    void toStream(std::ostream &os) const;
+
     /** Resolves URI reference.
      *  returns this + relative
      */
@@ -144,8 +150,11 @@ private:
     UriComponents components_;
 };
 
-
 std::string str(const Uri &uri);
+
+std::ostream& operator<<(std::ostream &os, const Uri &uri);
+
+std::istream& operator>>(std::istream &is, Uri &uri);
 
 // query parsing
 
