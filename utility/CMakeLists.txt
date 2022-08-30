@@ -167,6 +167,8 @@ set(utility_SOURCES
   uncaught-exception.hpp uncaught-exception.cpp
 
   hostname.hpp # implementation is system dependent
+
+  iothreads.hpp iothreads.cpp
   )
 
 # system-dependent stuff
