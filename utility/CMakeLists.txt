@@ -1,5 +1,5 @@
 # bump version here
-set(utility_VERSION 1.42)
+set(utility_VERSION 1.43)
 
 set(utility_DEPENDS
   dbglog>=1.7
