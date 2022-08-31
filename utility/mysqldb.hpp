@@ -26,6 +26,8 @@
 #ifndef utility_mysqldb_hpp_included_
 #define utility_mysqldb_hpp_included_
 
+#include <sstream>
+
 #if !UTILITY_HAS_MYSQL
 namespace mysqlpp {
     const char quote = '"';
@@ -59,6 +61,12 @@ namespace mysql {
         ~Db() {}
     };
 }
+template <typename Function>
+auto safeTx(const Function &f)-> decltype(f())
+{
+    return f();
+}
+
 }
 #else
 
