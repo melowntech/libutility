@@ -60,14 +60,11 @@ namespace mysql {
         Db(const Parameters &params) { (void)(params); }
         ~Db() {}
     };
-}
-template <typename Function>
-auto safeTx(const Function &f)-> decltype(f())
-{
-    return f();
-}
-
-}
+    template <typename Function>
+    auto safeTx(const Function &f)-> decltype(f()) {
+        return f();
+    }
+} }
 #else
 
 // needed by sleep
