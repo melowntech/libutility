@@ -6,6 +6,13 @@
 
 namespace utility {
 
+IoThreads::IoThreads(const std::string &name, boost::asio::io_context &ioc
+                     , bool forkable)
+    : name_(name), ioc_(ioc), work_(ioc_)
+{
+    if (forkable) { af_.emplace(ioc_); }
+}
+
 IoThreads::~IoThreads()
 {
     if (!workers_.empty()) { stop(); }
