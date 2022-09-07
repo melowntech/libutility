@@ -70,6 +70,7 @@ public:
     void apply(const Stream &arg) { add(arg); }
     void apply(const SetEnv &arg) { environ[arg.name] = arg.value; }
     void apply(const UnsetEnv &arg) { environ[arg.name] = boost::none; }
+    void apply(const Environment &arg);
     void apply(const ChangeCwd &arg) { cwd = arg.wd; }
     void apply(const std::string &arg) { argv.push_back(arg); }
     void apply(const boost::filesystem::path &arg) {
@@ -151,6 +152,11 @@ ProcessExecContext::dump(std::basic_ostream<E, T> &os
     }
 
     return os;
+}
+
+inline void ProcessExecContext::apply(const Environment &arg)
+{
+    environ.insert(arg.begin(), arg.end());
 }
 
 } // namespace utility
