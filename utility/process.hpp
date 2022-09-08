@@ -31,6 +31,7 @@
 #include <vector>
 #include <utility>
 #include <memory>
+#include <functional>
 #include <iostream>
 
 #include <boost/filesystem/path.hpp>
@@ -112,6 +113,30 @@ struct UnsetEnv {
 struct ChangeCwd {
     boost::filesystem::path wd;
     explicit ChangeCwd(const boost::filesystem::path &wd) : wd(wd) {}
+};
+
+/** Replaces positional argument with result of given function.
+ */
+struct ReplaceArg {
+    using Callback = std::function<std::string()>;
+
+    Callback callback;
+
+    explicit ReplaceArg(Callback &&callback)
+        : callback(std::move(callback))
+    {}
+};
+
+/** Calls given callback juste before calling exec.
+ */
+struct PreExecCallback {
+    using Callback = std::function<void()>;
+
+    Callback callback;
+
+    explicit PreExecCallback(Callback &&callback)
+        : callback(std::move(callback))
+    {}
 };
 
 /** Execute child process and wait for its completion.
@@ -197,6 +222,10 @@ public:
     char* const* argv() const { return argv_->data(); }
 
     const Argv& args() const { return *argv_; }
+
+    /** Replaces placeholder argument with given value.
+     */
+    bool replace(const std::string &original, const std::string &value);
 
 private:
     std::shared_ptr<Argv> argv_;

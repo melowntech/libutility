@@ -49,7 +49,7 @@ Identity Identity::effectivePersona()
     return i;
 }
 
-Identity NamedIdentity::resolve()
+Identity NamedIdentity::resolve() const
 {
     Identity p;
     try {
@@ -77,6 +77,23 @@ Identity NamedIdentity::resolve()
     }
 
     return p;
+}
+
+void setRealPersona(const Identity &persona)
+{
+    if (setgid(persona.gid) == -1) {
+        std::system_error e(errno, std::system_category());
+        LOG(err2) << "Cannot change real gid to " << persona.gid << ": <"
+                  << e.code() << ", " << e.what() << ">.";
+        throw e;
+    }
+
+    if (setuid(persona.uid) == -1) {
+        std::system_error e(errno, std::system_category());
+        LOG(err2) << "Cannot change real uid to " << persona.uid << ": <"
+                  << e.code() << ", " << e.what() << ">.";
+        throw e;
+    }
 }
 
 void setEffectivePersona(const Identity &persona)

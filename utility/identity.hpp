@@ -54,7 +54,7 @@ struct NamedIdentity {
     std::string username;
     std::string groupname;
 
-    Identity resolve();
+    Identity resolve() const;
 };
 
 // inlines

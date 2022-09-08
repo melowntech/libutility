@@ -36,6 +36,7 @@
 
 #include "../process.hpp"
 #include "../environment.hpp"
+#include "../format.hpp"
 
 namespace utility {
 
@@ -52,6 +53,11 @@ public:
     Environment environ;
 
     boost::optional<boost::filesystem::path> cwd;
+
+    using Replacement = std::pair<std::string, ReplaceArg::Callback>;
+    std::vector<Replacement> replacements;
+
+    std::vector<PreExecCallback::Callback> preExecCallbacks;
 
     void add(const detail::RedirectFile &arg) {
         // TODO: check for duplicity
@@ -76,6 +82,17 @@ public:
     void apply(const boost::filesystem::path &arg) {
         argv.push_back(arg.string());
     }
+
+    void apply(ReplaceArg &&arg) {
+        const auto name(format("__%s", argv.size()));
+        replacements.emplace_back(name, std::move(arg.callback));
+        argv.push_back(name);
+    }
+
+    void apply(PreExecCallback &&arg) {
+        preExecCallbacks.push_back(std::move(arg.callback));
+    }
+
     void apply(const ProcessExecContext &arg) { *this = arg; }
 
     template <typename T>
