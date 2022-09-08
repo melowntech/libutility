@@ -23,6 +23,7 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  */
+
 #include <iostream>
 #include <cerrno>
 #include <cstdlib>
@@ -35,6 +36,7 @@
 #include <sys/wait.h>
 #include <sys/socket.h>
 #include <sys/un.h>
+#include <sys/prctl.h>
 
 #include <boost/asio.hpp>
 #include <boost/format.hpp>
@@ -91,6 +93,19 @@ void ProcessExecContext::setFdPath(int redirectIdx
     argv[fplaceHolders->second] = str(boost::format(format) % fd);
 }
 
+bool ExecArgs::replace(const std::string &original, const std::string &value)
+{
+    for (auto &arg : *argv_) {
+        if (arg == original) {
+            std::free(arg);
+            arg = ::strdup(value.c_str());
+            return true;
+        }
+    }
+
+    return false;
+}
+
 namespace detail {
 
 constexpr int EXEC_FAILED = 255;
@@ -110,7 +125,8 @@ void useFd(int dst, int src, bool closeSrc = false)
     if (closeSrc) { ::close(src); }
 }
 
-pid_t execute(const ExecArgs &argv, const boost::function<void()> &afterFork)
+pid_t execute(ExecArgs argv
+              , const boost::function<void()> &afterFork)
 {
     LOG(info2) << "Executing: " << argv;
 
@@ -599,12 +615,25 @@ int systemImpl(const std::string &program, ProcessExecContext ctx)
 
     auto pid(detail::execute
              (argv,
-              [&ctx, &inPipes, &outPipes]() {
+              [&ctx, &inPipes, &outPipes, &argv]() {
                  try {
+                     // call pre-exec callbacks
+                     for (const auto &cb : ctx.preExecCallbacks) { cb(); }
+
+                     // replace placeholder arguments
+                     for (const auto &replacement : ctx.replacements) {
+                         const auto value(replacement.second());
+                         LOG(info2)
+                             << "    Replacing arg <" << replacement.first
+                             << "> with <" << value << ">.";
+                         argv.replace(replacement.first, value);
+                     }
+
                      childClose(inPipes);
                      childClose(outPipes);
                      redirect(ctx.redirects);
                      apply(ctx.environ);
+
                      // chdir to wd if set
                      if (ctx.cwd) { current_path(*ctx.cwd); }
                  } catch (const std::exception &e) {
@@ -633,6 +662,8 @@ void execImpl(const std::string &program, ProcessExecContext ctx)
     apply(ctx.environ);
     // chdir to wd if set
     if (ctx.cwd) { current_path(*ctx.cwd); }
+
+    // TODO: add pre-exec hooks
 
     detail::execute(argv);
 }
