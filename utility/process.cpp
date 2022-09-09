@@ -93,6 +93,17 @@ void ProcessExecContext::setFdPath(int redirectIdx
     argv[fplaceHolders->second] = str(boost::format(format) % fd);
 }
 
+void ExecArgs::overrideProcessName(const std::string &name) {
+    if (argv_->empty()) {
+        LOGTHROW(err2, std::logic_error)
+            << "Cannot override process name in empty exec args.";
+    }
+
+    filename_ = argv_->front();
+    argv_->front() = ::strdup(name.c_str());
+}
+
+
 bool ExecArgs::replace(const std::string &original, const std::string &value)
 {
     for (auto &arg : *argv_) {
@@ -606,6 +617,7 @@ int systemImpl(const std::string &program, ProcessExecContext ctx)
     // build arguments
     ExecArgs argv;
     argv.arg(program);
+    if (ctx.processName) { argv.overrideProcessName(ctx.processName->name); }
     for (const auto &arg : ctx.argv) {
         if (arg) {
             argv.arg(*arg);
