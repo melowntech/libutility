@@ -46,6 +46,7 @@ public:
     typedef std::vector<detail::RedirectFile> Redirects;
     typedef std::map<int, int> PlaceHolders;
 
+    ProcessName::Optional processName;
     Argv argv;
     Redirects redirects;
     PlaceHolders placeHolders;
@@ -93,6 +94,8 @@ public:
         preExecCallbacks.push_back(std::move(arg.callback));
     }
 
+    void apply(const ProcessName &arg) { processName = arg; }
+
     void apply(const ProcessExecContext &arg) { *this = arg; }
 
     template <typename T>
@@ -106,6 +109,11 @@ public:
         for (const auto &arg : args) {
             apply(arg);
         }
+    }
+
+    template <typename T>
+    void apply(const boost::optional<T> &arg) {
+        if (arg) { apply(*arg); }
     }
 
     void setFdPath(int redirectIdx, const detail::RedirectFile::DstArg &arg

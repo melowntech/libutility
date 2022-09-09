@@ -127,6 +127,15 @@ struct ReplaceArg {
     {}
 };
 
+/** Replaces process name with given string.
+ */
+struct ProcessName {
+    std::string name;
+    explicit ProcessName(const std::string &name) : name(name) {}
+
+    using Optional = boost::optional<ProcessName>;
+};
+
 /** Calls given callback juste before calling exec.
  */
 struct PreExecCallback {
@@ -218,7 +227,11 @@ public:
     template <typename T1, typename T2>
     void operator()(const T1 &a1, const T2 &a2) { arg(a1); arg(a2); }
 
-    const char* filename() const { return argv_->front(); }
+    void overrideProcessName(const std::string &name);
+
+    const char* filename() const {
+        return (filename_ ? filename_->c_str() : argv_->front());
+    }
     char* const* argv() const { return argv_->data(); }
 
     const Argv& args() const { return *argv_; }
@@ -228,6 +241,7 @@ public:
     bool replace(const std::string &original, const std::string &value);
 
 private:
+    boost::optional<std::string> filename_;
     std::shared_ptr<Argv> argv_;
 };
 
