@@ -52,6 +52,10 @@ bool match(const std::string &globPattern
         fnFlags |= FNM_CASEFOLD;
     }
 
+    if (flags & FileMatch::pathname) {
+        fnFlags |= FNM_PATHNAME;
+    }
+
     auto res(::fnmatch(globPattern.c_str(), path.string().c_str(), fnFlags));
 
     if (!res) { return true; }
