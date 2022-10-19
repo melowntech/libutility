@@ -143,6 +143,7 @@ cutPathPrefix(const boost::filesystem::path &path
 namespace FileMatch {
     enum {
         icase = 0x1   //!< case-insensitive matching
+        , pathname = 0x2   //!< match '/' only against '/'
     };
 }
 
