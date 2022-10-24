@@ -167,8 +167,6 @@ set(utility_SOURCES
   uncaught-exception.hpp uncaught-exception.cpp
 
   hostname.hpp # implementation is system dependent
-
-  iothreads.hpp iothreads.cpp
   )
 
 # system-dependent stuff
@@ -244,6 +242,7 @@ else()
     lockfile.hpp lockfile.cpp
     identity.hpp identity.cpp
     persona.hpp switchpersona.cpp
+    iothreads.hpp iothreads.cpp
 
     detail/limits.posix.cpp
     detail/time.posix.cpp
