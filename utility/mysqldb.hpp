@@ -26,6 +26,8 @@
 #ifndef utility_mysqldb_hpp_included_
 #define utility_mysqldb_hpp_included_
 
+#include <sstream>
+
 #if !UTILITY_HAS_MYSQL
 namespace mysqlpp {
     const char quote = '"';
@@ -38,6 +40,12 @@ namespace mysqlpp {
 }
 namespace utility {
 namespace mysql {
+    template<typename T>
+    class Tx {
+        mysqlpp::Transaction tx_;
+        public:
+            inline operator mysqlpp::Transaction&() { return tx_; }
+    };
     template<typename T>
     class TxProxy {};
     template<typename T>
@@ -58,8 +66,11 @@ namespace mysql {
         Db(const Parameters &params) { (void)(params); }
         ~Db() {}
     };
-}
-}
+    template <typename Function>
+    auto safeTx(const Function &f)-> decltype(f()) {
+        return f();
+    }
+} }
 #else
 
 // needed by sleep
