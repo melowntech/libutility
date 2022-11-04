@@ -42,6 +42,8 @@ namespace mysql {
     class TxProxy {};
     template<typename T>
     class TxProxyTraits {};
+    template<typename T>
+    class Tx {};
     class Db {
     public:
         using Query = mysqlpp::Query;
