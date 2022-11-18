@@ -41,6 +41,7 @@
 #include <boost/optional.hpp>
 #include <boost/utility/in_place_factory.hpp>
 
+#include "cppversion.hpp"
 #include "errorcode.hpp"
 
 namespace utility {
@@ -192,13 +193,19 @@ public:
      *  Returns nullptr if exception is set.
      */
     template <typename ErrorSink>
-    ConstGetPointer get(ErrorSink &sink) const;
+    ConstGetPointer
+    get(ErrorSink &sink
+        , std::enable_if_t<std::is_invocable
+        <ErrorSink, const std::exception_ptr&>::value>* = 0) const;
 
     /** Combines forwardError(sink) and get().
      *  Returns nullptr if exception is set.
      */
     template <typename ErrorSink>
-    GetPointer get(ErrorSink &sink);
+    GetPointer
+    get(ErrorSink &sink
+        , std::enable_if_t<std::is_invocable
+        <ErrorSink, const std::exception_ptr&>::value>* = 0);
 
     /** Combines forwardError(sink, ExpectedAsSink) and get().
      *  Returns nullptr if exception is set.
@@ -295,7 +302,10 @@ typename Expected<T, Traits>::reference Expected<T, Traits>::get() {
 template <typename T, typename Traits>
 template <typename ErrorSink>
 typename Expected<T, Traits>::ConstGetPointer
-Expected<T, Traits>::get(ErrorSink &sink) const
+Expected<T, Traits>
+::get(ErrorSink &sink
+      , std::enable_if_t<std::is_invocable
+      <ErrorSink, const std::exception_ptr&>::value>*) const
 {
     if (exc_) { sink(exc_); return Traits::NoConstGetPointer(); }
     if (ec_) { sink(ec_); return Traits::NoConstGetPointer(); }
@@ -312,7 +322,10 @@ Expected<T, Traits>::get(ErrorSink &sink) const
 template <typename T, typename Traits>
 template <typename ErrorSink>
 typename Expected<T, Traits>::GetPointer
-Expected<T, Traits>::get(ErrorSink &sink)
+Expected<T, Traits>
+::get(ErrorSink &sink
+      , std::enable_if_t<std::is_invocable
+      <ErrorSink, const std::exception_ptr&>::value>*)
 {
     if (exc_) { sink(exc_); return Traits::NoGetPointer(); }
     if (ec_) { sink(ec_); return Traits::NoGetPointer(); }
