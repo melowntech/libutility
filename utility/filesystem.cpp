@@ -168,12 +168,8 @@ std::map<std::string, fs::path> scanDir(const fs::path &root)
 
         const auto &path(iroot->path());
         const auto local(cutPathPrefix(path, root));
-        const auto id((local.parent_path() / local.stem())
-#ifdef _WIN32
-            .generic_string()); // force use of forward slashes as path separator, cpp17
-#else
-            .string());
-#endif
+        const auto id((local.parent_path() / local.stem()).generic_string());
+
         map[id] = local;
     }
 
