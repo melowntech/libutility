@@ -39,14 +39,26 @@ namespace utility {
 
 FileId FileId::from(const boost::filesystem::path &path)
 {
+    boost::system::error_code ec;
+    auto fid(from(path, ec));
+    if (ec) {
+        std::system_error e
+            (ec, formatError("Cannot stat file %s.", path));
+        LOG(err1) << e.what();
+        throw e;
+    }
+
+    return fid;
+}
+
+FileId FileId::from(const boost::filesystem::path &path
+                    , boost::system::error_code &ec)
+{
     struct ::stat s;
 
     if (-1 == ::stat(path.c_str(), &s)) {
-        std::system_error e
-            (errno, std::system_category()
-             , formatError("Cannot stat file %s.", path));
-        LOG(err1) << e.what();
-        throw e;
+        ec.assign(errno, boost::system::system_category());
+        return FileId(0, 0);
     }
 
     return FileId(s.st_dev, s.st_ino);

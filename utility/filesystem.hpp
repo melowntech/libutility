@@ -85,6 +85,9 @@ struct FileId {
 
     bool operator!=(const FileId &fid) const;
 
+    static FileId from(const boost::filesystem::path &path
+                       , boost::system::error_code &ec);
+
     static FileId from(const boost::filesystem::path &path);
 };
 
@@ -107,6 +110,29 @@ struct FileStat {
     static FileStat from(int fd);
     static FileStat from(int fd, std::nothrow_t);
 };
+
+struct RemoveAllFlags {
+    /** Skip any directory that is on a file system different from that of the
+     *  remove_all argument (or .device, if nonzero).
+     */
+    bool oneFileSystem = false;
+
+    /** Device number. Used only when oneFilesystem. Used instead of path's
+     ** device number if nonzero.
+     */
+    std::uint64_t device = 0;
+};
+
+/** Purge all files from path.
+ */
+std::size_t remove_all(const boost::filesystem::path &path
+                       , boost::system::error_code &ec
+                       , const RemoveAllFlags &flags = {});
+
+/** Purge all files from path.
+ */
+std::size_t remove_all(const boost::filesystem::path &path
+                       , const RemoveAllFlags &flags = {});
 
 // impelemtation
 
