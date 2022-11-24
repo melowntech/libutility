@@ -181,7 +181,6 @@ namespace {
 std::size_t removeDirContentsOneFs(const fs::path &dir, std::uint64_t device
                                    , bs::error_code &ec)
 {
-    LOG(info4) << "removeDirContentsOneFs(" << dir << ")";
     std::size_t removed(0);
 
     fs::directory_iterator idir(dir);
