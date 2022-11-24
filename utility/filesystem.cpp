@@ -38,6 +38,7 @@
 #include "path.hpp"
 
 namespace fs = boost::filesystem;
+namespace bs = boost::system;
 
 namespace utility {
 
@@ -173,6 +174,107 @@ std::map<std::string, fs::path> scanDir(const fs::path &root)
     }
 
     return map;
+}
+
+namespace {
+
+std::size_t removeDirContentsOneFs(const fs::path &dir, std::uint64_t device
+                                   , bs::error_code &ec)
+{
+    LOG(info4) << "removeDirContentsOneFs(" << dir << ")";
+    std::size_t removed(0);
+
+    fs::directory_iterator idir(dir);
+    fs::directory_iterator edir;
+
+    while (idir != edir) {
+        const auto &path(idir->path());
+        const auto status(idir->status());
+
+        const auto fid(FileId::from(path, ec));
+        if (ec) { return removed; }
+
+        // skip of on different device
+        if (fid.dev != device) {
+            idir.increment(ec);
+            if (ec) { return removed; }
+            continue;
+        }
+
+        if (status.type() == fs::file_type::directory_file) {
+            // descend if dir
+            removed += removeDirContentsOneFs(path, device, ec);
+            if (ec) { return removed; }
+        }
+
+        // remove dir file
+        removed += std::size_t(fs::remove(path, ec));
+        if (ec) {
+            if (ec == bs::errc::directory_not_empty) {
+                // we did not remove all files from the directory, not
+                // an error
+                ec.clear();
+            } else {
+                return removed;
+            }
+        }
+
+        idir.increment(ec);
+        if (ec) { return removed; }
+    }
+
+    return removed;
+}
+
+} // namespace
+
+std::size_t remove_all(const fs::path &path
+                       , bs::error_code &ec
+                       , const RemoveAllFlags &flags)
+{
+    if (!flags.oneFileSystem) {
+        return fs::remove_all(path, ec);
+    }
+
+    const auto fid(FileId::from(path, ec));
+
+    // use provided device or dir's device
+    auto device(flags.device ? flags.device : fid.dev);
+    if (ec) { return 0; }
+
+    // cannot delete this path since it's on a different device
+    if (device != fid.dev) { return 0; }
+
+    auto removed(0);
+
+    // directory? descend
+    if (fs::status(path).type() == fs::file_type::directory_file) {
+        removed += removeDirContentsOneFs(path, device, ec);
+        if (ec) { return removed; }
+    }
+
+    // remove argument itself
+    removed += std::size_t(fs::remove(path, ec));
+    if (ec) {
+        if (ec == bs::errc::directory_not_empty) {
+            // we did not remove all files from the directory, not
+            // an error
+            ec.clear();
+        }
+    }
+
+    return removed;
+}
+
+std::size_t remove_all(const boost::filesystem::path &path
+                       , const RemoveAllFlags &flags)
+{
+    bs::error_code ec;
+    const auto count(remove_all(path, ec, flags));
+    if (ec) {
+        throw std::system_error(ec);
+    }
+    return count;
 }
 
 } // namespace utility
