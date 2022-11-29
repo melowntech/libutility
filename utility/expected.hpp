@@ -139,10 +139,17 @@ public:
     typedef typename Traits::ConstGetPointer ConstGetPointer;
 
     Expected() : value_() {}
-    Expected(const value_type &value) : value_(value) {}
-    Expected(const std::exception &exc): exc_(std::make_exception_ptr(exc)) {}
+
+    template <typename Exception>
+    Expected(const Exception &exc
+             , std::enable_if_t<std::is_base_of
+             <std::exception, Exception>::value>* = 0)
+        : exc_(std::make_exception_ptr(exc))
+    {}
+
     Expected(const std::exception_ptr &exc) : exc_(exc) {}
     Expected(const std::error_code &ec) : ec_(ec) {}
+    Expected(const value_type &value) : value_(value) {}
 
     template <typename ...Args> Expected(ExpectedInPlace, Args &&...args)
         : value_(Traits::inplace(std::forward<Args>(args)...))
@@ -155,6 +162,16 @@ public:
     /** Set value, unset exception and error code.
      */
     Expected<T, Traits>& set(const_reference value);
+
+    /** Set value, unset exception and error code.
+     */
+    template <typename Exception>
+    auto set(const Exception &exc
+             , std::enable_if_t<std::is_base_of
+             <std::exception, Exception>::value>* = 0)
+    {
+        return set(std::make_exception_ptr(exc));
+    }
 
     /** Set exception, unset value and errorcode.
      */
