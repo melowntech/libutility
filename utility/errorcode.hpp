@@ -60,7 +60,7 @@ inline void throwErrorCode(const std::error_code &ec) noexcept(false)
 
 #if __cplusplus >= 201703L
     if (cat == std::future_category()) {
-        throw std::future_error(ec);
+        throw std::future_error(static_cast<std::future_errc>(ec.value()));
     }
 #endif
 
@@ -81,7 +81,7 @@ inline void throwErrorCode(const std::error_code &ec, std::string message)
 
 #if __cplusplus >= 201703L
     if (cat == std::future_category()) {
-        throw std::future_error(ec);
+        throw std::future_error(static_cast<std::future_errc>(ec.value()));
     }
 #endif
 
