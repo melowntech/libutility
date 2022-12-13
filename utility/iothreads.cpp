@@ -54,7 +54,7 @@ void IoThreads::worker(const std::string &name, std::size_t id
 {
     dbglog::thread_id(name);
 
-    LOG(info2) << "I/O thread spawned.";
+    LOG(info1) << "I/O thread spawned.";
 
     if (callbacks.start) { callbacks.start(id); }
 
@@ -62,7 +62,7 @@ void IoThreads::worker(const std::string &name, std::size_t id
     for (;; ioc_.reset()) {
         try {
             ioc_.run();
-            LOG(info2) << "I/O thread terminated.";
+            LOG(info1) << "I/O thread terminated.";
             if (callbacks.stop) { callbacks.stop(id); }
             return;
         } catch (const std::exception &e) {
