@@ -176,7 +176,7 @@ std::vector<fs::path> scanDir(const fs::path &root)
     return results;
 }
 
-std::map<std::string, fs::path> id2path(const std::vector<fs::path> &localPaths)
+std::map<std::string, fs::path> id2path(const std::vector<fs::path> &localPaths) {
     std::map<std::string, fs::path> result;
     for (const auto & local : localPaths) {
         const auto id((local.parent_path() / local.stem()).generic_string());
