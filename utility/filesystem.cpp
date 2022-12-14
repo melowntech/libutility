@@ -154,9 +154,9 @@ void processFile( const boost::filesystem::path &from
     of.close();
 }
 
-std::map<std::string, fs::path> scanDir(const fs::path &root)
+std::vector<fs::path> scanDir(const fs::path &root)
 {
-    std::map<std::string, fs::path> map;
+    std::vector<fs::path> results;
 
     for (fs::recursive_directory_iterator
              iroot(root, fs::symlink_option::recurse)
@@ -168,12 +168,20 @@ std::map<std::string, fs::path> scanDir(const fs::path &root)
 
         const auto &path(iroot->path());
         const auto local(cutPathPrefix(path, root));
-        const auto id((local.parent_path() / local.stem()).generic_string());
 
-        map[id] = local;
+        results.emplace_back(local);
     }
 
-    return map;
+    return results;
+}
+
+std::map<std::string, fs::path> id2path(const std::vector<fs::path> &localPaths)
+    std::map<std::string, fs::path> result;
+    for (const auto & local : localPaths) {
+        const auto id((local.parent_path() / local.stem()).generic_string());
+        result[id] = local;
+    }
+    return result;
 }
 
 } // namespace utility
