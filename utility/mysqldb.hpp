@@ -26,6 +26,7 @@
 #ifndef utility_mysqldb_hpp_included_
 #define utility_mysqldb_hpp_included_
 
+#include <thread>
 #include <sstream>
 
 #if !UTILITY_HAS_MYSQL
@@ -72,11 +73,6 @@ namespace mysql {
     }
 } }
 #else
-
-// needed by sleep
-#ifndef _WIN32
-#include <unistd.h>
-#endif
 
 #include <ctime>
 #include <string>
@@ -274,11 +270,7 @@ void Tx<Connector>::open(const Db::OptionalTxIsolationLevel& isolationLevel)
                 << "Error starting transaction: <" << e.what()
                 << ">; retrying.";
             connector_->closeDb();
-#ifdef _WIN32
             std::this_thread::sleep_for(std::chrono::seconds(1));
-#else
-            sleep(1);
-#endif
         }
     }
 }
@@ -447,11 +439,7 @@ void failIfNotRestartable(const Exception &e)
         "safe to restart transaction: <" << e.what()
         << ">; retrying.";
     // sleep a bit
-#ifdef _WIN32
     std::this_thread::sleep_for(std::chrono::seconds(1));
-#else
-    sleep(1);
-#endif
 }
 
 } // detail
