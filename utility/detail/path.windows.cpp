@@ -31,6 +31,7 @@
 #include <Windows.h>
 
 #include <boost/filesystem.hpp>
+#include <boost/dll/runtime_symbol_info.hpp>
 
 #include "dbglog/dbglog.hpp"
 
@@ -76,7 +77,8 @@ boost::optional<boost::filesystem::path> exePath()
     }
     return boost::filesystem::path(buf.data());
 #else
-    return {};
+    // try to use boost::dll::program_location
+    return boost::dll::program_location();
 #endif
 }
 

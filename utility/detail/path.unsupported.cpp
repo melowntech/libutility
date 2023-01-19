@@ -25,12 +25,14 @@
  */
 #include "../path.hpp"
 
+#include <boost/dll/runtime_symbol_info.hpp>
+
 namespace utility {
 
 boost::optional<boost::filesystem::path> exePath()
 {
-    // unable to find out
-    return boost::none;
+    // try to use boost::dll::program_location
+    return boost::dll::program_location();
 }
 
 } // namespace utility
