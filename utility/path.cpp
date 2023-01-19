@@ -25,6 +25,7 @@
  */
 
 #include <algorithm>
+#include <boost/filesystem.hpp>
 
 #include "path.hpp"
 
@@ -89,5 +90,22 @@ fs::path lexically_relative(const fs::path &path, const fs::path &base)
 }
 
 #endif
+
+void rename(const fs::path& oldPath, const fs::path& newPath)
+{
+#ifdef _WIN32
+    if (oldPath != newPath)
+    {
+        // use copy/delete instead of problematic rename
+        auto copyOptions(fs::copy_options::recursive
+                         | fs::copy_options::overwrite_existing
+                         | fs::copy_options::copy_symlinks);
+        copy(oldPath, newPath, copyOptions);
+        remove_all(oldPath);
+    }
+#else
+    fs::rename(oldPath, newPath);
+#endif
+}
 
 } // namespace utility

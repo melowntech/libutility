@@ -241,6 +241,9 @@ boost::filesystem::path
 lexically_relative(const boost::filesystem::path &path
                    , const boost::filesystem::path &base);
 
+void rename(const boost::filesystem::path& oldPath,
+            const boost::filesystem::path& newPath);
+
 } // namespace utility
 
 #endif // utility_path_hpp_included_

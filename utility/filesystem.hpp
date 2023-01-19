@@ -67,8 +67,12 @@ std::time_t lastModified(const boost::filesystem::path &path);
 
 std::size_t fileSize(const boost::filesystem::path &path);
 
-std::map<std::string, boost::filesystem::path> scanDir(
-    const boost::filesystem::path& root);
+// scan directory recursively and return local paths relative to root
+std::vector<boost::filesystem::path>
+    scanDir(const boost::filesystem::path& root);
+
+std::map<std::string, boost::filesystem::path>
+    id2path(const std::vector<boost::filesystem::path>& localPaths);
 
 /** Generalized file ID. Wrapper around file devide/inode. Using uint64 to
  *  capture every possibility.
