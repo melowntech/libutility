@@ -31,6 +31,7 @@
 #include <Windows.h>
 
 #include <boost/filesystem.hpp>
+#include <boost/dll/runtime_symbol_info.hpp>
 
 #include "dbglog/dbglog.hpp"
 
@@ -65,19 +66,7 @@ boost::filesystem::path homeDir()
 
 boost::optional<boost::filesystem::path> exePath()
 {
-#if WINAPI_PARTITION_DESKTOP
-    std::vector<char> buf(MAX_PATH + 1);
-    if (!::GetModuleFileName(nullptr, buf.data(), DWORD(buf.size()))) {
-        std::system_error e(::GetLastError(), std::generic_category());
-        LOG(err3)
-            << "Cannot determine exe file path "
-            "(GetModuleFileName failed): <"
-            << e.code() << ", " << e.what() << ">.";
-    }
-    return boost::filesystem::path(buf.data());
-#else
-    return {};
-#endif
+    return boost::dll::program_location();
 }
 
 } // namespace utility
