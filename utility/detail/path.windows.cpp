@@ -66,20 +66,7 @@ boost::filesystem::path homeDir()
 
 boost::optional<boost::filesystem::path> exePath()
 {
-#if WINAPI_PARTITION_DESKTOP
-    std::vector<char> buf(MAX_PATH + 1);
-    if (!::GetModuleFileName(nullptr, buf.data(), DWORD(buf.size()))) {
-        std::system_error e(::GetLastError(), std::generic_category());
-        LOG(err3)
-            << "Cannot determine exe file path "
-            "(GetModuleFileName failed): <"
-            << e.code() << ", " << e.what() << ">.";
-    }
-    return boost::filesystem::path(buf.data());
-#else
-    // try to use boost::dll::program_location
     return boost::dll::program_location();
-#endif
 }
 
 } // namespace utility

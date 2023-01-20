@@ -31,8 +31,7 @@ namespace utility {
 
 boost::optional<boost::filesystem::path> exePath()
 {
-    // try to use boost::dll::program_location
-    return boost::dll::program_location();
+    return boost::none;
 }
 
 } // namespace utility
