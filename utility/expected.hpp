@@ -206,6 +206,7 @@ public:
     template <typename ErrorSink>
     bool forwardError(ErrorSink &sink, const ExpectedAsSink&) const;
 
+#ifdef __cpp_lib_is_invocable
     /** Combines forwardError(sink) and get().
      *  Returns nullptr if exception is set.
      */
@@ -223,6 +224,7 @@ public:
     get(ErrorSink &sink
         , std::enable_if_t<std::is_invocable
         <ErrorSink, const std::exception_ptr&>::value>* = 0);
+#endif // #ifdef __cpp_lib_is_invocable
 
     /** Combines forwardError(sink, ExpectedAsSink) and get().
      *  Returns nullptr if exception is set.
@@ -316,6 +318,8 @@ typename Expected<T, Traits>::reference Expected<T, Traits>::get() {
     throw std::logic_error("Expected value unset");
 }
 
+#ifdef __cpp_lib_is_invocable
+
 template <typename T, typename Traits>
 template <typename ErrorSink>
 typename Expected<T, Traits>::ConstGetPointer
@@ -355,6 +359,8 @@ Expected<T, Traits>
 
     return Traits::getPointer(value_);
 }
+
+#endif // #ifdef __cpp_lib_is_invocable
 
 template <typename T, typename Traits>
 template <typename ErrorSink>

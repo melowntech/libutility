@@ -81,34 +81,4 @@ typename _Unique_if<T>::_Known_bound make_unique(Args&&...) = delete;
 
 #endif // __cpp_lib_make_unique
 
-/** Custom std::is_invocable implementation when not available (before C++17)
- *
- * Copied from https://stackoverflow.com/a/51188325/1623502 .
- *
- * NB: Code injected into the std namespace!
- */
-#ifndef __cpp_lib_is_invocable
-
-namespace std {
-
-template <typename F, typename... Args>
-struct is_invocable :
-    std::is_constructible<
-        std::function<void(Args ...)>
-        , std::reference_wrapper<typename std::remove_reference<F>::type>
-    >
-{};
-
-template <typename R, typename F, typename... Args>
-struct is_invocable_r :
-    std::is_constructible<
-        std::function<R(Args ...)>
-        , std::reference_wrapper<typename std::remove_reference<F>::type>
-    >
-{};
-
-} // namespace std
-
-#endif // __cpp_lib_is_invocable
-
 #endif // utility_cppversion_hpp_included_
