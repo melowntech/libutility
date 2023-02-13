@@ -70,7 +70,7 @@ inline boost::filesystem::path
 addExtension(const boost::filesystem::path &path
                     , const boost::filesystem::path &ext)
 {
-    return path.parent_path() / (path.filename().string() + ext.string());
+    return path.parent_path() / (path.filename().generic_string() + ext.generic_string());
 }
 
 /** Replaces file's extension with new one.
