@@ -1167,7 +1167,7 @@ public:
         : detail_(std::move(detail))
         , fileEntry_(name, compressionMethod(compression))
     {
-        detail_->begin(fileEntry_.name.string());
+        detail_->begin(fileEntry_.name.generic_string());
         open_ = true;
 
         if (filterInit) { filterInit(fos_); }
@@ -1452,7 +1452,7 @@ void Writer::Detail::commit(const FileEntry &fe)
     fh.compressedSize = fe.compressedSize;
     fh.uncompressedSize = fe.uncompressedSize;
     fh.externalFileAttributes = fe.attributes;
-    fh.filename = fe.name.string();
+    fh.filename = fe.name.generic_string();
     fh.fileOffset = tx;
 
     try {
