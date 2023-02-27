@@ -35,6 +35,7 @@
 #include <memory>
 #include <type_traits>
 #include <utility>
+#include <functional>
 
 #include "gccversion.hpp"
 
@@ -78,6 +79,6 @@ typename _Unique_if<T>::_Known_bound make_unique(Args&&...) = delete;
 
 } // namespace std
 
-#endif
+#endif // __cpp_lib_make_unique
 
 #endif // utility_cppversion_hpp_included_

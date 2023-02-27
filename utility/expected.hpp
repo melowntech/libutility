@@ -41,6 +41,7 @@
 #include <boost/optional.hpp>
 #include <boost/utility/in_place_factory.hpp>
 
+#include "cppversion.hpp"
 #include "errorcode.hpp"
 
 namespace utility {
@@ -138,10 +139,17 @@ public:
     typedef typename Traits::ConstGetPointer ConstGetPointer;
 
     Expected() : value_() {}
-    Expected(const value_type &value) : value_(value) {}
-    Expected(const std::exception &exc): exc_(std::make_exception_ptr(exc)) {}
+
+    template <typename Exception>
+    Expected(const Exception &exc
+             , std::enable_if_t<std::is_base_of
+             <std::exception, Exception>::value>* = 0)
+        : exc_(std::make_exception_ptr(exc))
+    {}
+
     Expected(const std::exception_ptr &exc) : exc_(exc) {}
     Expected(const std::error_code &ec) : ec_(ec) {}
+    Expected(const value_type &value) : value_(value) {}
 
     template <typename ...Args> Expected(ExpectedInPlace, Args &&...args)
         : value_(Traits::inplace(std::forward<Args>(args)...))
@@ -154,6 +162,16 @@ public:
     /** Set value, unset exception and error code.
      */
     Expected<T, Traits>& set(const_reference value);
+
+    /** Set value, unset exception and error code.
+     */
+    template <typename Exception>
+    auto set(const Exception &exc
+             , std::enable_if_t<std::is_base_of
+             <std::exception, Exception>::value>* = 0)
+    {
+        return set(std::make_exception_ptr(exc));
+    }
 
     /** Set exception, unset value and errorcode.
      */
@@ -188,17 +206,25 @@ public:
     template <typename ErrorSink>
     bool forwardError(ErrorSink &sink, const ExpectedAsSink&) const;
 
+#ifdef __cpp_lib_is_invocable
     /** Combines forwardError(sink) and get().
      *  Returns nullptr if exception is set.
      */
     template <typename ErrorSink>
-    ConstGetPointer get(ErrorSink &sink) const;
+    ConstGetPointer
+    get(ErrorSink &sink
+        , std::enable_if_t<std::is_invocable
+        <ErrorSink, const std::exception_ptr&>::value>* = 0) const;
 
     /** Combines forwardError(sink) and get().
      *  Returns nullptr if exception is set.
      */
     template <typename ErrorSink>
-    GetPointer get(ErrorSink &sink);
+    GetPointer
+    get(ErrorSink &sink
+        , std::enable_if_t<std::is_invocable
+        <ErrorSink, const std::exception_ptr&>::value>* = 0);
+#endif // #ifdef __cpp_lib_is_invocable
 
     /** Combines forwardError(sink, ExpectedAsSink) and get().
      *  Returns nullptr if exception is set.
@@ -292,10 +318,15 @@ typename Expected<T, Traits>::reference Expected<T, Traits>::get() {
     throw std::logic_error("Expected value unset");
 }
 
+#ifdef __cpp_lib_is_invocable
+
 template <typename T, typename Traits>
 template <typename ErrorSink>
 typename Expected<T, Traits>::ConstGetPointer
-Expected<T, Traits>::get(ErrorSink &sink) const
+Expected<T, Traits>
+::get(ErrorSink &sink
+      , std::enable_if_t<std::is_invocable
+      <ErrorSink, const std::exception_ptr&>::value>*) const
 {
     if (exc_) { sink(exc_); return Traits::NoConstGetPointer(); }
     if (ec_) { sink(ec_); return Traits::NoConstGetPointer(); }
@@ -312,7 +343,10 @@ Expected<T, Traits>::get(ErrorSink &sink) const
 template <typename T, typename Traits>
 template <typename ErrorSink>
 typename Expected<T, Traits>::GetPointer
-Expected<T, Traits>::get(ErrorSink &sink)
+Expected<T, Traits>
+::get(ErrorSink &sink
+      , std::enable_if_t<std::is_invocable
+      <ErrorSink, const std::exception_ptr&>::value>*)
 {
     if (exc_) { sink(exc_); return Traits::NoGetPointer(); }
     if (ec_) { sink(ec_); return Traits::NoGetPointer(); }
@@ -325,6 +359,8 @@ Expected<T, Traits>::get(ErrorSink &sink)
 
     return Traits::getPointer(value_);
 }
+
+#endif // #ifdef __cpp_lib_is_invocable
 
 template <typename T, typename Traits>
 template <typename ErrorSink>

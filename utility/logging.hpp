@@ -39,18 +39,31 @@ namespace utility {
  */
 class LogThreadId {
 public:
+    struct Append {};
+
     LogThreadId(const std::string &id);
+    LogThreadId(Append, const std::string &id);
 
     template <typename ...Args>
     LogThreadId(const std::string &format, Args &&...args);
+    template <typename ...Args>
+    LogThreadId(Append, const std::string &format, Args &&...args);
 
     template <typename T> LogThreadId(const T &value);
+    template <typename T> LogThreadId(Append, const T &value);
 
     ~LogThreadId();
 
 private:
     std::string saved_;
 };
+
+#define UTILITY_LOGSETID(...) \
+    utility::LogThreadId DBGLOG_ADD_LINE_NO(utility_LogThreadId_)(__VA_ARGS__)
+
+#define UTILITY_LOGAPPENDID(...)                                        \
+    utility::LogThreadId DBGLOG_ADD_LINE_NO(utility_LogThreadId_) \
+        (utility::LogThreadId::Append{}, __VA_ARGS__)
 
 // implementation
 
@@ -60,19 +73,29 @@ inline LogThreadId::LogThreadId(const std::string &id)
     dbglog::thread_id(id);
 }
 
+inline LogThreadId::LogThreadId(Append, const std::string &id)
+    : LogThreadId(dbglog::thread_id() + "/" + id)
+{}
+
 template <typename ...Args>
 LogThreadId::LogThreadId(const std::string &format, Args &&...args)
-    : saved_(dbglog::thread_id())
-{
-    dbglog::thread_id(utility::format(format, std::forward<Args>(args)...));
-}
+    : LogThreadId(utility::format(format, std::forward<Args>(args)...))
+{}
+
+template <typename ...Args>
+LogThreadId::LogThreadId(Append a, const std::string &format, Args &&...args)
+    : LogThreadId(a, utility::format(format, std::forward<Args>(args)...))
+{}
 
 template <typename T>
 LogThreadId::LogThreadId(const T &value)
-    : saved_(dbglog::thread_id())
-{
-    dbglog::thread_id(boost::lexical_cast<std::string>(value));
-}
+    : LogThreadId(boost::lexical_cast<std::string>(value))
+{}
+
+template <typename T>
+LogThreadId::LogThreadId(Append a, const T &value)
+    : LogThreadId(a, boost::lexical_cast<std::string>(value))
+{}
 
 inline LogThreadId::~LogThreadId() {
     try {

@@ -18,7 +18,7 @@ IoThreads::~IoThreads()
     if (!workers_.empty()) { stop(); }
 }
 
-void IoThreads::start(std::size_t count)
+void IoThreads::start(std::size_t count, Callbacks callbacks)
 {
     // make sure threads are released when something goes wrong
     struct Guard {
@@ -32,7 +32,7 @@ void IoThreads::start(std::size_t count)
         const std::string &name((count > 1)
                                 ? utility::format("%s:%u", name_, id)
                                 : name_);
-        workers_.emplace_back(&IoThreads::worker, this, name);
+        workers_.emplace_back(&IoThreads::worker, this, name, id, callbacks);
     }
 
     guard.release();
@@ -49,16 +49,21 @@ void IoThreads::stop()
     }
 }
 
-void IoThreads::worker(const std::string &name)
+void IoThreads::worker(const std::string &name, std::size_t id
+                       , Callbacks callbacks)
 {
     dbglog::thread_id(name);
 
-    LOG(info2) << "I/O thread spawned.";
+    LOG(info1) << "I/O thread spawned.";
 
+    if (callbacks.start) { callbacks.start(id); }
+
+    // is reset() call needed? what about thread safety?
     for (;; ioc_.reset()) {
         try {
             ioc_.run();
-            LOG(info2) << "I/O thread terminated.";
+            LOG(info1) << "I/O thread terminated.";
+            if (callbacks.stop) { callbacks.stop(id); }
             return;
         } catch (const std::exception &e) {
             LOG(err3)
