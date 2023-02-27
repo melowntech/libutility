@@ -43,7 +43,7 @@ inline void save(Archive &ar, const boost::filesystem::path &p
                      , unsigned int version)
 {
     (void) version;
-    ar & p.string();
+    ar & p.generic_string();
 }
 
 template<class Archive>

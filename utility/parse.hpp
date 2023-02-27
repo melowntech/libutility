@@ -39,6 +39,8 @@
 #include <boost/optional.hpp>
 #include <boost/utility/in_place_factory.hpp>
 
+#include "dbglog/dbglog.hpp"
+
 namespace utility {
 
 struct LineRange {
@@ -198,6 +200,18 @@ Row split(const std::string &line, const std::string &separator
         }, flags);
 
     return *row;
+}
+
+template <typename T>
+void parseNumber(T &out, const std::string &value, const char *name)
+{
+    try {
+        out = boost::lexical_cast<T>(value);
+    } catch (const boost::bad_lexical_cast&) {
+        LOGTHROW(err2, std::runtime_error)
+            << "Cannot convert " << name
+            << " to a number, value = <" << value << ">.";
+    }
 }
 
 } // namespace separated_values

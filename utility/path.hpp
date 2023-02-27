@@ -70,7 +70,7 @@ inline boost::filesystem::path
 addExtension(const boost::filesystem::path &path
                     , const boost::filesystem::path &ext)
 {
-    return path.parent_path() / (path.filename().string() + ext.string());
+    return path.parent_path() / (path.filename().generic_string() + ext.generic_string());
 }
 
 /** Replaces file's extension with new one.
@@ -83,7 +83,7 @@ inline boost::filesystem::path
 replaceOrAddExtension(const boost::filesystem::path &path
                       , const boost::filesystem::path &ext)
 {
-    auto e(ext.string());
+    auto e(ext.generic_string());
     if (!e.empty() && (e[0] != '.')) {
         // no leading dot: add
         e = "." + e;
@@ -96,7 +96,7 @@ replaceOrAddExtension(const boost::filesystem::path &path
     auto dir(path.parent_path());
     auto stem(path.stem());
     if (stem.empty()) { stem = path.filename(); }
-    return dir / (stem.string() + e);
+    return dir / (stem.generic_string() + e);
 }
 
 inline boost::filesystem::path
@@ -104,12 +104,12 @@ addFilenameSuffix(const boost::filesystem::path &path
                   , const std::string &suffix)
 {
     return path.parent_path() /
-           (path.stem().string() + suffix + path.extension().string());
+           (path.stem().generic_string() + suffix + path.extension().generic_string());
 }
 
 inline boost::filesystem::path toLower(const boost::filesystem::path &path)
 {
-    return boost::algorithm::to_lower_copy(path.string());
+    return boost::algorithm::to_lower_copy(path.generic_string());
 }
 
 constexpr int ExactMatch = 2;
