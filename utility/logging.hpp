@@ -60,7 +60,7 @@ public:
     ~LogThreadId();
 
 private:
-    std::string saved_;
+    std::optional<std::string> saved_;
 };
 
 #define UTILITY_LOGSETID(...) \
@@ -73,15 +73,19 @@ private:
 // implementation
 
 inline LogThreadId::LogThreadId(const std::optional<std::string> &id)
-    : saved_(dbglog::thread_id())
 {
-    if (id) { dbglog::thread_id(*id); }
+    if (id) {
+        saved_ = dbglog::thread_id();
+        dbglog::thread_id(*id);
+    }
 }
 
 inline LogThreadId::LogThreadId(Append, const std::optional<std::string> &id)
-    : saved_(dbglog::thread_id())
 {
-    if (id) { dbglog::thread_id(saved_ + "/" + *id); }
+    if (id) {
+        saved_ = dbglog::thread_id();
+        dbglog::thread_id(*saved_ + "/" + *id);
+    }
 }
 
 inline LogThreadId::LogThreadId(const std::string &id)
@@ -115,9 +119,11 @@ LogThreadId::LogThreadId(Append a, const T &value)
 {}
 
 inline LogThreadId::~LogThreadId() {
-    try {
-        dbglog::thread_id(saved_);
-    } catch (...) {}
+    if (saved_) {
+        try {
+            dbglog::thread_id(*saved_);
+        } catch (...) {}
+    }
 }
 
 } // namespace utility
