@@ -27,6 +27,8 @@
 #ifndef utility_logging_hpp_included_
 #define utility_logging_hpp_included_
 
+#include <optional>
+
 #include <boost/lexical_cast.hpp>
 
 #include "dbglog/dbglog.hpp"
@@ -40,6 +42,9 @@ namespace utility {
 class LogThreadId {
 public:
     struct Append {};
+
+    LogThreadId(const std::optional<std::string> &id);
+    LogThreadId(Append, const std::optional<std::string> &id);
 
     LogThreadId(const std::string &id);
     LogThreadId(Append, const std::string &id);
@@ -55,7 +60,7 @@ public:
     ~LogThreadId();
 
 private:
-    std::string saved_;
+    std::optional<std::string> saved_;
 };
 
 #define UTILITY_LOGSETID(...) \
@@ -66,6 +71,22 @@ private:
         (utility::LogThreadId::Append{}, __VA_ARGS__)
 
 // implementation
+
+inline LogThreadId::LogThreadId(const std::optional<std::string> &id)
+{
+    if (id) {
+        saved_ = dbglog::thread_id();
+        dbglog::thread_id(*id);
+    }
+}
+
+inline LogThreadId::LogThreadId(Append, const std::optional<std::string> &id)
+{
+    if (id) {
+        saved_ = dbglog::thread_id();
+        dbglog::thread_id(*saved_ + "/" + *id);
+    }
+}
 
 inline LogThreadId::LogThreadId(const std::string &id)
     : saved_(dbglog::thread_id())
@@ -98,9 +119,11 @@ LogThreadId::LogThreadId(Append a, const T &value)
 {}
 
 inline LogThreadId::~LogThreadId() {
-    try {
-        dbglog::thread_id(saved_);
-    } catch (...) {}
+    if (saved_) {
+        try {
+            dbglog::thread_id(*saved_);
+        } catch (...) {}
+    }
 }
 
 } // namespace utility
