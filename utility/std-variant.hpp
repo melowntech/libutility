@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2020 Melown Technologies SE
+ * Copyright (c) 2023 Melown Technologies SE
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
