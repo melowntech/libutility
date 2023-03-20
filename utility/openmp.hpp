@@ -41,8 +41,8 @@
 # include <omp.h>
 #endif
 
-/** Only ifg OpenMP is enabled then this macro expands argument to
- *  praga. Otherwise, nothing is expanded at all. There must be at least one
+/** Only if OpenMP is enabled then this macro expands argument to
+ *  pragma. Otherwise, nothing is expanded at all. There must be at least one
  *  argument. Macro arguments must contains what would normally be written after
  *  "#pragma omp" declaration.
  *
@@ -60,6 +60,16 @@
 #  define UTILITY_OMP(...)
 #endif
 #define UTILITY_OMP_(...) _Pragma(#__VA_ARGS__)
+
+/** Values of the _OPENMP macro for different OpenMP versions
+ *  (adapted from https://stackoverflow.com/a/38309448/6847659)
+ */
+#define OMP_VERSION_2_0 200203
+#define OMP_VERSION_2_5 200505
+#define OMP_VERSION_3_0 200805
+#define OMP_VERSION_3_5 201107
+#define OMP_VERSION_4_0 201307
+#define OMP_VERSION_4_5 201511
 
 /** Define extra functions if compiling with OpenMP
  */
