@@ -33,6 +33,8 @@
 #include <boost/iostreams/filter/gzip.hpp>
 #include <boost/iostreams/restrict.hpp>
 
+#include "uncaught-exception.hpp"
+
 namespace utility {
 
 /** Simple wrapper around external ostream that adds gzipping.
@@ -47,7 +49,7 @@ public:
     }
 
     ~Gzipper() {
-        if (!std::uncaught_exception()) {
+        if (!uncaught_exception()) {
             // no exception -> flush
             gzipped_.flush();
         }
