@@ -59,11 +59,13 @@ globPath(const boost::filesystem::path &pattern)
     if (res) {
         switch (res) {
         case GLOB_NOSPACE:
-            LOGTHROW(err1, GlobError) << "Glob: out of memory.";
+            LOGTHROW(err1, GlobError)
+                << "Glob: out of memory (pattern=" << pattern << ").";
             break;
 
         case GLOB_ABORTED:
-            LOGTHROW(err1, GlobError) << "Glob: read error.";
+            LOGTHROW(err1, GlobError)
+                << "Glob: read error (pattern=" << pattern << ").";
             break;
 
         case GLOB_NOMATCH:
@@ -71,7 +73,8 @@ globPath(const boost::filesystem::path &pattern)
 
         default:
             LOGTHROW(err1, GlobError)
-                << "Glob: unknown return status " << res << ".";
+                << "Glob: unknown return status " << res
+                << " (pattern=" << pattern << ").";
         }
     }
 
