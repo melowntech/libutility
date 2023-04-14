@@ -341,6 +341,20 @@ void concatWithSeparator(std::ostream &os, const std::string &sep
     concatWithSeparatorOther(os, sep, std::forward<Args>(args)...);
 }
 
+template <typename Optional>
+struct PrintOptional {
+    const Optional &o;
+    const std::string &dflt = "--";
+};
+
+template <typename E, typename T, typename ValueType>
+inline std::basic_ostream<E, T>&
+operator<<(std::basic_ostream<E, T> &os, const PrintOptional<ValueType> &o)
+{
+    return (o.o
+            ? os << *o.o
+            : os << o.dflt);
+}
 
 } } // namespace utility::detail
 

@@ -35,8 +35,14 @@
 
 #include <string>
 #include <sstream>
+#include <memory>
 
 #include <boost/filesystem.hpp>
+#include <boost/optional.hpp>
+
+#ifdef __cpp_lib_optional
+#  include <optional>
+#endif
 
 #include "detail/streams.hpp"
 
@@ -372,6 +378,53 @@ detail::first_valid::Writer<Args...> printFirst(Args &&...args)
     return detail::first_valid::Writer<Args...>
         (std::forward<Args>(args)...);
 }
+
+// optional value printing
+
+// plain pointer version
+template <typename T>
+detail::PrintOptional<const T*>
+optional(const T *opt, const std::string &dflt = "--")
+{
+    return { opt, dflt };
+}
+
+// unique pointer version
+template <typename T>
+detail::PrintOptional<std::unique_ptr<T>>
+optional(const std::unique_ptr<T> &opt, const std::string &dflt = "--")
+{
+    return { opt, dflt };
+}
+
+// shared pointer version
+template <typename T>
+detail::PrintOptional<std::shared_ptr<T>>
+optional(const std::shared_ptr<T> &opt, const std::string &dflt = "--")
+{
+    return { opt, dflt };
+}
+
+// boost::optional<T> version
+template <typename T>
+detail::PrintOptional<boost::optional<T>>
+optional(const boost::optional<T> &opt, const std::string &dflt = "--")
+{
+    return { opt, dflt };
+}
+
+#ifdef __cpp_lib_optional
+
+// std::optional<T> version
+
+template <typename T>
+detail::PrintOptional<std::optional<T>>
+optional(const std::optional<T> &opt, const std::string &dflt = "--")
+{
+    return { opt, dflt };
+}
+
+#endif
 
 } // namespace utility
 
