@@ -139,7 +139,7 @@ public:
 private:
     void store(const fs::path &file);
 
-    utility::zip::Writer &zip_;
+    utility::zip::Writer zip_;
     const utility::zip::Compression method_;
     const bool verbose_;
 };
