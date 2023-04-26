@@ -59,7 +59,11 @@
 #else
 #  define UTILITY_OMP(...)
 #endif
+#ifdef _MSC_VER
+#define UTILITY_OMP_(...) __pragma(__VA_ARGS__)
+#else
 #define UTILITY_OMP_(...) _Pragma(#__VA_ARGS__)
+#endif
 
 /** Values of the _OPENMP macro for different OpenMP versions
  *  (adapted from https://stackoverflow.com/a/38309448/6847659)
