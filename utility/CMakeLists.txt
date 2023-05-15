@@ -1,5 +1,5 @@
 # bump version here
-set(utility_VERSION 1.46)
+set(utility_VERSION 1.47)
 
 set(utility_DEPENDS
   dbglog>=1.7
@@ -167,6 +167,8 @@ set(utility_SOURCES
   uncaught-exception.hpp uncaught-exception.cpp
 
   hostname.hpp # implementation is system dependent
+
+  streamspirit.hpp
   )
 
 # system-dependent stuff
