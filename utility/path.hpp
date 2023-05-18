@@ -144,7 +144,7 @@ cutPathPrefix(const boost::filesystem::path &path
  * unchanged path
  */
 inline boost::filesystem::path
-    cutPathPrefixIfPossible(const boost::filesystem::path& path,
+    cutPathPrefixIfPrefixed(const boost::filesystem::path& path,
                             const boost::filesystem::path& prefix)
 {
     if (isPathPrefix(path, prefix)) { return cutPathPrefix(path, prefix); }
