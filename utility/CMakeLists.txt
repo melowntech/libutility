@@ -197,7 +197,7 @@ elseif(CMAKE_SYSTEM_NAME MATCHES Darwin OR CMAKE_SYSTEM_NAME MATCHES iOS)
   list(APPEND utility_SOURCES
     detail/iface.unsupported.cpp
     detail/path.posix.cpp
-    detail/path.unsupported.cpp
+    detail/path.darwin.cpp
     detail/rlimit.unsupported.cpp
     detail/filesystem.linux.cpp
     detail/memoryfile.unsupported.cpp
