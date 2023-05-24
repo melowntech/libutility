@@ -234,6 +234,15 @@ if(WIN32)
     detail/hostname.windows.cpp
     )
 
+elseif(APPLE)
+
+  # apple
+  list(APPEND utility_SOURCES
+  detail/limits.posix.cpp
+  detail/time.posix.cpp
+  detail/filedes.posix.cpp
+  detail/hostname.darwin.cpp
+  )
 else()
 
   # posix
