@@ -138,6 +138,19 @@ cutPathPrefix(const boost::filesystem::path &path
     return res;
 }
 
+
+/**
+ * Cut prefix when isPathPrefix(path, prefix) == true, otherwise returns
+ * unchanged path
+ */
+inline boost::filesystem::path
+    cutPathPrefixIfPrefixed(const boost::filesystem::path& path,
+                            const boost::filesystem::path& prefix)
+{
+    if (isPathPrefix(path, prefix)) { return cutPathPrefix(path, prefix); }
+    return path;
+}
+
 /** Filename matching.
  */
 namespace FileMatch {
