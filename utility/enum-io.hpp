@@ -230,7 +230,8 @@
         is.setstate(std::ios::failbit);                                 \
         return is;                                                      \
     }                                                                   \
-    constexpr int enumerationValuesCount(Type) {                        \
+    UTILITY_POSSIBLY_UNUSED constexpr int enumerationValuesCount(Type)  \
+    {                                                                   \
         return BOOST_PP_SEQ_SIZE(seq);                                  \
     }                                                                   \
     std::array<Type, BOOST_PP_SEQ_SIZE(seq)>                            \

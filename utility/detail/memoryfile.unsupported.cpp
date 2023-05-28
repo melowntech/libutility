@@ -29,7 +29,8 @@
 
 namespace utility {
 
-Filedes memoryFile(const std::string &name, int flags)
+Filedes memoryFile([[maybe_unused]] const std::string& name,
+                   [[maybe_unused]] int flags)
 {
     LOGTHROW(err3, std::runtime_error)
         << "In-memory file creation unsupported on this platform.";
@@ -37,4 +38,3 @@ Filedes memoryFile(const std::string &name, int flags)
 }
 
 } // namespace utility
-

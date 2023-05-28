@@ -35,7 +35,7 @@ namespace utility {
 class Runnable : boost::noncopyable {
 public:
     Runnable() = default;
-    Runnable(Runnable &&) = default;
+    // Runnable(Runnable &&) = default; // move ctor deleted in noncopyable
     virtual ~Runnable() {}
     virtual bool isRunning() = 0;
     virtual void stop() = 0;
