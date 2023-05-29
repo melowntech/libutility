@@ -34,7 +34,7 @@
 
 namespace utility { namespace thread {
 
-void setName(const std::string &name)
+void setName([[maybe_unused]] const std::string &name)
 {
 #if defined(_GNU_SOURCE) && !defined(__llvm__)
     auto useName((name.size() > 15) ? name.substr(0, 15) : name);
@@ -48,7 +48,7 @@ void setName(const std::string &name)
 #endif
 }
 
-void appendName(const std::string &name)
+void appendName([[maybe_unused]] const std::string &name)
 {
 #if defined(_GNU_SOURCE) && !defined(__llvm__)
     // fetch original name
