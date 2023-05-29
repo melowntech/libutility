@@ -33,7 +33,7 @@
     * untabified
 */
 /*
-  md5.hpp is a reformulation of the md5.h and md5.c code (included) to allow it to 
+  md5.hpp is a reformulation of the md5.h and md5.c code (included) to allow it to
   function as a component of a header only library. This conversion was done by Peter
   Thorson (webmaster@zaphoyd.com) in 2012 for the WebSocket++ project. The changes are
   released under the same license as the original (listed below)
@@ -234,7 +234,7 @@ process(state_t *pms, const byte_t *data /*[64]*/)
              * On little-endian machines, we can process properly aligned
              * data without copying it.
              */
-        if (!((data - (const byte_t *)0) & 3)) {
+        if (!(reinterpret_cast<std::uintptr_t>(data) & 3)) {
                 /* data are properly aligned */
         X = (const word_t *)data;
             } else {
@@ -479,11 +479,11 @@ inline std::string hash_string(const std::string& s)
 {
     char digest[16];
     hash(s.c_str(), s.size(), digest);
-            
+
     std::string ret;
     ret.resize(16);
     std::copy(digest, digest+16, ret.begin());
-    
+
     return ret;
 }
 
@@ -491,12 +491,12 @@ inline std::string hash_hex(const std::string& input)
 {
     std::string hash = hash_string(input);
     std::string hex;
-        
+
     for (size_t i = 0; i < hash.size(); i++) {
         hex.push_back(detail::hexval[((hash[i] >> 4) & 0xF)]);
         hex.push_back(detail::hexval[(hash[i]) & 0x0F]);
     }
-    
+
     return hex;
 }
 
