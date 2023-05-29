@@ -201,8 +201,8 @@
 #define UTILITY_GENERATE_ENUM_IO_IMPL(Type, seq, ci)                    \
     template <typename E, typename T>                                   \
     std::basic_ostream<E, T>&                                           \
-    operator<<(std::basic_ostream<E, T> &os, const Type &value)         \
-        UTILITY_POSSIBLY_UNUSED;                                        \
+    operator<< [[maybe_unused]] (std::basic_ostream<E, T> &os           \
+                                 , const Type &value);                  \
     template <typename E, typename T>                                   \
     std::basic_ostream<E, T>&                                           \
     operator<<(std::basic_ostream<E, T> &os, const Type &value)         \
@@ -216,8 +216,8 @@
                                                                         \
     template <typename E, typename T>                                   \
     std::basic_istream<E, T>&                                           \
-    operator>>(std::basic_istream<E, T> &is, Type &out)                 \
-        UTILITY_POSSIBLY_UNUSED;                                        \
+    operator>> [[maybe_unused]] (std::basic_istream<E, T> &is           \
+                                 , Type &out);                          \
     template <typename E, typename T>                                   \
     std::basic_istream<E, T>&                                           \
     operator>>(std::basic_istream<E, T> &is, Type &out)                 \
@@ -230,12 +230,12 @@
         is.setstate(std::ios::failbit);                                 \
         return is;                                                      \
     }                                                                   \
-    UTILITY_POSSIBLY_UNUSED constexpr int enumerationValuesCount(Type)  \
+    constexpr int enumerationValuesCount [[maybe_unused]] (Type)        \
     {                                                                   \
         return BOOST_PP_SEQ_SIZE(seq);                                  \
     }                                                                   \
     std::array<Type, BOOST_PP_SEQ_SIZE(seq)>                            \
-    enumerationValues(Type) UTILITY_POSSIBLY_UNUSED;                    \
+    enumerationValues [[maybe_unused]] (Type);                          \
     inline std::array<Type, BOOST_PP_SEQ_SIZE(seq)>                     \
     enumerationValues(Type)                                             \
     {                                                                   \
@@ -247,7 +247,7 @@
     }                                                                   \
                                                                         \
     std::array<const char*, BOOST_PP_SEQ_SIZE(seq)>                     \
-    enumerationValuesStringified(Type) UTILITY_POSSIBLY_UNUSED;         \
+    enumerationValuesStringified [[maybe_unused]] (Type);               \
     inline std::array<const char*, BOOST_PP_SEQ_SIZE(seq)>              \
     enumerationValuesStringified(Type)                                  \
     {                                                                   \
@@ -258,7 +258,7 @@
         }};                                                             \
     }                                                                   \
                                                                         \
-    const char* enumerationString(Type) UTILITY_POSSIBLY_UNUSED;        \
+    const char* enumerationString [[maybe_unused]] (Type);              \
     inline const char* enumerationString(Type)                          \
     {                                                                   \
         return UTILITY_DETAIL_name(Type, BOOST_PP_SEQ_HEAD(seq))        \
