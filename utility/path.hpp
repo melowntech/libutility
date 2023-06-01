@@ -36,6 +36,8 @@
 
 #include <utility>
 #include <algorithm>
+#include <filesystem>
+
 #include <boost/filesystem/path.hpp>
 #include <boost/algorithm/string/case_conv.hpp>
 #include <boost/optional.hpp>
@@ -46,6 +48,16 @@
 
 namespace utility {
 
+//!< make sure we have std::filesystem::path
+const std::filesystem::path& toStd(const std::filesystem::path &p);
+//!< make sure we have std::filesystem::path
+std::filesystem::path toStd(const boost::filesystem::path &p);
+
+//!< make sure we have boost::filesystem::path
+const boost::filesystem::path& toBoost(const boost::filesystem::path &p);
+//!< make sure we have boost::filesystem::path
+boost::filesystem::path toBoost(const std::filesystem::path &p);
+
 /** Join any number of Boost.Filesystem paths to one path by operator/
  */
 template <typename ...Paths>
@@ -55,6 +67,9 @@ boost::filesystem::path
 addExtension(const boost::filesystem::path &path
              , const boost::filesystem::path &ext);
 
+std::filesystem::path
+addExtension(const std::filesystem::path &path
+             , const std::filesystem::path &ext);
 
 // implementation
 
@@ -68,9 +83,18 @@ inline boost::filesystem::path joinPaths(Paths &&...tail)
 
 inline boost::filesystem::path
 addExtension(const boost::filesystem::path &path
-                    , const boost::filesystem::path &ext)
+             , const boost::filesystem::path &ext)
 {
-    return path.parent_path() / (path.filename().generic_string() + ext.generic_string());
+    return path.parent_path()
+        / (path.filename().generic_string() + ext.generic_string());
+}
+
+inline std::filesystem::path
+addExtension(const std::filesystem::path &path
+             , const std::filesystem::path &ext)
+{
+    return path.parent_path()
+        / (path.filename().generic_string() + ext.generic_string());
 }
 
 /** Replaces file's extension with new one.
@@ -243,6 +267,26 @@ lexically_relative(const boost::filesystem::path &path
 
 void rename(const boost::filesystem::path& oldPath,
             const boost::filesystem::path& newPath);
+
+inline const std::filesystem::path& toStd(const std::filesystem::path &p)
+{
+    return p;
+}
+
+inline std::filesystem::path toStd(const boost::filesystem::path &p)
+{
+    return { p.generic_string() };
+}
+
+inline const boost::filesystem::path& toBoost(const boost::filesystem::path &p)
+{
+    return p;
+}
+
+inline boost::filesystem::path toBoost(const std::filesystem::path &p)
+{
+    return { p.generic_string() };
+}
 
 } // namespace utility
 
