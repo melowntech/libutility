@@ -29,6 +29,8 @@
 #include <vector>
 #include <map>
 #include <utility>
+#include <filesystem>
+#include <optional>
 
 #include <boost/optional.hpp>
 #include <boost/filesystem/path.hpp>
@@ -83,6 +85,9 @@ public:
     void apply(const boost::filesystem::path &arg) {
         argv.push_back(arg.string());
     }
+    void apply(const std::filesystem::path &arg) {
+        argv.push_back(arg.string());
+    }
 
     void apply(ReplaceArg &&arg) {
         const auto name(format("__%s", argv.size()));
@@ -113,6 +118,11 @@ public:
 
     template <typename T>
     void apply(const boost::optional<T> &arg) {
+        if (arg) { apply(*arg); }
+    }
+
+    template <typename T>
+    void apply(const std::optional<T> &arg) {
         if (arg) { apply(*arg); }
     }
 
