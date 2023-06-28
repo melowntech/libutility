@@ -81,14 +81,14 @@ Identity NamedIdentity::resolve() const
 
 void setRealPersona(const Identity &persona)
 {
-    if (setgid(persona.gid) == -1) {
+    if (persona.hasValidGid() && (::setgid(persona.gid) == -1)) {
         std::system_error e(errno, std::system_category());
         LOG(err2) << "Cannot change real gid to " << persona.gid << ": <"
                   << e.code() << ", " << e.what() << ">.";
         throw e;
     }
 
-    if (setuid(persona.uid) == -1) {
+    if (persona.hasValidUid() && (::setuid(persona.uid) == -1)) {
         std::system_error e(errno, std::system_category());
         LOG(err2) << "Cannot change real uid to " << persona.uid << ": <"
                   << e.code() << ", " << e.what() << ">.";
@@ -98,18 +98,40 @@ void setRealPersona(const Identity &persona)
 
 void setEffectivePersona(const Identity &persona)
 {
-    if (setegid(persona.gid) == -1) {
+    if (persona.hasValidGid() && (::setegid(persona.gid) == -1)) {
         std::system_error e(errno, std::system_category());
         LOG(err2) << "Cannot change effective gid to " << persona.gid << ": <"
                   << e.code() << ", " << e.what() << ">.";
         throw e;
     }
 
-    if (seteuid(persona.uid) == -1) {
+    if (persona.hasValidUid() && (::seteuid(persona.uid) == -1)) {
         std::system_error e(errno, std::system_category());
         LOG(err2) << "Cannot change effective uid to " << persona.uid << ": <"
                   << e.code() << ", " << e.what() << ">.";
         throw e;
+    }
+}
+
+ScopedPersona::ScopedPersona(const Identity &ep)
+{
+    // if nothing is to be changedL  do nothing here
+    if (!ep.hasValidUid() && !ep.hasValidGid()) { return; }
+
+    // load current effective persona
+    saved_.loadEffectivePersona();
+    // set requested
+    setEffectivePersona(ep);
+}
+
+ScopedPersona::~ScopedPersona()
+{
+    // try to change persona back to saved state
+    try {
+        setEffectivePersona(saved_);
+    } catch (const std::exception &e) {
+        LOG(err2) << "Cannot set effective persona back: <"
+                  << e.what() << ">.";
     }
 }
 

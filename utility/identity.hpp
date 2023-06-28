@@ -46,9 +46,24 @@ struct Identity {
     void loadEffectivePersona();
 
     static Identity effectivePersona();
+
+    bool hasValidUid() const;
+
+    bool hasValidGid() const;
 };
 
 void setEffectivePersona(const Identity &persona);
+
+void setRealPersona(const Identity &persona);
+
+class ScopedPersona {
+public:
+    ScopedPersona(const Identity &ep);
+    ~ScopedPersona();
+
+private:
+    Identity saved_;
+};
 
 struct NamedIdentity {
     std::string username;
@@ -87,6 +102,18 @@ operator>>(std::basic_istream<CharT, Traits> &is, Identity &p)
         is.setstate(std::ios::failbit);
     }
     return is;
+}
+
+inline bool Identity::hasValidUid() const
+{
+    const Identity invalid;
+    return uid != invalid.uid;
+}
+
+inline bool Identity::hasValidGid() const
+{
+    const Identity invalid;
+    return gid != invalid.gid;
 }
 
 } // namespace utility
