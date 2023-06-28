@@ -56,10 +56,10 @@ void setEffectivePersona(const Identity &persona);
 
 void setRealPersona(const Identity &persona);
 
-class ScopedEffectivePersona {
+class ScopedPersona {
 public:
-    ScopedEffectivePersona(const Identity &ep);
-    ~ScopedEffectivePersona();
+    ScopedPersona(const Identity &ep);
+    ~ScopedPersona();
 
 private:
     Identity saved_;

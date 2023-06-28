@@ -113,7 +113,7 @@ void setEffectivePersona(const Identity &persona)
     }
 }
 
-ScopedEffectivePersona::ScopedEffectivePersona(const Identity &ep)
+ScopedPersona::ScopedPersona(const Identity &ep)
 {
     // if nothing is to be changedL  do nothing here
     if (!ep.hasValidUid() && !ep.hasValidGid()) { return; }
@@ -124,7 +124,7 @@ ScopedEffectivePersona::ScopedEffectivePersona(const Identity &ep)
     setEffectivePersona(ep);
 }
 
-ScopedEffectivePersona::~ScopedEffectivePersona()
+ScopedPersona::~ScopedPersona()
 {
     // try to change persona back to saved state
     try {
