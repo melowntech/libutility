@@ -38,7 +38,7 @@
 #endif
 
 // pre-4.7 gcc has no override/final modifier
-#if GCC_VERSION && (GCC_VERSION < 40700)
+#if GCC_VERSION && (GCC_VERSION < 40700) && !defined(__clang__)
 #    define UTILITY_OVERRIDE
 #    define UTILITY_FINAL
 #else
