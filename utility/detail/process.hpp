@@ -180,7 +180,7 @@ ProcessExecContext::dump(std::basic_ostream<E, T> &os
     os << separator << exePath;
 
     // print parameters
-    for (const auto arg : argv) {
+    for (const auto &arg : argv) {
         if (arg) {
             os << " " << *arg;
         }
