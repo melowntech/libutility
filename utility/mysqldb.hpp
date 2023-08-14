@@ -42,15 +42,15 @@ namespace mysqlpp {
 namespace utility {
 namespace mysql {
     template<typename T>
-    class Tx {
+    struct Tx {
         mysqlpp::Transaction tx_;
         public:
             inline operator mysqlpp::Transaction&() { return tx_; }
     };
     template<typename T>
-    class TxProxy {};
+    struct TxProxy {};
     template<typename T>
-    class TxProxyTraits {};
+    struct TxProxyTraits {};
     class Db {
     public:
         using Query = mysqlpp::Query;
