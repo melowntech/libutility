@@ -31,6 +31,8 @@
 #include <memory>
 #include <chrono>
 
+#include "json/json.hpp"
+
 namespace utility {
 class TraceTimer
 {
@@ -61,10 +63,24 @@ class TraceTimer
 
         static void dump()
         {
-            for(const TraceRecord &record: records)
-                std::cout << record.name << ";"
-                          << std::chrono::duration_cast<std::chrono::microseconds>(record.time.time_since_epoch()).count() << ";"
-                          << record.isStart << std::endl;
+            nlohmann::json array;
+            for (const TraceRecord& record : records) {
+                const auto ts
+                    = std::chrono::duration_cast<std::chrono::microseconds>(
+                          record.time.time_since_epoch())
+                          .count();
+                array.push_back({
+                    { "name", record.name},
+                    { "ts", ts },
+                    { "ph", record.isStart ? "B" : "E" }
+                     });
+            }
+
+            nlohmann::json json;
+            json["traceEvents"] = array;
+
+            std::ofstream f("trace.json");
+            f << json;
         }
 
     private:
