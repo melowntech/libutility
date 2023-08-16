@@ -26,80 +26,79 @@
 
 #pragma once
 
-#include <vector>
+#include <chrono>
 #include <iostream>
 #include <memory>
-#include <chrono>
+#include <vector>
 
 #include "json/json.hpp"
 
-namespace utility {
+namespace utility
+{
 class TraceTimer
 {
     // TODO: use utc_clock since C++20
     using Clock = std::chrono::system_clock;
     using TimePoint = std::chrono::time_point<Clock>;
 
-    public:
-        TraceTimer(const std::string _name): name(_name)
+public:
+    TraceTimer(const std::string _name) : name(_name)
+    {
+        records.emplace_back(name, true);
+    }
+
+    ~TraceTimer() { stop(); }
+
+    void stop()
+    {
+        if (stopped)
+            return;
+        else
+            stopped = true;
+
+        records.emplace_back(name, false);
+    }
+
+    static void dump()
+    {
+        nlohmann::json array;
+        for (const TraceRecord& record : records)
         {
-            records.emplace_back(name, true);
+            const auto ts
+                = std::chrono::duration_cast<std::chrono::microseconds>(
+                      record.time.time_since_epoch())
+                      .count();
+            array.push_back({ { "name", record.name },
+                              { "ts", ts },
+                              { "ph", record.isStart ? "B" : "E" } });
         }
 
-        ~TraceTimer()
+        nlohmann::json json;
+        json["traceEvents"] = array;
+
+        std::ofstream f("trace.json");
+        f << json;
+    }
+
+private:
+    struct TraceRecord
+    {
+        TraceRecord(const std::string& _name, bool _isStart)
+            : name(_name),
+              isStart(_isStart)
         {
-            stop();
+            time = Clock::now();
         }
-
-        void stop()
-        {
-            if (stopped)
-                return;
-            else
-                stopped = true;
-
-            records.emplace_back(name, false);
-        }
-
-        static void dump()
-        {
-            nlohmann::json array;
-            for (const TraceRecord& record : records) {
-                const auto ts
-                    = std::chrono::duration_cast<std::chrono::microseconds>(
-                          record.time.time_since_epoch())
-                          .count();
-                array.push_back({
-                    { "name", record.name},
-                    { "ts", ts },
-                    { "ph", record.isStart ? "B" : "E" }
-                     });
-            }
-
-            nlohmann::json json;
-            json["traceEvents"] = array;
-
-            std::ofstream f("trace.json");
-            f << json;
-        }
-
-    private:
-        struct TraceRecord
-        {
-            TraceRecord(const std::string &_name, bool _isStart): name(_name), isStart(_isStart)
-            {
-                time = Clock::now();
-            }
-
-            std::string name;
-            TimePoint time;
-            bool isStart;
-        };
-
-        static inline std::vector<TraceRecord> records;
 
         std::string name;
-        bool stopped = false;
+        TimePoint time;
+        bool isStart;
+    };
+
+    static inline std::vector<TraceRecord> records;
+
+    std::string name;
+    bool stopped = false;
 };
 
 } // namespace utility
